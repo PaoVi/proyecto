@@ -1,0 +1,407 @@
+{% extends 'seguridad/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-0">
+    <div class="row justify-content-center">
+        <div class="col-12 col-xl-12">
+            
+            <!-- HEADER -->
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <div>
+                    <h2 class="h4 mb-1">GESTIÓN DE ROLES</h2>
+                </div>
+                {% if perms.seguridad.agregar_roles %}
+                <a href="{% url 'rol_crear' %}" class="btn btn-primary btn-sm">
+                    <i class="bi bi-plus-circle"></i>Nuevo Rol
+                </a>
+                {% endif %}
+            </div>
+
+            <!-- FILTROS -->
+            <div class="card mb-2">
+                <div class="card-body p-2">
+                    <form method="get" class="row g-2 align-items-center">
+                        <div class="col-md-5">
+                            <label class="form-label small">NOMBRE ROL</label>
+                            <input type="text" name="nombre" class="form-control form-control-sm" style="height: 33px;" 
+                                   placeholder="Buscar por rol" value="{{ nombre_busqueda|default:'' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small">ESTADO</label>
+                            <select name="estado" class="form-select form-select-sm">
+                                <option value="">Todos los estados</option>
+                                <option value="activo" {% if estado_filtro == 'activo' %}selected{% endif %}>Activo</option>
+                                <option value="inactivo" {% if estado_filtro == 'inactivo' %}selected{% endif %}>Inactivo</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small">&nbsp;</label>
+                            <button type="submit" class="btn btn-outline-primary w-100 btn-sm" style="height: 33px;">
+                                <i class="bi bi-search"></i>Buscar
+                            </button>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small">&nbsp;</label>
+                            <a href="{% url 'rol_lista' %}" class="btn btn-outline-secondary w-100 btn-sm" style="height: 33px;">
+                                <i class="bi bi-arrow-clockwise"></i> Limpiar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- ENCABEZADO -->
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="table-responsive table-container">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 25%;">Nombre del Rol</th>
+                                    <th style="width: 20%;">Permisos</th>
+                                    <th style="width: 20%;">Usuarios</th>
+                                    <th style="width: 15%;">Estado</th>
+                                    <th style="width: 20%;" class="text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for grupo in grupos %}
+                                <tr class="{% if not grupo.activo %}table-secondary{% endif %}">
+                                    <!-- NOMBRE DEL ROL -->
+                                    <td style="width: 25%; min-width: 200px;">
+                                        <div class="fw-semibold text-start" title="{{ grupo.name }}">
+                                            {{ grupo.name }}
+                                        </div>
+                                    </td>
+                                    
+                                    <!-- PERMISOS -->
+                                    <td style="width: 20%; min-width: 150px;">
+                                        <a href="#" class="text-decoration-none text-dark" data-bs-toggle="modal" data-bs-target="#modalPermisos{{ grupo.id }}">
+                                            {{ grupo.permissions.count }} permiso(s)
+                                        </a> 
+                                    </td>
+                                    
+                                    <!-- USUARIOS -->
+                                    <td style="width: 20%; min-width: 150px;">
+                                        <a href="#" class="text-decoration-none text-dark" data-bs-toggle="modal" data-bs-target="#modalUsuarios{{ grupo.id }}">
+                                            {{ grupo.seguridad_usuario_set.count }} usuario(s)
+                                        </a>
+                                    </td>
+                        
+                                    <!-- ESTADO -->
+                                    <td style="width: 15%; min-width: 100px;">
+                                        {% if grupo.activo %}
+                                            <span class="badge bg-success">Activo</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Inactivo</span>
+                                        {% endif %}
+                                    </td>
+                                    
+                                    <!-- ACCIONES -->
+                                    <td style="width: 20%; min-width: 150px;" class="text-center">
+                                        <div class="btn-group btn-group-sm">
+                                            <!-- BOTÓN VER -->
+                                            {% if perms.seguridad.ver_roles %}
+                                            <a href="{% url 'rol_ver' grupo.id %}" class="btn btn-outline-info btn-sm" title="Ver detalles">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            {% endif %}
+                                            
+                                            <!-- BOTÓN EDITAR -->
+                                            {% if perms.seguridad.editar_roles %}
+                                            <a href="{% url 'rol_editar' grupo.id %}" class="btn btn-outline-primary btn-sm" title="Editar">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            {% endif %}
+                                            
+                                            <!-- BOTÓN ACTIVAR/DESACTIVAR -->
+                                            {% if perms.seguridad.desactivar_roles %}
+                                                {% if grupo.name in "Administrador,Mecánico,Chapista,Recepcionista" %}
+                                                    <span class="btn btn-outline-secondary btn-sm disabled" 
+                                                        title="Rol del sistema - No se puede desactivar">
+                                                        <i class="bi bi-lock"></i>
+                                                    </span>
+                                                {% else %}
+                                                    {% if grupo.activo %}
+                                                    <button type="button" class="btn btn-outline-danger btn-sm" title="Desactivar rol" 
+                                                            data-bs-toggle="modal" data-bs-target="#deactivateModal"
+                                                            data-rol-id="{{ grupo.id }}" data-rol-name="{{ grupo.name }}">
+                                                        <i class="bi bi-x-circle"></i>
+                                                    </button>
+                                                    {% else %}
+                                                    <button type="button" class="btn btn-outline-success btn-sm" title="Activar rol" 
+                                                            data-bs-toggle="modal" data-bs-target="#activateModal" 
+                                                            data-rol-id="{{ grupo.id }}" data-rol-name="{{ grupo.name }}">
+                                                        <i class="bi bi-check-circle"></i>
+                                                    </button>
+                                                    {% endif %}
+                                                {% endif %}
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center py-3">
+                                        <i class="bi bi-people text-muted" style="font-size: 1.5rem;"></i>
+                                        <p class="text-muted mt-1 mb-0">No hay roles registrados</p>
+                                        <a href="{% url 'rol_crear' %}" class="btn btn-primary btn-sm mt-2">
+                                            <i class="bi bi-plus-circle"></i>Crear primer rol
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PAGINACIÓN -->
+            {% if grupos.has_other_pages %}
+            <div class="d-flex justify-content-between align-items-center mt-2">
+            <div>
+                <span class="text-muted small">
+                Mostrando {{ grupos.start_index }} - {{ grupos.end_index }} de {{ grupos.paginator.count }}
+                (Pág. {{ grupos.number }} de {{ grupos.paginator.num_pages }})
+                </span>
+            </div>
+            <nav>
+                <ul class="pagination pagination-sm mb-0">
+                {% if grupos.has_previous %}
+                    <li class="page-item">
+                    <a class="page-link" href="?page=1{% if qs_no_page %}&{{ qs_no_page }}{% endif %}" title="Primera página">«</a>
+                    </li>
+                    <li class="page-item">
+                    <a class="page-link" href="?page={{ grupos.previous_page_number }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}" title="Anterior">‹</a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link">«</span></li>
+                    <li class="page-item disabled"><span class="page-link">‹</span></li>
+                {% endif %}
+
+                {% for i in grupos.paginator.page_range %}
+                    {% if i == grupos.number %}
+                    <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+                    {% elif i >= grupos.number|add:'-2' and i <= grupos.number|add:'2' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ i }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">{{ i }}</a>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if grupos.has_next %}
+                    <li class="page-item">
+                    <a class="page-link" href="?page={{ grupos.next_page_number }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}" title="Siguiente">›</a>
+                    </li>
+                    <li class="page-item">
+                    <a class="page-link" href="?page={{ grupos.paginator.num_pages }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}" title="Última página">»</a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link">›</span></li>
+                    <li class="page-item disabled"><span class="page-link">»</span></li>
+                {% endif %}
+                </ul>
+            </nav>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- MODALES PARA CADA GRUPO -->
+{% for grupo in grupos %}
+<!-- MODAL DE PERMISOS -->
+<div class="modal fade" id="modalPermisos{{ grupo.id }}" tabindex="-1" aria-labelledby="modalPermisosLabel{{ grupo.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title" id="modalPermisosLabel{{ grupo.id }}">Permisos: {{ grupo.name }}</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                {% if grupo.permissions.all %}
+                <div style="max-height: 300px; overflow-y: auto;">
+                    {% regroup grupo.permissions.all by content_type.app_label as permisos_agrupados %}
+                    {% for app in permisos_agrupados %}
+                    <div class="mb-2">
+                        <h6 class="text-primary mb-1 small">{{ app.grouper|title }}</h6>
+                        <div class="ms-3">
+                            {% for permiso in app.list %}
+                            <div class="d-flex justify-content-between align-items-center border-bottom pb-1 mb-1">
+                                <span class="small">{{ permiso.name }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-3">
+                    <i class="bi bi-shield-slash text-muted d-block mb-2" style="font-size: 2rem;"></i>
+                    <span class="text-muted">Este rol no tiene permisos asignados</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL DE USUARIOS -->
+<div class="modal fade" id="modalUsuarios{{ grupo.id }}" tabindex="-1" aria-labelledby="modalUsuariosLabel{{ grupo.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title" id="modalUsuariosLabel{{ grupo.id }}">Usuarios: {{ grupo.name }}</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                {% if grupo.seguridad_usuario_set.all %}
+                <div style="max-height: 300px; overflow-y: auto;">
+                    <div class="list-group">
+                        {% for usuario in grupo.seguridad_usuario_set.all %}
+                        <div class="list-group-item">
+                            <div class="justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-0 small">{{ usuario.get_full_name|default:usuario.username }}</h6>
+                                    {% if usuario.empleado %}
+                                        <small class="text-secondary ">{{ usuario.empleado.nombre }}</small>
+                                    {% else %}
+                                        <small class="text-secondary">Sin empleado vinculado</small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% else %}
+                <div class="text-center py-3">
+                    <i class="bi bi-person-x text-muted d-block mb-2" style="font-size: 2rem;"></i>
+                    <span class="text-muted">Ningún usuario tiene este rol</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<!-- MODAL DE CONFIRMACIÓN PARA DESACTIVAR -->
+<div class="modal fade" id="deactivateModal" tabindex="-1" aria-labelledby="deactivateModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deactivateModalLabel">Desactivar Rol</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Desactivar el rol <strong id="rolNameDeactivate"></strong>?</p>
+                <p>El rol ya no estará disponible para asignar a usuarios.</p>
+            </div>
+            <div class="modal-footer">
+                <form method="post" action="" id="deactivateForm">
+                    {% csrf_token %}
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger btn-sm">Desactivar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>  
+
+<!-- MODAL DE CONFIRMACIÓN PARA ACTIVAR -->
+<div class="modal fade" id="activateModal" tabindex="-1" aria-labelledby="activateModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="activateModalLabel">Activar Rol</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Activar el rol <strong id="rolNameActivate"></strong>?</p>
+                <p>El rol estará disponible para asignar a usuarios.</p>
+            </div>
+            <div class="modal-footer">
+                <form method="post" action="" id="activateForm">
+                    {% csrf_token %}
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success btn-sm">Activar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<style>
+#deactivateModal .modal-dialog,
+#activateModal .modal-dialog {
+  max-width: 400px;        
+  width: 90%;            
+  margin: 0 auto;     
+  display: flex;           
+  align-items: center;     
+  min-height: calc(100% - 2rem); 
+}
+#deactivateModal .modal-content,
+#activateModal .modal-content {
+  min-height: 50px;      
+}
+/* Texto y acciones centradas */
+#deactivateModal .modal-title,
+#activateModal .modal-title,
+#deactivateModal .modal-body,
+#activateModal .modal-body {
+  text-align: center;
+}
+#deactivateModal .modal-footer,
+#activateModal .modal-footer {
+  justify-content: center; 
+  gap: .5rem;
+}
+#deactivateModal .modal-footer .btn,
+#activateModal  .modal-footer .btn {
+  /* tamaño */
+  padding: 0.45rem 0.9rem;   
+  font-size: 0.75rem;      
+  min-width: 120px;       
+  line-height: 1.15;       
+  border-radius: 8px;     
+}
+</style>
+<script>
+// Configuración de modales
+document.addEventListener('DOMContentLoaded', function() {
+    const deactivateModal = document.getElementById('deactivateModal');
+    const activateModal = document.getElementById('activateModal');
+    
+    if (deactivateModal) {
+        deactivateModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            const rolId = button.getAttribute('data-rol-id');
+            const rolName = button.getAttribute('data-rol-name');
+            
+            document.getElementById('rolNameDeactivate').textContent = rolName;
+            document.getElementById('deactivateForm').action = "{% url 'rol_desactivar' 0 %}".replace('0', rolId);
+        });
+    }
+    
+    if (activateModal) {
+        activateModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            const rolId = button.getAttribute('data-rol-id');
+            const rolName = button.getAttribute('data-rol-name');
+            
+            document.getElementById('rolNameActivate').textContent = rolName;
+            document.getElementById('activateForm').action = "{% url 'rol_desactivar' 0 %}".replace('0', rolId);
+        });
+    }
+    
+    // Inicializar tooltips
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
+    const tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
+{% endblock %}

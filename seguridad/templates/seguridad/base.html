@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="es" class="h-100">
+
+{% load static %}
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CarSys - Sistema de Gestión de Taller</title>
+  <link href="{% static 'seguridad/css/bootstrap.min.css' %}" rel="stylesheet">
+  <link href="{% static 'seguridad/css/cover.css' %}" rel="stylesheet">
+  <link href="{% static 'seguridad/css/custom.css' %}" rel="stylesheet">
+  <link rel="icon" type="image/png" href="{% static 'seguridad/images/icono.ico' %}">
+  <!-- BOOSTSTRAP ICONS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+</head>
+
+<body class="d-flex h-100 text-bg-light">
+  <div class="cover-container d-flex w-100 h-100 p-3 mx-auto flex-column">
+
+    <!-- HEADER -->
+    <header class="d-flex justify-content-between align-items-center mb-4">
+      <h3 class="mb-0 py-0 px-50">
+        <a href="{% url 'home' %}" class="text-decoration-none">
+          <img src="{% static 'seguridad/images/logo.svg' %}" alt="CarSys" width="100" height="100">
+        </a>
+      </h3>
+
+      <nav class="nav nav-masthead">
+        <a class="nav-link fw-bold py-1 px-2" aria-current="page" href="{% url 'home' %}">
+          <i class="bi bi-house"></i> Inicio
+        </a>
+        
+        {% if user.is_authenticated %}
+
+          <!-- MENÚ DE BOTONES -->
+          {% if perms.seguridad.gestionar_clientes %}
+          <div class="position-relative d-inline-block" id="menu-clientes">
+            <a href="{% url 'cliente_lista' %}" class="nav-link fw-bold py-1 px-2">
+              <i class="bi bi-people"></i> Clientes
+            </a>
+          </div>
+          {% endif %}
+
+          {% if perms.seguridad.gestionar_empleados %}
+          <div class="position-relative d-inline-block" id="menu-empleados">
+            <a href="{% url 'empleado_lista' %}" class="nav-link fw-bold py-1 px-2">
+              <i class="bi bi-people"></i> Empleados
+            </a>
+          </div>
+          {% endif %}
+
+          {% if perms.seguridad.gestionar_vehiculos %}
+          <div class="position-relative d-inline-block" id="menu-vehiculos">
+            <a href="{% url 'vehiculo_lista' %}" class="nav-link fw-bold py-1 px-2">
+              <i class="bi bi-car-front"></i> Vehículos
+            </a>
+          </div>
+          {% endif %}
+  
+          {% if perms.seguridad.gestionar_presupuestos %}
+          <div class="position-relative d-inline-block" id="menu-presupuestos">
+            <a href="{% url 'presupuesto_lista' %}" class="nav-link fw-bold py-1 px-2">
+              <i class="bi bi-clipboard-check"></i> Presupuestos
+            </a>
+          </div>
+          {% endif %}
+
+          {% if perms.seguridad.gestionar_ordenes_trabajo %}
+          <div class="position-relative d-inline-block" id="menu-ordenes_trabajo">
+            <a href="{% url 'orden_trabajo_lista' %}" class="nav-link fw-bold py-1 px-2">
+              <i class="bi bi-clipboard-check"></i> Órdenes de Trabajo
+            </a>
+          </div>
+          {% endif %}
+
+          {% if perms.seguridad.gestionar_compras %}
+          <div class="position-relative d-inline-block" id="menu-compras">
+            <a href="{% url 'compra_lista' %}" class="nav-link fw-bold py-1 px-2">
+              <i class="bi bi-cart-plus"></i> Compras
+            </a>
+          </div>
+          {% endif %}
+
+          {% if perms.seguridad.gestionar_facturas %}
+          <div class="position-relative d-inline-block" id="menu-facturas">
+            <a href="{% url 'factura_lista' %}" class="nav-link fw-bold py-1 px-2">
+              <i class="bi bi-receipt"></i> Facturas
+            </a>
+          </div>
+          {% endif %}
+
+          {% if perms.seguridad.gestionar_finanzas %}
+          <div class="position-relative d-inline-block" id="menu-facturas">
+            <a href="{% url 'movimiento_lista' %}" class="nav-link fw-bold py-1 px-2">
+              <i class="bi bi-cash-coin"></i> Finanzas
+            </a>
+          </div>
+          {% endif %}
+
+          {% if perms.seguridad.gestionar_insumos %}
+          <div class="position-relative d-inline-block" id="menu-insumos">
+            <a href="{% url 'insumo_lista' %}" class="nav-link fw-bold py-1 px-2">
+              <i class="bi bi-tools"></i> Insumos
+            </a>
+          </div>
+          {% endif %}
+
+          {% if perms.seguridad.gestionar_servicios %}
+          <div class="position-relative d-inline-block" id="menu-servicios">
+            <a href="{% url 'servicio_lista' %}" class="nav-link fw-bold py-1 px-2">
+              <i class="bi bi-tools"></i> Servicios
+            </a>
+          </div>
+          {% endif %}
+
+          {% if perms.seguridad.gestionar_proveedores %}
+          <div class="position-relative d-inline-block" id="menu-proveedores">
+            <a href="{% url 'proveedor_lista' %}" class="nav-link fw-bold py-1 px-2">
+              <i class="bi bi-building"></i> Proveedores
+            </a>
+          </div>
+          {% endif %}
+
+          {% if perms.seguridad.gestionar_usuarios %}
+          <div class="position-relative d-inline-block" id="menu-usuarios">
+            <a href="{% url 'usuario_lista' %}" class="nav-link fw-bold py-1 px-2">
+              <i class="bi bi-people"></i> Usuarios
+            </a>
+          </div>
+          {% endif %}
+
+          {% if perms.seguridad.gestionar_roles %}
+          <div class="position-relative d-inline-block" id="menu-roles">
+            <a href="{% url 'rol_lista' %}" class="nav-link fw-bold py-1 px-2">
+              <i class="bi bi-shield-lock"></i> Roles
+            </a>
+          </div>
+          {% endif %}
+
+          {% if perms.seguridad.gestionar_configuraciones %}
+          <a class="nav-link fw-bold py-1 px-2" href="{% url 'configuracion_lista' %}">
+            <i class="bi bi-exclamation-circle"></i> Configuraciones
+          </a>
+          {% endif %}
+
+          <!-- INFORMACIÓN DEL USUARIO  -->
+          <span class="nav-link fw-bold py-1 px-2 text-muted profile-link" id="profile-link">
+              <i class="bi bi-person-circle"></i> 
+              {{ user.username }} ({{ user.get_rol_display }})
+          </span>
+          <a class="nav-link fw-bold py-1 px-2 text-danger" href="{% url 'exit' %}">
+            <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
+          </a>
+        {% else %}
+          <a class="nav-link fw-bold py-1 px-2" href="{% url 'login' %}">
+            <i class="bi bi-box-arrow-in-right"></i> Iniciar Sesión
+          </a>
+        {% endif %}
+      </nav>
+    </header>
+
+    <!-- MENSAJES DE DJANGO -->
+    {% if messages %}
+    <div class="messages-container">
+        {% for message in messages %}
+        <div class="django-alert django-alert-{{ message.tags }}">
+            <i class="bi 
+                {% if message.tags == 'success' %}bi-check-circle
+                {% elif message.tags == 'error' or message.tags == 'danger' %}bi-x-circle
+                {% elif message.tags == 'warning' %}bi-exclamation-triangle
+                {% else %}bi-info-circle{% endif %}">
+            </i>
+            <span class="message-content">{{ message }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <main class="d-flex flex-column justify-content-center align-items-center flex-fill text-center">
+      {% block content %}{% endblock %}
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="mt-auto text-center">
+      <div class="text-muted">
+        <small>
+          <i class="bi bi-c-circle"></i> 2025 CarSys - Sistema de Gestión del Taller Mecánico Iam Car
+          <br>
+          <span class="text-muted">v1.0</span>
+        </small>
+      </div>
+    </footer>
+  </div>
+
+  <!-- MODAL DE SESIÓN POR EXPIRAR -->
+  <div class="modal fade" id="sessionWarningModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content rounded-2 shadow">
+        <div class="modal-header bg-warning text-light">
+          <h5 class="modal-title"><i class="bi bi-exclamation-triangle"></i> Sesión por expirar</h5>
+        </div>
+        <div class="modal-body text-center">
+          <p>Su sesión está por expirar en <span id="countdown"></span> minuto(s).</p>
+          <p>¿Deseas continuar trabajando?</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="continueSession" class="btn btn-primary">
+            <i class="bi bi-arrow-clockwise"></i> Continuar
+          </button>
+          <button type="button" id="logoutSession" class="btn btn-secondary">
+            <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE SESIÓN EXPIRADA -->
+  <div class="modal fade" id="sessionExpiredModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content rounded-2 shadow">
+        <div class="modal-header bg-danger text-light">
+          <h5 class="modal-title"><i class="bi bi-x-octagon"></i> Sesión expirada</h5>
+        </div>
+        <div class="modal-body text-center">
+          <p>Su sesión ha excedido el tiempo límite.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="reloginBtn" class="btn btn-primary">
+            <i class="bi bi-box-arrow-in-right"></i> Iniciar sesión nuevamente
+          </button>
+          <button type="button" id="cancelExitBtn" class="btn btn-secondary">
+            <i class="bi bi-x-circle"></i> Cancelar y salir
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS -->
+  <script src="{% static 'seguridad/js/bootstrap.bundle.min.js' %}"></script>
+
+  <style>
+  /* Sesión por expirar */
+  #sessionWarningModal .modal-dialog,
+  #sessionExpiredModal .modal-dialog {
+      max-width: 350px;
+      max-height: 50px;
+  }
+
+  #sessionWarningModal .modal-content,
+  #sessionExpiredModal .modal-content {
+      border-radius: 2rem; 
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+      font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      max-height: 200px;
+      line-height: 0.5;
+      overflow: hidden;
+  }
+  #sessionWarningModal .modal-footer,
+  #sessionExpiredModal .modal-footer {
+      justify-content: center;
+      border-top: none;
+      padding: 0.1rem;
+      line-height: 0.5;
+  }
+  #sessionWarningModal .modal-header,
+  #sessionExpiredModal .modal-header {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    margin: 0;
+    background-clip: padding-box;  
+  }
+  #sessionWarningModal .btn,
+  #sessionExpiredModal .btn {
+      min-width: 30px;
+      border-radius: 0.25rem;
+      padding: 0.3rem;
+  }
+  #sessionWarningModal .bi,
+  #sessionExpiredModal .bi {
+      margin-right: 0.1rem;
+  }
+  </style>
+  
+  <script>
+  document.addEventListener('DOMContentLoaded', function() {
+      // Menús hover
+      const menuUsuarios = document.getElementById('menu-usuarios');
+      const submenuUsuarios = document.getElementById('submenu-usuarios');
+      let timerUsuarios;
+
+      if (menuUsuarios && submenuUsuarios) {
+          menuUsuarios.addEventListener('mouseenter', () => {
+              timerUsuarios = setTimeout(() => {
+                  submenuUsuarios.style.display = 'block';
+              }, 200);
+          });
+
+          menuUsuarios.addEventListener('mouseleave', () => {
+              clearTimeout(timerUsuarios);
+              submenuUsuarios.style.display = 'none';
+          });
+      }
+
+      const menuRoles = document.getElementById('menu-roles');
+      const submenuRoles = document.getElementById('submenu-roles');
+      let timerRoles;
+
+      if (menuRoles && submenuRoles) {
+          menuRoles.addEventListener('mouseenter', () => {
+              timerRoles = setTimeout(() => {
+                  submenuRoles.style.display = 'block';
+              }, 200);
+          });
+
+          menuRoles.addEventListener('mouseleave', () => {
+              clearTimeout(timerRoles);
+              submenuRoles.style.display = 'none';
+          });
+      }
+
+      // Cerrar automáticamente las alertas después de 5s
+      const alerts = document.querySelectorAll('.alert');
+      alerts.forEach(alert => {
+          setTimeout(() => {
+              if (alert.isConnected) {
+                  const bsAlert = new bootstrap.Alert(alert);
+                  bsAlert.close();
+              }
+          }, 5000);
+      });
+
+      // Cerrar menús al hacer clic fuera
+      document.addEventListener('click', function(event) {
+          if (submenuUsuarios && !menuUsuarios.contains(event.target)) {
+              submenuUsuarios.style.display = 'none';
+          }
+          if (submenuRoles && !menuRoles.contains(event.target)) {
+              submenuRoles.style.display = 'none';
+          }
+      });
+
+      // Perfil
+      const profileLink = document.getElementById('profile-link');
+      if (profileLink) {
+        profileLink.addEventListener('click', function() {
+          window.location.href = '{% url "perfil_usuario" %}';
+        });
+      }
+  });
+  </script>
+
+  <!-- JS de expiración/aviso de sesión (usa tu context processor dinámico) -->
+  <script>
+  document.addEventListener('DOMContentLoaded', function() {
+      const warnEl = document.getElementById('sessionWarningModal');
+      const warnModal = new bootstrap.Modal(warnEl, { backdrop: 'static', keyboard: false });
+
+      const expiredEl = document.getElementById('sessionExpiredModal');
+      const expiredModal = new bootstrap.Modal(expiredEl, { backdrop: 'static', keyboard: false });
+
+      const countdownEl = document.getElementById('countdown');
+
+      // Variables del context processor (dinámico por configuración)
+      const expiredFlag = {{ session_is_expired|default:False|yesno:"true,false" }};
+      let remainingSeconds = {{ session_remaining_seconds|default:0 }};
+
+      // Config: minutos antes para mostrar el warning
+      const warningBeforeMinutes = 2;
+      const warningBeforeSeconds = warningBeforeMinutes * 60;
+
+      let warningShown = false;
+      let tickTimer = null;
+
+      function showWarning(secondsLeft) {
+          if (countdownEl) {
+              const minutes = Math.ceil(secondsLeft / 60);
+              countdownEl.textContent = minutes;
+          }
+          warnModal.show();
+      }
+
+      function showExpired() {
+          try { warnModal.hide(); } catch (e) {}
+          expiredModal.show();
+      }
+
+      function doServerLogoutThenExpired() {
+          fetch("{% url 'exit' %}", { method: "GET", credentials: "same-origin" })
+            .finally(() => {
+              showExpired();
+            });
+      }
+
+      // Si el backend ya marcó expirado, mostrar directamente
+      if (expiredFlag) {
+          showExpired();
+          return;
+      }
+
+      // Si hay tiempo restante, iniciar contador
+      if (remainingSeconds > 0) {
+          tickTimer = setInterval(() => {
+              remainingSeconds = Math.max(remainingSeconds - 1, 0);
+
+              // Mostrar aviso
+              if (remainingSeconds <= warningBeforeSeconds && !warningShown && remainingSeconds > 0) {
+                  warningShown = true;
+                  showWarning(remainingSeconds);
+              }
+
+              // Actualizar contador del modal si está visible
+              if (warningShown && countdownEl) {
+                  const minutes = Math.ceil(remainingSeconds / 60);
+                  countdownEl.textContent = minutes;
+              }
+
+              // Llegó a 0 → forzar logout y mostrar “expirada”
+              if (remainingSeconds === 0) {
+                  clearInterval(tickTimer);
+                  doServerLogoutThenExpired();
+              }
+          }, 1000);
+      }
+
+      // Botón "Continuar" → ping a una vista segura que cuente como actividad
+      const continueBtn = document.getElementById('continueSession');
+      if (continueBtn) {
+        continueBtn.addEventListener('click', function() {
+            fetch("{% url 'home' %}", { method: "GET", credentials: "same-origin" })
+              .then(() => {
+                  // El backend (middleware) actualizará last_activity en el próximo request real.
+                  // Para el front, extendemos optimistamente unos minutos.
+                  remainingSeconds = Math.max(remainingSeconds, 5 * 60);
+                  warningShown = false;
+                  try { warnModal.hide(); } catch (e) {}
+              });
+        });
+      }
+
+      // Botón "Cerrar Sesión" del warning
+      const logoutWarnBtn = document.getElementById('logoutSession');
+      if (logoutWarnBtn) {
+        logoutWarnBtn.addEventListener('click', function() {
+            doServerLogoutThenExpired();
+            window.location.href = "{% url 'exit' %}?next={% url 'home' %}";
+        });
+      }
+
+      // Botón "Iniciar sesión nuevamente" del expirado
+      const reloginBtn = document.getElementById('reloginBtn');
+      if (reloginBtn) {
+        reloginBtn.addEventListener('click', function() {
+            window.location.href = "{% url 'login' %}";
+        });
+      }
+
+      // Botón "Cancelar y salir" del expirado
+      const cancelExitBtn = document.getElementById('cancelExitBtn');
+      if (cancelExitBtn) {
+        cancelExitBtn.addEventListener('click', function() {
+            window.close();
+            setTimeout(() => {
+              if (!document.hidden) {
+                window.location.href = "{% url 'home' %}";
+              }
+            }, 200);
+        });
+      }
+  });
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</body>
+</html>

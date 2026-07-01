@@ -1,0 +1,347 @@
+{% extends 'seguridad/base.html' %}
+
+{% block content %}
+<div class="container-fluid py-0">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-12">
+
+      <!-- HEADER -->
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <div>
+          <h2 class="h4 mb-1">GESTIÓN DE PROVEEDORES</h2>
+        </div>
+        {% if perms.seguridad.agregar_proveedores %}
+        <a href="{% url 'proveedor_crear' %}" class="btn btn-primary btn-sm">
+          <i class="bi bi-plus-circle"></i>Nuevo Proveedor
+        </a>
+        {% endif %}
+      </div>
+
+      <!-- FILTROS -->
+      <div class="card mb-2">
+        <div class="card-body p-2">
+          <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-4">
+              <label class="form-label small">RUC</label>
+              <input type="text" name="ruc" value="{{ request.GET.ruc }}" class="form-control form-control-sm" style="height: 33px;" placeholder="Ej.: 80012345-1">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small">RAZÓN SOCIAL</label>
+              <input type="text" name="razon" value="{{ request.GET.razon }}" class="form-control form-control-sm" style="height: 33px;" placeholder="Buscar por razón social o nombre">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label small">ESTADO</label>
+              <select name="estado" class="form-select form-select-sm">
+                <option value="">Todos</option>
+                <option value="activo"   {% if request.GET.estado == 'activo' %}selected{% endif %}>Activo</option>
+                <option value="inactivo" {% if request.GET.estado == 'inactivo' %}selected{% endif %}>Inactivo</option>
+              </select>
+            </div>
+            <div class="col-md-1">
+              <label class="form-label small">&nbsp;</label>
+              <button type="submit" class="btn btn-outline-primary w-100 btn-sm" style="height: 33px;">
+                <i class="bi bi-search"></i>Buscar
+              </button>
+            </div>
+            <div class="col-md-1">
+              <label class="form-label small">&nbsp;</label>
+              <a href="{% url 'proveedor_lista' %}" class="btn btn-outline-secondary w-100 btn-sm" style="height: 33px;">
+                <i class="bi bi-arrow-clockwise"></i> Limpiar
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- LISTA -->
+      <div class="card">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0" id="proveedoresTable">
+            <thead class="table-light">
+              <tr>
+                <th style="width: 12%">RUC</th>
+                <th style="width: 25%">Razón Social</th>
+                <th style="width: 12%">Teléfono</th>
+                <th style="width: 25%">Correo Electrónico</th>
+                <th style="width: 10%">Estado</th>
+                <th style="width: 10%" class="text-center">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in proveedores %}
+              <tr class="{% if not p.is_active %}table-secondary{% endif %}" data-ruc="{{ p.ruc }}" data-telefono="{{ p.telefono }}">
+                <td class="fw-semibold ruc-cell">{{ p.ruc }}</td>
+                <td class="text-start" style="max-width: 320px;">
+                  {{ p.razon_social }}
+                  {% if p.nombre_fantasia %}
+                    <div class="small text-muted">{{ p.nombre_fantasia }}</div>
+                  {% endif %}
+                </td>
+                <td class="telefono-cell">{{ p.telefono|default:"—" }}</td>
+                <td class="text-start text-truncate" style="max-width: 260px;">{{ p.email|default:"—" }}</td>
+                <td>
+                  {% if p.is_active %}
+                    <span class="badge bg-success">Activo</span>
+                  {% else %}
+                    <span class="badge bg-secondary">Inactivo</span>
+                  {% endif %}
+                </td>
+                <td class="text-center">
+                  <div class="btn-group btn-group-sm">
+                    {% if perms.seguridad.ver_proveedores %}
+                    <a href="{% url 'proveedor_ver' p.id %}" class="btn btn-outline-info btn-sm" title="Ver">
+                      <i class="bi bi-eye"></i>
+                    </a>
+                    {% endif %}
+
+                    {% if perms.seguridad.editar_proveedores %}
+                    <a href="{% url 'proveedor_editar' p.id %}" class="btn btn-outline-primary btn-sm" title="Editar">
+                      <i class="bi bi-pencil"></i>
+                    </a>
+                    {% endif %}
+
+                    {% if perms.seguridad.desactivar_proveedores %}
+                      {% if p.is_active %}
+                      <button type="button" class="btn btn-outline-danger btn-sm" title="Desactivar"
+                              data-bs-toggle="modal" data-bs-target="#deactivateModal"
+                              data-prov-id="{{ p.id }}" data-prov-nombre="{{ p.razon_social }}">
+                        <i class="bi bi-x-circle"></i>
+                      </button>
+                      {% else %}
+                      <button type="button" class="btn btn-outline-success btn-sm" title="Activar"
+                              data-bs-toggle="modal" data-bs-target="#activateModal"
+                              data-prov-id="{{ p.id }}" data-prov-nombre="{{ p.razon_social }}">
+                        <i class="bi bi-check-circle"></i>
+                      </button>
+                      {% endif %}
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="6" class="text-center py-4 text-muted">No se encontraron proveedores</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- PAGINACIÓN -->
+        {% if proveedores.has_other_pages %}
+        <div class="card-body pt-2">
+          <div class="d-flex justify-content-between align-items-center">
+            <small class="text-muted">
+              Mostrando {{ proveedores.start_index }}–{{ proveedores.end_index }} de {{ proveedores.paginator.count }}
+            </small>
+            <ul class="pagination pagination-sm mb-0">
+              {% if proveedores.has_previous %}
+                <li class="page-item">
+                  <a class="page-link" href="?page=1{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">«</a>
+                </li>
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ proveedores.previous_page_number }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">‹</a>
+                </li>
+              {% else %}
+                <li class="page-item disabled"><span class="page-link">«</span></li>
+                <li class="page-item disabled"><span class="page-link">‹</span></li>
+              {% endif %}
+
+              {% for i in proveedores.paginator.page_range %}
+                {% if i == proveedores.number %}
+                  <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+                {% elif i >= proveedores.number|add:'-2' and i <= proveedores.number|add:'2' %}
+                  <li class="page-item">
+                    <a class="page-link" href="?page={{ i }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">{{ i }}</a>
+                  </li>
+                {% endif %}
+              {% endfor %}
+
+              {% if proveedores.has_next %}
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ proveedores.next_page_number }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">›</a>
+                </li>
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ proveedores.paginator.num_pages }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">»</a>
+                </li>
+              {% else %}
+                <li class="page-item disabled"><span class="page-link">›</span></li>
+                <li class="page-item disabled"><span class="page-link">»</span></li>
+              {% endif %}
+            </ul>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DESACTIVAR PROVEEDOR -->
+<div class="modal fade" id="deactivateModal" tabindex="-1" aria-labelledby="deactivateModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title" id="deactivateModalLabel">Desactivar Proveedor</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>¿Desactivar proveedor <strong id="provNombreDeactivate"></strong>?</p>
+      </div>
+      <div class="modal-footer">
+        <form method="post" action="" id="deactivateForm">
+          {% csrf_token %}
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-danger btn-sm">Desactivar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ACTIVAR PROVEEDOR -->
+<div class="modal fade" id="activateModal" tabindex="-1" aria-labelledby="activateModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title" id="activateModalLabel">Activar Proveedor</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>¿Activar proveedor <strong id="provNombreActivate"></strong>?</p>
+      </div>
+      <div class="modal-footer">
+        <form method="post" action="" id="activateForm">
+          {% csrf_token %}
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-success btn-sm">Activar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+#deactivateModal .modal-dialog,
+#activateModal .modal-dialog {
+  max-width: 300px;
+  width: 90%;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  min-height: calc(100% - 2rem);
+}
+#deactivateModal .modal-content,
+#activateModal .modal-content { min-height: 50px; }
+#deactivateModal .modal-title,
+#activateModal .modal-title,
+#deactivateModal .modal-body,
+#activateModal .modal-body { text-align: center; }
+#deactivateModal .modal-footer,
+#activateModal .modal-footer { justify-content: center; gap: .5rem; }
+#deactivateModal .modal-footer .btn,
+#activateModal .modal-footer .btn {
+  padding: 0.45rem 0.9rem;
+  font-size: 0.75rem;
+  min-width: 120px;
+  line-height: 1.15;
+  border-radius: 8px;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Función para formatear RUC
+  function formatRuc(ruc) {
+    if (!ruc) return ruc;
+    
+    // Si tiene guion (RUC con dígito verificador)
+    if (ruc.includes('-')) {
+      const partes = ruc.split('-');
+      const partePrincipal = partes[0];
+      const digitoVerificador = partes[1];
+      
+      // Formatear la parte principal con puntos
+      const parteFormateada = partePrincipal.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+      
+      return `${parteFormateada}-${digitoVerificador}`;
+    } else {
+      // Formatear RUC simple
+      return ruc.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    }
+  }
+
+  // Función para formatear teléfono
+  function formatTelefono(telefono) {
+    if (!telefono) return telefono;
+    
+    // Limpiar el teléfono de espacios y caracteres especiales
+    const telefonoLimpio = telefono.replace(/\D/g, '');
+    
+    // Formato para Paraguay: +595 981 123456
+    if (telefonoLimpio.startsWith('595') && telefonoLimpio.length === 12) {
+      return `+${telefonoLimpio.substring(0, 3)} ${telefonoLimpio.substring(3, 6)} ${telefonoLimpio.substring(6)}`;
+    }
+    // Formato con código de país completo
+    else if (telefonoLimpio.startsWith('595') && telefonoLimpio.length === 11) {
+      return `+${telefonoLimpio.substring(0, 3)} ${telefonoLimpio.substring(3, 6)} ${telefonoLimpio.substring(6)}`;
+    }
+    // Formato local (0981) 123-456
+    else if (telefonoLimpio.startsWith('098') && telefonoLimpio.length === 10) {
+      return `(${telefonoLimpio.substring(0, 4)}) ${telefonoLimpio.substring(4, 7)}-${telefonoLimpio.substring(7)}`;
+    }
+    // Formato local (098) 123-456
+    else if (telefonoLimpio.startsWith('098') && telefonoLimpio.length === 9) {
+      return `(${telefonoLimpio.substring(0, 3)}) ${telefonoLimpio.substring(3, 6)}-${telefonoLimpio.substring(6)}`;
+    }
+    
+    return telefono;
+  }
+
+  // Aplicar formato a todos los RUC y teléfonos en la tabla
+  const rucCells = document.querySelectorAll('.ruc-cell');
+  const telefonoCells = document.querySelectorAll('.telefono-cell');
+
+  rucCells.forEach(cell => {
+    const originalText = cell.textContent.trim();
+    if (originalText && originalText !== '—') {
+      cell.textContent = formatRuc(originalText);
+    }
+  });
+
+  telefonoCells.forEach(cell => {
+    const originalText = cell.textContent.trim();
+    if (originalText && originalText !== '—') {
+      cell.textContent = formatTelefono(originalText);
+    }
+  });
+
+  // Código para los modales
+  const deactivateModal = document.getElementById('deactivateModal');
+  const activateModal = document.getElementById('activateModal');
+
+  if (deactivateModal) {
+    deactivateModal.addEventListener('show.bs.modal', function(event) {
+      const button = event.relatedTarget;
+      const id = button.getAttribute('data-prov-id');
+      const nombre = button.getAttribute('data-prov-nombre');
+      document.getElementById('provNombreDeactivate').textContent = nombre;
+      document.getElementById('deactivateForm').action =
+        "{% url 'proveedor_desactivar' 0 %}".replace('0', id);
+    });
+  }
+
+  if (activateModal) {
+    activateModal.addEventListener('show.bs.modal', function(event) {
+      const button = event.relatedTarget;
+      const id = button.getAttribute('data-prov-id');
+      const nombre = button.getAttribute('data-prov-nombre');
+      document.getElementById('provNombreActivate').textContent = nombre;
+      document.getElementById('activateForm').action =
+        "{% url 'proveedor_desactivar' 0 %}".replace('0', id);
+    });
+  }
+});
+</script>
+
+{% endblock %}

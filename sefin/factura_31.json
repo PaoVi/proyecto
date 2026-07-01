@@ -1,0 +1,31 @@
+{
+    "factura": {
+        "numero": "001-001-0000286",
+        "fecha": "2026-06-18",
+        "timbrado": "87654321",
+        "establecimiento": "001",
+        "punto_emision": "001",
+        "estado": "ACTIVA"
+    },
+    "cliente": {
+        "nombre": "John Michael Smith",
+        "documento": "AB123456"
+    },
+    "totales": {
+        "total": 110000.0
+    },
+    "items": [
+        {
+            "tipo": "insumo",
+            "descripcion": "INSV-0096 - Lámpara H4 halógena",
+            "cantidad": 1.0,
+            "precio": 25000.0
+        },
+        {
+            "tipo": "insumo",
+            "descripcion": "INSV-0121 - Lámpara LED H7 6000K",
+            "cantidad": 1.0,
+            "precio": 85000.0
+        }
+    ]
+}

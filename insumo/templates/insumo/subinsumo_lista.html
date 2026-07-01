@@ -1,0 +1,356 @@
+{% extends 'seguridad/base.html' %}
+
+{% block content %}
+<div class="container-fluid py-0">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-12">
+
+        <!-- HEADER CON FILTRO COMPACTO -->
+        <div class="d-flex justify-content-between align-items-center mb-1">
+            <h2 class="h4 mb-1">LISTA DE SUB-INSUMOS</h2>
+            <div class="d-flex align-items-center gap-2">
+                <!-- FILTRO COMPACTO -->
+                <form id="search-form" method="GET" class="d-inline">
+                    <div class="position-relative" style="width: 250px;">
+                        <input type="text" 
+                            id="filtro-rapido" 
+                            name="q"
+                            class="form-control form-control-sm" 
+                            style="height: 32px;"
+                            placeholder="Buscar por código, nombre..."
+                            value="{{ request.GET.q }}"
+                            autocomplete="off">
+                        <div class="position-absolute top-50 end-0 translate-middle-y me-2">
+                        <i class="bi bi-search text-muted"></i>
+                        </div>
+                    </div>
+                    <!-- Campos ocultos para mantener otros parámetros -->
+                    <input type="hidden" name="insumo_padre" value="{{ request.GET.insumo_padre }}">
+                    <input type="hidden" name="estado" value="{{ request.GET.estado }}">
+                    <input type="hidden" name="page" value="1">
+                </form>
+
+                <!-- BOTONES -->
+                <div class="d-flex gap-1">
+                    <button type="button" onclick="window.history.back()" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-arrow-left"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ESTADÍSTICAS COMO FILTROS -->
+        <div class="row mb-1">
+            <div class="col-md-3">
+                <a href="?filtro=todos{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" class="text-decoration-none">
+                    <div class="card {% if not request.GET.estado %}filtro-activo{% else %}filtro-todos{% endif %}">
+                        <div class="card-body py-1 px-3 text-center">
+                            <h5 class="card-title mb-0 h6">{{ total_subinsumos }}</h5>
+                            <p class="card-text small mb-0">Total Subinsumos</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-md-3">
+                <a href="?estado=activo{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" class="text-decoration-none">
+                    <div class="card {% if request.GET.estado == 'activo' %}filtro-activo{% else %}filtro-normal{% endif %}">
+                        <div class="card-body py-1 px-3 text-center">
+                            <h5 class="card-title mb-0 h6">{{ subinsumos_activos }}</h5>
+                            <p class="card-text small mb-0">Activos</p>
+                        </div>
+                    </div>
+                </a>
+            </div>                
+            <div class="col-md-3">
+                <a href="?estado=inactivo{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" class="text-decoration-none">
+                    <div class="card {% if request.GET.estado == 'inactivo' %}filtro-activo{% else %}filtro-bajos{% endif %}">
+                        <div class="card-body py-1 px-3 text-center">
+                            <h5 class="card-title mb-0 h6">{{ subinsumos_inactivos }}</h5>
+                            <p class="card-text small mb-0">Inactivos</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-md-3">
+                <a href="?stock=agotado{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" class="text-decoration-none">
+                    <div class="card filtro-agotados">
+                        <div class="card-body py-1 px-3 text-center">
+                            <h5 class="card-title mb-0 h6">{{ subinsumos_agotados }}</h5>
+                            <p class="card-text small mb-0">Stock Agotado</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        <!-- FILTROS ADICIONALES -->
+        <div class="row mb-2">
+            <div class="col-md-12">
+                <select name="insumo_padre" class="form-select form-select-sm" onchange="this.form.submit()" form="search-form">
+                    <option value="">Todos los insumos padres</option>
+                    {% for insumo in insumos_padre %}
+                    <option value="{{ insumo.id }}" {% if request.GET.insumo_padre == insumo.id|stringformat:"i" %}selected{% endif %}>
+                        {{ insumo.nombre }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <!-- TABLA DE SUBINSUMOS -->
+        <div class="card mb-2">
+            <div class="card-body p-2">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 10%">Código</th>
+                                <th style="width: 40%">Nombre</th>
+                                <th style="width: 10%">Categoría</th>
+                                <th style="width: 10%">Cantidad</th>
+                                <th style="width: 10%">Unidad</th>
+                                <th style="width: 10%">Estado</th>
+                                <th style="width: 10%">Fecha Creación</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for subinsumo in subinsumos %}
+                            <tr>
+                                <td class="text-center fw-bold">{{ subinsumo.codigo_completo }}</td>
+                                <td class="text-start">
+                                    <div class="fw-semibold">{{ subinsumo.nombre }}</div>
+                                    <small class="text-muted">{{ subinsumo.descripcion|default:"—" }}</small>
+                                </td>
+                                <td class="text-center">{{ subinsumo.categoria }}</td>
+                                <td class="text-center fw-bold">{{ subinsumo.stock_actual }}</td>
+                                <td class="text-center">{{ subinsumo.unidad }}</td>
+                                <td class="text-center">
+                                    {% if subinsumo.is_active %}
+                                        <span class="fw-semibold text-success small">Activo</span>
+                                    {% else %}
+                                        <span class="fw-semibold text-danger small">Inactivo</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center small">
+                                    {{ subinsumo.fecha_creacion|date:"d/m/Y" }}<br>
+                                    <small class="text-muted">{{ subinsumo.fecha_creacion|date:"H:i" }}</small>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-4">
+                                    <i class="bi bi-inbox display-6 d-block mb-2"></i>
+                                    No hay subinsumos registrados
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- PAGINACIÓN -->
+            {% if subinsumos.has_other_pages %}
+            <div class="card-body pt-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted">
+                        Mostrando {{ subinsumos.start_index }}–{{ subinsumos.end_index }} de {{ subinsumos.paginator.count }}
+                    </small>
+                    <ul class="pagination pagination-sm mb-0">
+                        {% if subinsumos.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page=1{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">«</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ subinsumos.previous_page_number }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">‹</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">«</span></li>
+                            <li class="page-item disabled"><span class="page-link">‹</span></li>
+                        {% endif %}
+
+                        {% for i in subinsumos.paginator.page_range %}
+                            {% if i == subinsumos.number %}
+                                <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+                            {% elif i >= subinsumos.number|add:'-2' and i <= subinsumos.number|add:'2' %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ i }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">{{ i }}</a>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if subinsumos.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ subinsumos.next_page_number }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">›</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ subinsumos.paginator.num_pages }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">»</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">›</span></li>
+                            <li class="page-item disabled"><span class="page-link">»</span></li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+  </div>
+</div>
+
+<style>
+/* Filtros NO activos - Bordes de colores gruesos y texto negro */
+.filtro-todos {
+    border: 2px solid #033e7e !important; 
+    background-color: transparent;
+}
+.filtro-todos .card-title,
+.filtro-todos .card-text {
+    color: #000000 !important;
+}
+
+.filtro-normal {
+    border: 2px solid #28a745 !important; 
+    background-color: transparent;
+}
+.filtro-normal .card-title,
+.filtro-normal .card-text {
+    color: #000000 !important;
+}
+
+.filtro-bajos {
+    border: 2px solid #ffc107 !important; 
+    background-color: transparent;
+}
+.filtro-bajos .card-title,
+.filtro-bajos .card-text {
+    color: #000000 !important;
+}
+
+.filtro-agotados {
+    border: 2px solid #dc3545 !important; 
+    background-color: transparent;
+}
+.filtro-agotados .card-title,
+.filtro-agotados .card-text {
+    color: #000000 !important;
+}
+
+/* Filtro ACTIVO - Borde gris neutro y texto de colores */
+.filtro-activo {
+    border: 2px solid #c6c7c9ff !important; 
+    background-color: transparent;
+}
+.filtro-activo .card-title,
+.filtro-activo .card-text {
+    color: #000000ff !important;
+}
+
+/* Colores específicos para cada filtro activo */
+.filtro-activo.filtro-todos .card-title,
+.filtro-activo.filtro-todos .card-text {
+    color: #033e7e !important;
+}
+
+.filtro-activo.filtro-normal .card-title,
+.filtro-activo.filtro-normal .card-text {
+    color: #28a745 !important;
+}
+
+.filtro-activo.filtro-bajos .card-title,
+.filtro-activo.filtro-bajos .card-text {
+    color: #ffc107 !important;
+}
+
+.filtro-activo.filtro-agotados .card-title,
+.filtro-activo.filtro-agotados .card-text {
+    color: #dc3545 !important;
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}
+/* Estilos para el filtro rápido */
+#filtro-rapido {
+  padding-right: 30px;
+  width: 250px;
+}
+
+/* Botones más compactos */
+.btn-sm {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+/* Badges pequeños */
+.badge.small {
+    font-size: 0.65rem;
+    padding: 0.2rem 0.4rem;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const filtroRapido = document.getElementById('filtro-rapido');
+  const searchForm = document.getElementById('search-form');
+  let timeoutId;
+  let isSubmitting = false;
+
+  // Función para guardar y restaurar la posición del cursor
+  function guardarYRestaurarCursor(callback) {
+    // Guardar posición actual del cursor
+    const start = filtroRapido.selectionStart;
+    const end = filtroRapido.selectionEnd;
+    const value = filtroRapido.value;
+    
+    // Ejecutar el callback (enviar el formulario)
+    callback();
+    
+    // Después de un breve delay, restaurar posición del cursor
+    setTimeout(() => {
+      if (filtroRapido.value === value) {
+        filtroRapido.focus();
+        filtroRapido.setSelectionRange(start, end);
+      }
+    }, 10);
+  }
+
+  // Búsqueda en tiempo real con debounce
+  filtroRapido.addEventListener('input', function() {
+    clearTimeout(timeoutId);
+    
+    timeoutId = setTimeout(() => {
+      if (!isSubmitting) {
+        isSubmitting = true;
+        
+        guardarYRestaurarCursor(() => {
+          // Forzar página 1 cuando se busca
+          searchForm.querySelector('input[name="page"]').value = '1';
+          searchForm.submit();
+        });
+        
+        // Resetear flag después de un tiempo
+        setTimeout(() => {
+          isSubmitting = false;
+        }, 1000);
+      }
+    }, 800);
+  });
+
+  // Enfocar el filtro al cargar la página y posicionar cursor al final
+  setTimeout(() => {
+    filtroRapido.focus();
+    const length = filtroRapido.value.length;
+    filtroRapido.setSelectionRange(length, length);
+  }, 100);
+
+  // Prevenir envío doble del formulario
+  searchForm.addEventListener('submit', function(e) {
+    if (isSubmitting) {
+      e.preventDefault();
+    }
+  });
+});
+</script>
+{% endblock %}

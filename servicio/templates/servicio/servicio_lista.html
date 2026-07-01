@@ -1,0 +1,485 @@
+{% extends 'seguridad/base.html' %}
+
+{% block content %}
+
+<div class="container-fluid py-0">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-12">
+
+      <!-- HEADER -->
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <div>
+          <h2 class="h4 mb-1">GESTIÓN DE SERVICIOS</h2>
+        </div>
+        {% if perms.seguridad.agregar_servicios %}
+        <a href="{% url 'servicio_crear' %}" class="btn btn-primary btn-sm">
+          <i class="bi bi-plus-circle"></i>Nuevo Servicio
+        </a>
+        {% endif %}
+      </div>
+
+      <!-- FILTROS -->
+      <div class="card mb-2">
+        <div class="card-body p-2">
+          <form method="get" class="row g-2 align-items-end">
+
+            <!-- NOMBRE / DESCRIPCIÓN -->
+            <div class="col-md-4">
+              <label class="form-label small">CÓDIGO / NOMBRE / DESCRIPCIÓN </label>
+              <input type="text" name="q" value="{{ request.GET.q }}" class="form-control form-control-sm" style="height: 33px;" placeholder="Ej.: 55, Alineación, pintura, cambio de aceite">
+            </div>
+
+            <!-- CATEGORÍA -->
+            <div class="col-md-2">
+              <label class="form-label small">CATEGORÍA</label>
+              {% if categorias %}
+                <select name="categoria" class="form-select form-select-sm">
+                  <option value="">Todas</option>
+                  {% for val, lab in categorias %}
+                    <option value="{{ val }}" {% if request.GET.categoria == val %}selected{% endif %}>{{ lab }}</option>
+                  {% endfor %}
+                </select>
+              {% else %}
+                <input type="text" name="categoria" value="{{ request.GET.categoria }}" class="form-control form-control-sm" placeholder="Mantenimiento, Motor, Frenos...">
+              {% endif %}
+            </div>
+
+            <!-- ESTADO -->
+            <div class="col-md-2">
+              <label class="form-label small">ESTADO</label>
+              <select name="estado" class="form-select form-select-sm">
+                <option value="">Todos</option>
+                <option value="activo"   {% if request.GET.estado == 'activo' %}selected{% endif %}>Activo</option>
+                <option value="inactivo" {% if request.GET.estado == 'inactivo' %}selected{% endif %}>Inactivo</option>
+              </select>
+            </div>
+            <!-- STOCK -->
+            <div class="col-md-2">
+              <label class="form-label small">STOCK</label>
+              <select name="stock" class="form-select form-select-sm">
+                <option value="">Todos</option>
+                <option value="con_stock" {% if request.GET.stock == 'con_stock' %}selected{% endif %}>Con Stock</option>
+                <option value="sin_stock" {% if request.GET.stock == 'sin_stock' %}selected{% endif %}>Sin Stock</option>
+              </select>
+            </div>
+            <div class="col-md-1">
+              <label class="form-label small">&nbsp;</label>
+              <button type="submit" class="btn btn-outline-primary w-100 btn-sm" style="height: 33px;">
+                <i class="bi bi-search"></i>Buscar
+              </button>
+            </div>
+
+            <div class="col-md-1">
+              <label class="form-label small">&nbsp;</label>
+              <a href="{% url 'servicio_lista' %}" class="btn btn-outline-secondary w-100 btn-sm" style="height: 33px;">
+                <i class="bi bi-arrow-clockwise"></i> Limpiar
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- LISTA -->
+      <div class="card">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th style="width: 8%">Código</th>
+                <th style="width: 27%;">Servicio</th>
+                <th style="width: 15%;">Categoría</th>
+                <th style="width: 15%;">Precio base</th>
+                <th style="width: 15%;">Tiempo mínimo</th>
+                <th style="width: 5%;">Stock</th>
+                <th style="width: 10%;">Estado</th>
+                <th style="width: 10%;">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for s in servicios %}
+              <tr class="{% if not s.is_active %}table-secondary{% endif %}">
+                <!-- CÓDIGO -->
+                <td class="fw-semibold">
+                  {{ s.id }}
+                </td>
+                <!-- SERVICIO (nombre + descripción) -->
+                <td>
+                  <div class="fw-semibold text-start">{{ s.nombre }}</div>
+                  {% if s.descripcion %}
+                    <div class="text-muted text-start small text-truncate text- start mx-auto" style="max-width: 520px; text-align: center;">
+                      {{ s.descripcion }}
+                    </div>
+                  {% endif %}
+                </td>
+
+                <!-- CATEGORÍA (solo texto, centrado) -->
+                <td class="text-center">
+                  {{ s.get_categoria_display|default:s.categoria|default:"—" }}
+                </td>
+
+                <!-- PRECIO (se renderiza con JS) -->
+                <td class="text-center">
+                  {% if s.precio_base is not None %}
+                    <span class="js-gs" data-precio="{{ s.precio_base }}"></span>
+                  {% else %}
+                    —
+                  {% endif %}
+                </td>
+
+                <!-- TIEMPO MÍNIMO (se renderiza como hh:mm con JS) -->
+                <td class="text-center">
+                  {% if s.tiempo_min_estimado %}
+                    <span class="js-hhmm" data-minutos="{{ s.tiempo_min_estimado }}"></span>
+                  {% else %}
+                    —
+                  {% endif %}
+                </td>
+
+                <!-- STOCK -->
+                <td class="text-center stock-cell" data-servicio-id="{{ s.id }}">
+                  <span class="stock-icon"></span>
+                </td>
+
+                <!-- ESTADO -->
+                <td class="text-center">
+                  {% if s.is_active %}
+                    <span class="badge bg-success">Activo</span>
+                  {% else %}
+                    <span class="badge bg-secondary">Inactivo</span>
+                  {% endif %}
+                </td>
+
+                <!-- ACCIONES -->
+                <td class="text-center">
+                  <div class="btn-group btn-group-sm">
+                    {% if perms.seguridad.ver_servicios %}
+                      <a href="{% url 'servicio_ver' s.id %}" class="btn btn-outline-info btn-sm" title="Ver">
+                        <i class="bi bi-eye"></i>
+                      </a>
+                    {% endif %}
+
+                    {% if perms.seguridad.editar_servicios %}
+                      <a href="{% url 'servicio_editar' s.id %}" class="btn btn-outline-primary btn-sm" title="Editar">
+                        <i class="bi bi-pencil"></i>
+                      </a>
+                    {% endif %}
+
+                    {% if perms.seguridad.desactivar_servicios %}
+                      {% if s.is_active %}
+                        <button type="button"
+                                class="btn btn-outline-danger btn-sm"
+                                title="Desactivar"
+                                data-bs-toggle="modal"
+                                data-bs-target="#deactivateModal"
+                                data-servicio-id="{{ s.id }}"
+                                data-servicio-nombre="{{ s.nombre }}">
+                          <i class="bi bi-x-circle"></i>
+                        </button>
+                      {% else %}
+                        <button type="button"
+                                class="btn btn-outline-success btn-sm"
+                                title="Activar"
+                                data-bs-toggle="modal"
+                                data-bs-target="#activateModal"
+                                data-servicio-id="{{ s.id }}"
+                                data-servicio-nombre="{{ s.nombre }}">
+                          <i class="bi bi-check-circle"></i>
+                        </button>
+                      {% endif %}
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="6" class="text-center py-4 text-muted">No se encontraron servicios</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- PAGINACIÓN -->
+        {% if servicios.has_other_pages %}
+        <div class="card-body pt-2">
+          <div class="d-flex justify-content-between align-items-center">
+            <small class="text-muted">
+              Mostrando {{ servicios.start_index }}–{{ servicios.end_index }} de {{ servicios.paginator.count }}
+            </small>
+            <ul class="pagination pagination-sm mb-0">
+              {% if servicios.has_previous %}
+                <li class="page-item">
+                  <a class="page-link" href="?page=1{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">«</a>
+                </li>
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ servicios.previous_page_number }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">‹</a>
+                </li>
+              {% else %}
+                <li class="page-item disabled"><span class="page-link">«</span></li>
+                <li class="page-item disabled"><span class="page-link">‹</span></li>
+              {% endif %}
+
+              {% for i in servicios.paginator.page_range %}
+                {% if i == servicios.number %}
+                  <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+                {% elif i >= servicios.number|add:'-2' and i <= servicios.number|add:'2' %}
+                  <li class="page-item">
+                    <a class="page-link" href="?page={{ i }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">{{ i }}</a>
+                  </li>
+                {% endif %}
+              {% endfor %}
+
+              {% if servicios.has_next %}
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ servicios.next_page_number }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">›</a>
+                </li>
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ servicios.paginator.num_pages }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">»</a>
+                </li>
+              {% else %}
+                <li class="page-item disabled"><span class="page-link">›</span></li>
+                <li class="page-item disabled"><span class="page-link">»</span></li>
+              {% endif %}
+            </ul>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DESACTIVAR -->
+<div class="modal fade" id="deactivateModal" tabindex="-1" aria-labelledby="deactivateModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title" id="deactivateModalLabel">Desactivar Servicio</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>¿Desactivar servicio <strong id="servicioNombreDeactivate"></strong>?</p>
+      </div>
+      <div class="modal-footer">
+        <form method="post" action="" id="deactivateForm">
+          {% csrf_token %}
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-danger btn-sm">Desactivar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ACTIVAR -->
+<div class="modal fade" id="activateModal" tabindex="-1" aria-labelledby="activateModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title" id="activateModalLabel">Activar Servicio</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>¿Activar servicio <strong id="servicioNombreActivate"></strong>?</p>
+      </div>
+      <div class="modal-footer">
+        <form method="post" action="" id="activateForm">
+          {% csrf_token %}
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-success btn-sm">Activar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+/* Centrar todas las celdas por defecto y ajustar la primera */
+.table td, .table th { vertical-align: middle; }
+.table thead th { text-align: center; }
+#deactivateModal .modal-dialog,
+#activateModal .modal-dialog {
+  max-width: 300px;
+  width: 90%;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  min-height: calc(100% - 2rem);
+}
+#deactivateModal .modal-content,
+#activateModal .modal-content { min-height: 50px; }
+#deactivateModal .modal-title,
+#activateModal .modal-title,
+#deactivateModal .modal-body,
+#activateModal .modal-body { text-align: center; }
+#deactivateModal .modal-footer,
+#activateModal .modal-footer { justify-content: center; gap: .5rem; }
+#deactivateModal .modal-footer .btn,
+#activateModal .modal-footer .btn {
+  padding: 0.45rem 0.9rem;
+  font-size: 0.75rem;
+  min-width: 120px;
+  line-height: 1.15;
+  border-radius: 8px;
+}
+.stock-cell {
+    font-size: 1rem;
+    line-height: 1;
+    font-weight: 300;  /* Más delgado */
+    opacity: 0.8;
+}
+.stock-icon {
+    display: inline-block;
+    opacity: 0.9;
+}
+/* PUNTOS DE STOCK */
+.stock-dot {
+    display: inline-block;
+    width: 10px;        /* Ancho del punto */
+    height: 10px;       /* Alto del punto (igual al ancho para círculo perfecto) */
+    border-radius: 50%; /* Esto hace el círculo perfecto */
+    margin: 0 auto;
+    vertical-align: middle;
+}
+.stock-dot-green {
+    background-color: #28a745;  /* Verde */
+    box-shadow: 0 0 2px rgba(40, 167, 69, 0.5);
+}
+.stock-dot-red {
+    background-color: #dc3545;  /* Rojo */
+    box-shadow: 0 0 2px rgba(220, 53, 69, 0.5);
+}
+.stock-dot-gray {
+    background-color: #6c757d;  /* Gris para error */
+    box-shadow: 0 0 2px rgba(108, 117, 125, 0.5);
+}
+/* Para centrar el punto en la celda */
+.stock-cell {
+    text-align: center;
+    vertical-align: middle;
+}
+.stock-cell .stock-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // ==== Modal activar/desactivar ====
+  const deactivateModal = document.getElementById('deactivateModal');
+  const activateModal   = document.getElementById('activateModal');
+
+  if (deactivateModal) {
+    deactivateModal.addEventListener('show.bs.modal', function(event) {
+      const button = event.relatedTarget;
+      const id     = button.getAttribute('data-servicio-id');
+      const nombre = button.getAttribute('data-servicio-nombre');
+      document.getElementById('servicioNombreDeactivate').textContent = nombre;
+      document.getElementById('deactivateForm').action =
+        "{% url 'servicio_desactivar' 0 %}".replace('0', id);
+    });
+  }
+
+  if (activateModal) {
+    activateModal.addEventListener('show.bs.modal', function(event) {
+      const button = event.relatedTarget;
+      const id     = button.getAttribute('data-servicio-id');
+      const nombre = button.getAttribute('data-servicio-nombre');
+      document.getElementById('servicioNombreActivate').textContent = nombre;
+      document.getElementById('activateForm').action =
+        "{% url 'servicio_desactivar' 0 %}".replace('0', id);
+    });
+  }
+
+  // ===== Precio: formateo Gs. =====
+  function parseGsAttr(v) {
+    if (v === null || v === undefined) return null;
+    const raw = String(v).trim();
+    if (!raw) return null;
+
+    // 1) Quitamos todo menos números y coma/punto
+    let clean = raw.replace(/[^0-9.,]/g, '');
+
+    // 2) Si hay coma decimal tipo "150000,00", sacamos la parte decimal
+    if (clean.includes(',')) {
+      clean = clean.split(',')[0];
+    }
+    if (clean.includes('.')) {
+      // Si está en formato 150000.00 -> cortamos antes del punto
+      if (/^\d+\.\d{2}$/.test(clean)) {
+        clean = clean.split('.')[0];
+      }
+    }
+
+    // 3) Eliminar cualquier separador de miles
+    clean = clean.replace(/\./g, '').replace(/,/g, '');
+
+    if (!clean) return null;
+    return parseInt(clean, 10);
+  }
+
+  function formatGsEntero(n) {
+    if (n === null || isNaN(n)) return '—';
+    return '₲ ' + n.toLocaleString('es-PY');
+  }
+
+  document.querySelectorAll('.js-gs[data-precio]').forEach(el => {
+    const attr = el.getAttribute('data-precio');
+    const valor = parseGsAttr(attr);
+    el.textContent = formatGsEntero(valor);
+  });
+
+  // ===== Tiempo: minutos -> hh:mm  =====
+  function minToHHMM(m) {
+    m = parseInt(m, 10);
+    if (isNaN(m) || m < 0) m = 0;
+    const hh = Math.floor(m / 60);
+    const mm = m % 60;
+    return String(hh).padStart(2,'0') + ':' + String(mm).padStart(2,'0');
+  }
+  document.querySelectorAll('.js-hhmm[data-minutos]').forEach(el => {
+    const m = parseInt(el.getAttribute('data-minutos'), 10);
+    el.textContent = isNaN(m) ? '—' : minToHHMM(m);
+  });
+
+  // ====== Verificador de Stock ======
+  function verificarStockServicio(servicioId, elemento) {
+    fetch(`/verificar-stock-servicio/${servicioId}/?cantidad=1`)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`Error HTTP: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log('Stock para servicio', servicioId, ':', data);
+        if (data.insumos_faltantes && data.insumos_faltantes.length > 0) {
+          // Sin stock suficiente
+          elemento.innerHTML = '<span class="stock-dot stock-dot-red"></span>';
+        } else {
+          // Con stock suficiente
+          elemento.innerHTML = '<span class="stock-dot stock-dot-green"></span>';
+        }
+      })
+      .catch(error => {
+        console.error('Error verificando stock:', error);
+        elemento.innerHTML = '<span class="stock-dot stock-dot-gray"></span>';
+      });
+  }
+
+  // Verificar stock para cada servicio en la lista
+  document.querySelectorAll('.stock-cell').forEach(cell => {
+    const servicioId = cell.getAttribute('data-servicio-id');
+    const iconSpan = cell.querySelector('.stock-icon');
+    if (servicioId) {
+      verificarStockServicio(servicioId, iconSpan);
+    }
+  });
+});
+</script>
+
+{% endblock %}

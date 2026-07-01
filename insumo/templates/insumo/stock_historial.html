@@ -1,0 +1,305 @@
+{% extends 'seguridad/base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-12">
+      <!-- HEADER -->
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <h2 class="h4 mb-1">
+          {% if insumo %}
+            HISTORIAL DE STOCK: {{ insumo.nombre }}
+          {% else %}
+            HISTORIAL GENERAL DE STOCK
+          {% endif %}
+        </h2>
+        <div class="d-flex gap-2">
+          <button type="button" onclick="window.history.back()" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i>Volver
+          </button>
+        </div>
+      </div>
+
+      <!-- INFORMACIÓN DEL INSUMO (solo si es historial específico) -->
+      {% if insumo %}
+      <div class="card mb-2">
+        <div class="card-body p-2">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="row g-2">
+                <div class="col-3">
+                  <label class="form-label small text-muted mb-0">Código</label>
+                  <p class="mb-0 fw-semibold">{{ insumo.id|default:"—" }}</p>
+                </div>
+                <div class="col-3">
+                  <label class="form-label small text-muted mb-0">Categoría</label>
+                  <p class="mb-0 fw-semibold">{{ insumo.categoria|default:"—" }}</p>
+                </div>
+                <div class="col-3">
+                  <label class="form-label small text-muted mb-0">Unidad</label>
+                  <p class="mb-0 fw-semibold">{{ insumo.get_unidad_display }}</p>
+                </div>
+                <div class="col-3">
+                  <label class="form-label small text-muted mb-0">Estado</label>
+                  <p class="mb-0">
+                    {% if insumo.estado_stock == 'agotado' %}
+                      <span class="fw-bold text-danger small">Agotado</span>
+                    {% elif insumo.estado_stock == 'bajo' %}
+                      <span class="fw-bold text-warning small">Bajo</span>
+                    {% else %}
+                      <span class="fw-bold text-success small">Normal</span>
+                    {% endif %}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="row g-2">
+                <div class="col-4">
+                  <label class="form-label small text-muted mb-0">Stock Mínimo</label>
+                  <p class="mb-0 fw-semibold">{{ insumo.stock_minimo }}</p>
+                </div>
+                <div class="col-4">
+                  <label class="form-label small text-muted mb-0">Stock Actual</label>
+                  <p class="mb-0 fw-bold {% if insumo.estado_stock == 'agotado' %}text-danger{% elif insumo.estado_stock == 'bajo' %}text-warning{% else %}text-success{% endif %}">
+                    {{ insumo.stock_actual }}
+                  </p>
+                </div>
+                <div class="col-4">
+                  <label class="form-label small text-muted mb-0">Costo Unitario</label>
+                  <p class="mb-0 fw-semibold">
+                    <span class="money" data-money="{{ insumo.costo_unitario|floatformat:0 }}">Gs. {{ insumo.costo_unitario|floatformat:0 }}</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- FILTROS COMO CUADROS -->
+      {% if not insumo %}
+      <div class="row mb-1">
+        <div class="col-md-4">
+          <a href="?filtro=todos" class="text-decoration-none">
+            <div class="card {% if filtro_actual == 'todos' %}filtro-activo-historial{% else %}filtro-todos-historial{% endif %}">
+              <div class="card-body py-1 px-3 text-center">
+                <h5 class="card-title mb-0 h6">{{ total_movimientos }}</h5>
+                <p class="card-text small mb-0">Total Movimientos</p>
+              </div>
+            </div>
+          </a>
+        </div>
+        <div class="col-md-4">
+          <a href="?filtro=entradas" class="text-decoration-none">
+            <div class="card {% if filtro_actual == 'entradas' %}filtro-activo-historial{% else %}filtro-entradas-historial{% endif %}">
+              <div class="card-body py-1 px-3 text-center">
+                <h5 class="card-title mb-0 h6">{{ total_entradas }}</h5>
+                <p class="card-text small mb-0">Entradas</p>
+              </div>
+            </div>
+          </a>
+        </div>
+        <div class="col-md-4">
+          <a href="?filtro=salidas" class="text-decoration-none">
+            <div class="card {% if filtro_actual == 'salidas' %}filtro-activo-historial{% else %}filtro-salidas-historial{% endif %}">
+              <div class="card-body py-1 px-3 text-center">
+                <h5 class="card-title mb-0 h6">{{ total_salidas }}</h5>
+                <p class="card-text small mb-0">Salidas</p>
+              </div>
+            </div>
+          </a>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- TABLA DE HISTORIAL -->
+      <div class="card mb-2">
+        <div class="card-body p-2">
+          <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                  <tr>
+                    <th style="width: 10%" class="text-center align-middle">Fecha y Hora</th>
+                    {% if not insumo %}<th style="width: 25%" class="text-center align-middle">Insumo</th>{% endif %}
+                    <th style="width: 7%" class="text-center align-middle">Tipo</th>
+                    <th style="width: 10%" class="text-center align-middle">Cantidad</th>
+                    <th style="width: 10%" class="text-center align-middle">Stock Anterior</th>
+                    <th style="width: 10%" class="text-center align-middle">Stock Posterior</th>
+                    <th style="width: 12%" class="text-center align-middle">Motivo</th>
+                    <th style="width: 18%" class="text-center align-middle">Observación</th>
+                    <th style="width: 10%" class="text-center align-middle">Usuario</th>
+                  </tr>
+                </thead>
+              <tbody>
+                {% for movimiento in movimientos %}
+                <tr>
+                  <td class="small">{{ movimiento.fecha_movimiento|date:"d/m/Y H:i" }}</td>
+                  {% if not insumo %}
+                    <td class="text-start">
+                      <div class="fw-semibold">{{ movimiento.insumo.nombre }}</div>
+                      <small class="text-muted">{{ movimiento.insumo.categoria|default:"—" }}</small>
+                    </td>
+                  {% endif %}
+                  <td class="text-center">
+                    {% if movimiento.tipo == 'entrada' %}
+                      <span class="fw-bold text-success small">Entrada</span>
+                    {% else %}
+                      <span class="fw-bold text-danger small">Salida</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-center">{{ movimiento.cantidad }}</td>
+                  <td class="text-center">{{ movimiento.stock_anterior }}</td>
+                  <td class="text-center">{{ movimiento.stock_posterior }}</td>
+                  <td class="text-center">
+                    <span class="fw-bold text-center small">{{ movimiento.get_motivo_display }}</span>
+                  </td>
+                  <td class="text-start"> {{ movimiento.observaciones|default:"—" }}
+                  </td>
+                  <td class="text-center">{{ movimiento.usuario.username }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="{% if insumo %}7{% else %}8{% endif %}" class="text-center text-muted py-4">
+                    <i class="bi bi-inbox display-6 d-block mb-2"></i>
+                    {% if filtro_actual == 'todos' %}
+                      No hay movimientos registrados
+                    {% else %}
+                      No hay movimientos que coincidan con el filtro "{{ filtro_actual }}"
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- PAGINACIÓN CORREGIDA -->
+        {% if movimientos.has_other_pages %}
+        <div class="card-body pt-2">
+          <div class="d-flex justify-content-between align-items-center">
+            <small class="text-muted">
+              Mostrando {{ movimientos.start_index }}–{{ movimientos.end_index }} de {{ movimientos.paginator.count }}
+            </small>
+            <ul class="pagination pagination-sm mb-0">
+              {% if movimientos.has_previous %}
+                <li class="page-item">
+                  <a class="page-link" href="?page=1&filtro={{ filtro_actual }}{% if insumo_id %}&insumo_id={{ insumo_id }}{% endif %}">«</a>
+                </li>
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ movimientos.previous_page_number }}&filtro={{ filtro_actual }}{% if insumo_id %}&insumo_id={{ insumo_id }}{% endif %}">‹</a>
+                </li>
+              {% else %}
+                <li class="page-item disabled"><span class="page-link">«</span></li>
+                <li class="page-item disabled"><span class="page-link">‹</span></li>
+              {% endif %}
+
+              {% for i in movimientos.paginator.page_range %}
+                {% if i == movimientos.number %}
+                  <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+                {% elif i >= movimientos.number|add:'-2' and i <= movimientos.number|add:'2' %}
+                  <li class="page-item">
+                    <a class="page-link" href="?page={{ i }}&filtro={{ filtro_actual }}{% if insumo_id %}&insumo_id={{ insumo_id }}{% endif %}">{{ i }}</a>
+                  </li>
+                {% endif %}
+              {% endfor %}
+
+              {% if movimientos.has_next %}
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ movimientos.next_page_number }}&filtro={{ filtro_actual }}{% if insumo_id %}&insumo_id={{ insumo_id }}{% endif %}">›</a>
+                </li>
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ movimientos.paginator.num_pages }}&filtro={{ filtro_actual }}{% if insumo_id %}&insumo_id={{ insumo_id }}{% endif %}">»</a>
+                </li>
+              {% else %}
+                <li class="page-item disabled"><span class="page-link">›</span></li>
+                <li class="page-item disabled"><span class="page-link">»</span></li>
+              {% endif %}
+            </ul>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.table th { font-size: 0.8rem; font-weight: 600; }
+.table td { font-size: 0.85rem; vertical-align: middle; }
+.badge { font-size: 0.7rem; }
+.cursor-pointer {
+  cursor: pointer;
+}
+
+/* FILTROS HISTORIAL - Mismo formato que control de stock */
+
+/* Filtros NO activos - Bordes de colores gruesos y texto negro */
+.filtro-todos-historial {
+    border: 2px solid #033e7e !important; 
+    background-color: transparent;
+}
+.filtro-todos-historial .card-title,
+.filtro-todos-historial .card-text {
+    color: #000000 !important;
+}
+
+.filtro-entradas-historial {
+    border: 2px solid #28a745 !important; 
+    background-color: transparent;
+}
+.filtro-entradas-historial .card-title,
+.filtro-entradas-historial .card-text {
+    color: #000000 !important;
+}
+
+.filtro-salidas-historial {
+    border: 2px solid #dc3545 !important; 
+    background-color: transparent;
+}
+.filtro-salidas-historial .card-title,
+.filtro-salidas-historial .card-text {
+    color: #000000 !important;
+}
+
+/* Filtro ACTIVO - Borde gris neutro y texto de colores */
+.filtro-activo-historial {
+    border: 2px solid #c6c7c9ff !important; 
+    background-color: transparent;
+}
+.filtro-activo-historial .card-title,
+.filtro-activo-historial .card-text {
+    color: #000000ff !important;
+}
+
+/* Colores específicos para cada filtro activo */
+.filtro-activo-historial.filtro-todos-historial .card-title,
+.filtro-activo-historial.filtro-todos-historial .card-text {
+    color: #033e7e !important; /* Azul */
+}
+
+.filtro-activo-historial.filtro-entradas-historial .card-title,
+.filtro-activo-historial.filtro-entradas-historial .card-text {
+    color: #28a745 !important; /* Verde */
+}
+
+.filtro-activo-historial.filtro-salidas-historial .card-title,
+.filtro-activo-historial.filtro-salidas-historial .card-text {
+    color: #dc3545 !important; /* Rojo */
+}
+</style>
+<script>
+// Formato de miles con punto para montos guaraníes
+document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('.money').forEach(el => {
+    const raw = (el.getAttribute('data-money') || '').replace(/\D/g,'');
+    if (!raw) return;
+    const n = parseInt(raw, 10);
+    if (isNaN(n)) return;
+    el.textContent = 'Gs. ' + n.toLocaleString('es-PY');
+  });
+});
+</script>
+{% endblock %}

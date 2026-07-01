@@ -1,0 +1,160 @@
+{% extends 'seguridad/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-0">
+    <div class="row justify-content-center">
+        <div class="col-12 col-xl-8">
+            
+            <!-- HEADER -->
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <div>
+                    <h2 class="h4 mb-1">MI PERFIL</h2>
+                </div>
+                <div>
+                    <a href="{% url 'home' %}" class="btn btn-outline-secondary btn-sm me-2">
+                        <i class="bi bi-house"></i>Inicio
+                    </a>
+                </div>
+            </div>
+
+            <!-- TARJETA DE DETALLES PRINCIPAL -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h6 class="mb-2 border-bottom pb-2 small fw-semibold text-muted">INFORMACIÓN BÁSICA DEL USUARIO</h6>
+                            
+                            <div class="row">
+                                <!-- COLUMNA IZQUIERDA - USUARIO Y ROL -->
+                                <div class="col-md-6">
+                                    <div class="mb-2">
+                                        <label class="form-label small fw-semibold text-muted">Usuario</label>
+                                        <p class="mb-0 fw-bold">{{ usuario.username }}</p>
+                                    </div>
+            
+                                    <div class="mb-2">
+                                        <label class="form-label small fw-semibold text-muted">Rol asignado</label>
+                                        <p class="mb-0">
+                                            <span class="text-dark mb-0 fw-bold">{{ usuario.get_rol_display }}</span>
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <!-- COLUMNA DERECHA - CORREO Y TELÉFONO -->
+                                <div class="col-md-6">
+                                    <div class="mb-2">
+                                        <label class="form-label small fw-semibold text-muted">Correo Electrónico</label>
+                                        <p class="mb-0">
+                                            {% if usuario.email %}
+                                                {{ usuario.email }}
+                                            {% else %}
+                                                <span class="text-secondary">No especificado</span>
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label small fw-semibold text-muted">Teléfono</label>
+                                        <p class="mb-0 telefono-cell">
+                                            {% if usuario.telefono %}
+                                                {{ usuario.telefono }}
+                                            {% else %}
+                                                <span class="text-secondary">No especificado</span>
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- BOTÓN -->
+                            <div class="position-relative" style="min-height: 50px;">
+                                <div class="card position-absolute bottom-0 end-0">
+                                    <a href="{% url 'perfil_editar' %}" class="btn btn-primary btn-sm" style="width: 250px;">
+                                        <i class="bi bi-pencil"></i>Actualizar Perfil
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                       
+            </div>
+
+            <!-- INFORMACIÓN DE AYUDA -->
+            <div class="card">
+                <div class="card-body py-2">
+                    <div class="row">
+                        <div class="col-12">
+                            <small class="text-muted">
+                                <i class="bi bi-info-circle"></i>
+                                Aquí puedes ver y gestionar la información de tu cuenta.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.container-fluid {
+    max-width: 1000px;
+}
+.small {
+    font-size: 0.875rem;
+}
+.btn-sm {
+    padding: 0.50rem 0.2rem;
+    font-size: 0.80rem;
+}
+/* Limitar la altura de la card principal y acercar la de ayuda */
+.card { max-height: 340px; overflow: auto; }      
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+
+  // Función para formatear teléfono
+  function formatTelefono(telefono) {
+    if (!telefono) return telefono;
+    
+    // Limpiar el teléfono de espacios y caracteres especiales
+    const telefonoLimpio = telefono.replace(/\D/g, '');
+    
+    // Formato para Paraguay: +595 981 123456
+    if (telefonoLimpio.startsWith('595') && telefonoLimpio.length === 12) {
+      return `+${telefonoLimpio.substring(0, 3)} ${telefonoLimpio.substring(3, 6)} ${telefonoLimpio.substring(6)}`;
+    }
+    // Formato con código de país completo
+    else if (telefonoLimpio.startsWith('595') && telefonoLimpio.length === 11) {
+      return `+${telefonoLimpio.substring(0, 3)} ${telefonoLimpio.substring(3, 6)} ${telefonoLimpio.substring(6)}`;
+    }
+    // Formato local (0981) 123-456
+    else if (telefonoLimpio.startsWith('098') && telefonoLimpio.length === 10) {
+      return `(${telefonoLimpio.substring(0, 4)}) ${telefonoLimpio.substring(4, 7)}-${telefonoLimpio.substring(7)}`;
+    }
+    // Formato local (098) 123-456
+    else if (telefonoLimpio.startsWith('098') && telefonoLimpio.length === 9) {
+      return `(${telefonoLimpio.substring(0, 3)}) ${telefonoLimpio.substring(3, 6)}-${telefonoLimpio.substring(6)}`;
+    }
+    // Formato simple con separadores
+    else if (telefonoLimpio.length >= 7) {
+      // Para números locales sin código de área
+      return telefonoLimpio.replace(/(\d{3})(\d{3})(\d+)/, '$1 $2 $3');
+    }
+    
+    return telefono;
+  }
+
+  const telefonoCells = document.querySelectorAll('.telefono-cell');
+ 
+  telefonoCells.forEach(cell => {
+    const originalText = cell.textContent.trim();
+    if (originalText && originalText !== '—') {
+      cell.textContent = formatTelefono(originalText);
+    }
+  });
+
+});
+</script>
+{% endblock %}

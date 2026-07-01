@@ -1,0 +1,9 @@
+Hola {{ nombre }},
+
+Bienvenido/a a Iam Car.
+
+A partir de este momento, recibirá notificaciones y actualizaciones relacionadas con el estado de su vehículo ingresado a reparación.
+Ante cualquier consulta, podés responder a este correo.
+
+Saludos,
+Taller Iam Car

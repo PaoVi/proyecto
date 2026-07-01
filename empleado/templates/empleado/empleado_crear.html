@@ -1,0 +1,299 @@
+{% extends 'seguridad/base.html' %}
+
+{% block content %}
+<div class="container-fluid py-0">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-8">
+
+      <!-- HEADER -->
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <h2 class="h4 mb-1">REGISTRAR EMPLEADO</h2>
+        <button type="button" onclick="window.history.back()" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-arrow-left"></i>Volver
+        </button>
+      </div>
+
+      <!-- MENSAJES -->
+      {% if messages %}
+        <div class="mb-2">
+          {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} small mb-2">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <!-- ERRORES NO ASOCIADOS A CAMPOS -->
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger small">
+          {% for e in form.non_field_errors %}<div>{{ e }}</div>{% endfor %}
+        </div>
+      {% endif %}
+
+      <!-- FORMULARIO -->
+      <div class="card">
+        <div class="card-body">
+          <form method="post" class="needs-validation" novalidate>
+            {% csrf_token %}
+
+            <div class="row g-3">
+
+              <!-- NOMBRE Y APELLIDO -->
+              <div class="col-12">
+                <label class="form-label small">Nombre y Apellido</label> 
+                <div class="row g-2">
+                  <div class="col-md-12">
+                    {{ form.nombre }}
+                    {% if form.nombre.errors %}
+                      <div class="invalid-feedback d-block small">
+                        {% for e in form.nombre.errors %}{{ e }}{% endfor %}
+                      </div>
+                    {% endif %}
+                  </div>
+                  <div class="col-md-6">
+                    {{ form.apellido }}
+                    {% if form.apellido.errors %}
+                      <div class="invalid-feedback d-block small">
+                        {% for e in form.apellido.errors %}{{ e }}{% endfor %}
+                      </div>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+
+              <!-- CÉDULA / RUC -->
+              <div class="col-md-6">
+                <label for="id_cedula_ruc" class="form-label small">Cédula / RUC</label>
+                {{ form.cedula_ruc }}
+                {% if form.cedula_ruc.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.cedula_ruc.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- TELÉFONO (+595 prefijo) -->
+              <div class="col-md-6">
+                <label class="form-label small">Teléfono</label>
+                <div class="input-group">
+                  <span class="input-group-text">+595</span>
+                  <input
+                    type="text"
+                    name="telefono"
+                    class="form-control"
+                    placeholder="9xxxxxxx"
+                    value="{% if form.telefono.value %}{{ form.telefono.value|cut:'+595' }}{% endif %}">
+                </div>
+                {% if form.telefono.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.telefono.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- FECHA NACIMIENTO -->
+              <div class="col-md-6" id="wrap-fecha-nac">
+                <label for="id_fecha_nacimiento" class="form-label small">Fecha de Nacimiento</label>
+                {{ form.fecha_nacimiento }}
+                {% if form.fecha_nacimiento.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.fecha_nacimiento.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- FECHA INGRESO -->
+              <div class="col-md-6" id="wrap-fecha-ing">
+                <label for="id_fecha_ingreso" class="form-label small">Fecha de Ingreso</label>
+                {{ form.fecha_ingreso }}
+                {% if form.fecha_ingreso.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.fecha_ingreso.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- CORREO ELECTRÓNICO -->
+              <div class="col-md-6">
+                <label for="id_correo_electronico" class="form-label small">Correo Electrónico</label>
+                {{ form.correo_electronico }}
+                {% if form.correo_electronico.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.correo_electronico.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- CIUDAD -->
+              <div class="col-md-6">
+                <label for="id_ciudad" class="form-label small">Ciudad</label>
+                {{ form.ciudad }}
+                {% if form.ciudad.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.ciudad.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- CARGO -->
+              <div class="col-md-6">
+                <label for="id_cargo" class="form-label small">Cargo</label>
+                {{ form.cargo }}
+                {% if form.cargo.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.cargo.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- SALARIO BASE -->
+              <div class="col-md-6">
+                <label class="form-label small">Salario Base</label>
+                <input type="hidden" name="salario_base" id="id_salario_base" value="{{ form.salario_base.value|default_if_none:'' }}">
+                <input
+                  type="text"
+                  id="id_salario_base_display"
+                  class="form-control"
+                  placeholder="Gs. 0"
+                  value="">
+                {% if form.salario_base.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.salario_base.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- DIRECCIÓN -->
+              <div class="col-12">
+                <label for="id_direccion" class="form-label small">Dirección</label>
+                {{ form.direccion }}
+                {% if form.direccion.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.direccion.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- BOTONES -->
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-center pt-3 border-top gap-2">
+              <a href="{% url 'empleado_lista' %}" class="btn btn-outline-secondary btn-sm w-100 w-md-auto order-2 order-md-1">
+                <i class="bi bi-x-circle"></i>Cancelar
+              </a>
+              <button type="submit" class="btn btn-primary btn-sm w-100 w-md-auto order-1 order-md-2">
+                <i class="bi bi-check-circle"></i>Registrar Empleado
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+        <!-- INFORMACIÓN DE AYUDA -->
+        <div class="card">
+            <div class="card-body py-2">
+                <div class="row">
+                    <div class="col-12">
+                        <small class="text-muted">
+                            <i class="bi bi-info-circle"></i>
+                            Todos los campos son obligatorios.
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .container-fluid { max-width: 1000px; }
+  .form-control, .form-select {
+    border-radius: 0.375rem;
+    border: 1px solid #ced4da;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+  }
+  .form-control:focus, .form-select:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+  }
+  .btn-sm { padding: 0.375rem 0.75rem; font-size: 0.875rem; min-width: 100px; }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const formEl = document.querySelector('form');
+
+  // 1) Forzar todos los campos como obligatorios (front)
+  if (formEl) {
+    formEl.querySelectorAll('input, select, textarea').forEach(el => {
+      if (el.type !== 'hidden' && !el.hasAttribute('required')) {
+        el.setAttribute('required', 'required');
+      }
+    });
+  }
+
+  // 2) Prefijo +595 para teléfono al enviar
+  const telefonoInput = document.querySelector('input[name="telefono"]');
+  formEl.addEventListener('submit', function() {
+    if (telefonoInput && telefonoInput.value && !telefonoInput.value.startsWith('+595')) {
+      telefonoInput.value = '+595' + telefonoInput.value;
+    }
+    // Sincronizar salario visible -> oculto
+    const hidden = document.getElementById('id_salario_base');
+    const vis = document.getElementById('id_salario_base_display');
+    if (hidden && vis) {
+      hidden.value = desformatearGs(vis.value);
+    }
+  });
+
+  if (telefonoInput && !telefonoInput.value) {
+    telefonoInput.placeholder = '9xxxxxxx';
+  }
+
+  // 3) Auto-separador para fechas (dd/mm/aaaa)
+  const fechaInputs = document.querySelectorAll('#id_fecha_nacimiento, #id_fecha_ingreso');
+  fechaInputs.forEach(input => {
+    input.setAttribute("placeholder", "dd/mm/aaaa");
+    input.addEventListener('input', function() {
+      let val = input.value.replace(/\D/g, "");
+      if (val.length > 2 && val.length <= 4) {
+        input.value = val.slice(0,2) + "/" + val.slice(2);
+      } else if (val.length > 4) {
+        input.value = val.slice(0,2) + "/" + val.slice(2,4) + "/" + val.slice(4,8);
+      } else {
+        input.value = val;
+      }
+    });
+  });
+
+  // 4) Formato Gs. para salario base (sin spinner)
+  const hiddenSal = document.getElementById('id_salario_base');
+  const visibleSal = document.getElementById('id_salario_base_display');
+
+  function formatearGs(valorNum) {
+    if (valorNum === null || valorNum === '' || isNaN(valorNum)) return '';
+    const n = Math.floor(Number(valorNum));
+    return 'Gs. ' + n.toLocaleString('es-PY');
+  }
+  function desformatearGs(texto) {
+    if (!texto) return '';
+    return texto
+      .toString()
+      .replace(/^Gs\.?\s*/i, '')
+      .replace(/\./g, '')
+      .replace(/,/g, '')
+      .trim();
+  }
+
+  // inicializar visible desde oculto si viene con valor
+  if (hiddenSal && visibleSal) {
+    if (hiddenSal.value) {
+      visibleSal.value = formatearGs(hiddenSal.value);
+    }
+    visibleSal.addEventListener('input', () => {
+      const raw = desformatearGs(visibleSal.value).replace(/\D/g, '');
+      visibleSal.value = formatearGs(raw);
+    });
+  }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,25 @@
+{
+    "factura": {
+        "numero": "001-001-0000271",
+        "fecha": "2026-06-17",
+        "timbrado": "87654321",
+        "establecimiento": "001",
+        "punto_emision": "001",
+        "estado": "ACTIVA"
+    },
+    "cliente": {
+        "nombre": "John Michael Smith",
+        "documento": "AB123456"
+    },
+    "totales": {
+        "total": 50000.0
+    },
+    "items": [
+        {
+            "tipo": "insumo",
+            "descripcion": "INSV-0096 - Lámpara H4 halógena",
+            "cantidad": 2.0,
+            "precio": 25000.0
+        }
+    ]
+}

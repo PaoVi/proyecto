@@ -1,0 +1,443 @@
+{% extends "seguridad/base.html" %}
+
+{% block content %}
+
+<div class="container-fluid py-0">
+    <div class="row justify-content-center">
+        <div class="col-12 col-xl-12">
+
+            <!-- HEADER -->
+            <div class="d-flex justify-content-between align-items-center mb-1">
+
+                <div>
+                    <h2 class="h4 mb-1">
+                         GESTIÓN DE FINANZA
+                    </h2>
+                </div>
+
+                <div class="d-flex gap-2">
+
+                    {% if perms.seguridad.gestionar_finanzas %}
+                    <a href="{% url 'movimiento_crear' %}"
+                       class="btn btn-primary btn-sm">
+
+                        <i class="bi bi-plus-circle"></i>
+                        Nuevo Movimiento
+
+                    </a>
+                    {% endif %}
+
+                    {% if perms.seguridad.abrir_caja %}
+                    <a href="{% url 'caja_apertura' %}"
+                       class="btn btn-success btn-sm">
+
+                        <i class="bi bi-cash-stack"></i>
+                        Abrir Caja
+
+                    </a>
+                    {% endif %}
+
+                    <a href="{% url 'caja_lista' %}"
+                       class="btn btn-outline-success btn-sm">
+
+                        <i class="bi bi-safe"></i>
+                        Caja
+
+                    </a>
+
+                    <a href="{% url 'movimiento_lista' %}"
+                       class="btn btn-outline-primary btn-sm">
+
+                        <i class="bi bi-list"></i>
+                        Movimiento
+
+                    </a>
+
+                </div>
+
+            </div>
+
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <!-- RESUMEN -->
+            <div class="row g-2 mb-2">
+
+                <div class="col-md-3">
+                <div class="card dashboard-card ingreso">
+                    <div class="card-body text-center">
+                        <h6>INGRESO</h6>
+                        <h4 class="monto-ingreso">
+                            ₲ {{ ingresos|floatformat:0 }}
+                        </h4>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card dashboard-card egreso">
+                    <div class="card-body text-center">
+                        <h6>EGRESO</h6>
+                        <h4 class="monto-egreso">
+                            ₲ {{ egresos|floatformat:0 }}
+                        </h4>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card dashboard-card balance">
+                    <div class="card-body text-center">
+                        <h6>BALANCE</h6>
+                        <h4 class="monto-balance">
+                            ₲ {{ balance|floatformat:0 }}
+                        </h4>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card dashboard-card caja">
+                    <div class="card-body text-center">
+                        <h6>CAJA ACTIVA</h6>
+
+                        {% if caja_abierta %}
+                            <span class="badge bg-success">
+                                ABIERTA
+                            </span>
+                        {% else %}
+                            <span class="badge bg-danger">
+                                CERRADA
+                            </span>
+                        {% endif %}
+
+                    </div>
+                </div>
+            </div>
+            </div>
+
+            <!-- CUENTAS -->
+            <div class="row g-2 mb-2">
+
+                <div class="col-md-6">
+
+                    <div class="card">
+                        <div class="card-body text-center">
+
+                            <h6 class="text-muted">
+                                CUENTA POR COBRAR
+                            </h6>
+
+                            <h3 class="text-primary">
+                                {{ cuentas_cobrar }}
+                            </h3>
+
+                            <a href="{% url 'cuentas_cobrar' %}"
+                               class="btn btn-outline-primary btn-sm">
+
+                                Ver Detalle
+
+                            </a>
+
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="col-md-6">
+
+                    <div class="card">
+                        <div class="card-body text-center">
+
+                            <h6 class="text-muted">
+                                CUENTA POR PAGAR
+                            </h6>
+
+                            <h3 class="text-danger">
+                                {{ cuentas_pagar }}
+                            </h3>
+
+                            <a href="{% url 'cuentas_pagar' %}"
+                               class="btn btn-outline-danger btn-sm">
+
+                                Ver Detalle
+
+                            </a>
+
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- CAJA ABIERTA -->
+            {% if caja_abierta %}
+            <div class="card mb-2">
+
+                <div class="card-header">
+                    <strong>CAJA ABIERTA</strong>
+                </div>
+
+                <div class="card-body">
+
+                    <div class="row">
+
+                        <div class="col-md-3">
+                            <strong>ID:</strong>
+                            {{ caja_abierta.id }}
+                        </div>
+
+                        <div class="col-md-3">
+                            <strong>Apertura:</strong>
+                            {{ caja_abierta.fecha_apertura|date:"d/m/Y H:i" }}
+                        </div>
+
+                        <div class="col-md-3">
+                            <strong>Monto Inicial:</strong>
+                            ₲ {{ caja_abierta.monto_inicial|floatformat:0 }}
+                        </div>
+
+                        <div class="col-md-3">
+                            <strong>Saldo Actual:</strong>
+                            ₲ {{ caja_abierta.saldo_actual|floatformat:0 }}
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+            {% endif %}
+
+            <!-- MOVIMIENTO -->
+            <div class="card">
+
+                <div class="card-header d-flex justify-content-between">
+
+                    <strong>ÚLTIMOS MOVIMIENTOS</strong>
+
+                    <a href="{% url 'movimiento_lista' %}"
+                       class="btn btn-outline-secondary btn-sm">
+
+                        Ver Todo
+
+                    </a>
+
+                </div>
+
+                <div class="table-responsive">
+
+                    <table class="table table-hover align-middle mb-0">
+
+                        <thead class="table-light">
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Tipo</th>
+                                <th>Origen</th>
+                                <th>Descripción</th>
+                                <th>Monto</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+
+                            {% for mov in movimientos %}
+                            <tr>
+
+                                <td>
+                                    {{ mov.fecha|date:"d/m/Y H:i" }}
+                                </td>
+
+                                <td>
+
+                                    {% if mov.tipo == 'ingreso' %}
+                                        <span class="badge bg-success">
+                                            Ingreso
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-danger">
+                                            Egreso
+                                        </span>
+                                    {% endif %}
+
+                                </td>
+
+                                <td>
+                                    {{ mov.get_origen_display }}
+                                </td>
+
+                                <td>
+                                    {{ mov.descripcion }}
+                                </td>
+
+                                <td>
+                                    ₲ {{ mov.monto|floatformat:0 }}
+                                </td>
+
+                            </tr>
+
+                            {% empty %}
+
+                            <tr>
+                                <td colspan="5"
+                                    class="text-center text-muted py-4">
+
+                                    No existen movimientos registrados.
+
+                                </td>
+                            </tr>
+
+                            {% endfor %}
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+</div>
+<style>
+
+:root{
+    --azul:#0d6efd;
+    --verde:#198754;
+    --rojo:#dc3545;
+    --amarillo:#ffc107;
+    --gris:#f8f9fa;
+}
+
+.card{
+    border:none;
+    border-radius:14px;
+    box-shadow:0 2px 10px rgba(0,0,0,.08);
+    transition:.3s;
+}
+
+.card:hover{
+    transform:translateY(-2px);
+    box-shadow:0 6px 18px rgba(0,0,0,.12);
+}
+
+.card-header{
+    background:#0d6efd;
+    color:white;
+    border:none;
+    font-weight:600;
+    border-radius:14px 14px 0 0 !important;
+}
+
+.dashboard-card{
+    height:110px;
+}
+
+.dashboard-card h6{
+    font-size:14px;
+    font-weight:600;
+    text-transform:uppercase;
+    margin-bottom:10px;
+    color:#6c757d;
+}
+
+.dashboard-card h4{
+    font-size:34px;
+    font-weight:700;
+}
+
+.ingreso{
+    border-left:5px solid var(--verde);
+}
+
+.egreso{
+    border-left:5px solid var(--rojo);
+}
+
+.balance{
+    border-left:5px solid var(--azul);
+}
+
+.caja{
+    border-left:5px solid var(--amarillo);
+}
+
+.table{
+    margin-bottom:0;
+}
+
+.table thead th{
+    background:#0d6efd !important;
+    color:white !important;
+    border:none !important;
+    text-align:center;
+    padding:14px;
+    font-weight:600;
+}
+
+.table tbody tr:hover{
+    background:#f5f9ff;
+}
+
+.table td{
+    vertical-align:middle;
+    padding:12px;
+}
+
+.badge{
+    border-radius:20px;
+    padding:6px 14px;
+    font-size:12px;
+}
+
+.btn{
+    border-radius:8px;
+}
+
+.btn-primary{
+    background:#0d6efd;
+}
+
+.btn-success{
+    background:#198754;
+}
+
+.btn-outline-primary:hover,
+.btn-outline-success:hover{
+    transform:translateY(-1px);
+}
+
+.titulo-finanza{
+    font-size:32px;
+    font-weight:700;
+    color:#1f2937;
+}
+
+.monto-ingreso{
+    color:#198754;
+}
+
+.monto-egreso{
+    color:#dc3545;
+}
+
+.monto-balance{
+    color:#0d6efd;
+}
+
+.ver-detalle{
+    text-decoration:none;
+    font-size:13px;
+    font-weight:500;
+}
+
+</style>
+
+{% endblock %}

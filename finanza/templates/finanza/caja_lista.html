@@ -1,0 +1,413 @@
+{% extends "seguridad/base.html" %}
+
+{% block content %}
+
+<div class="container-fluid py-0">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-12">
+
+        <!-- HEADER -->
+        <div class="d-flex justify-content-between align-items-center mb-1">
+            <div>
+            <h2 class="h4 mb-1">GESTIÓN DE CAJAS</h2>
+            </div>
+
+            <div class="d-flex gap-2">
+
+                <a href="{% url 'dashboard_finanza' %}"
+                class="btn btn-outline-secondary">
+
+                    <i class="bi bi-arrow-left"></i>
+                    Volver
+
+                </a>
+
+                {% if perms.seguridad.abrir_caja %}
+                <a href="{% url 'caja_apertura' %}"
+                class="btn btn-success">
+
+                    <i class="bi bi-unlock"></i>
+                    Abrir Caja
+
+                </a>
+                {% endif %}
+            </div>  
+
+        </div>
+       <!-- FILTROS -->
+            <div class="card mb-2">
+                <div class="card-body p-2">
+
+                    <form method="GET" class="row g-2 align-items-end">
+
+                        <!-- ID -->
+                        <div class="col-md-3">
+                            <label class="form-label small">
+                                ID / USUARIO
+                            </label>
+
+                            <input type="text"
+                                name="q"
+                                value="{{ request.GET.q }}"
+                                class="form-control form-control-sm"
+                                style="height:33px;"
+                                placeholder="Ej.: 1, paola">
+                        </div>
+
+                        <!-- DESDE -->
+                        <div class="col-md-2">
+                            <label class="form-label small">
+                                DESDE
+                            </label>
+
+                            <input type="date"
+                                name="desde"
+                                value="{{ request.GET.desde }}"
+                                class="form-control form-control-sm"
+                                style="height:33px;">
+                        </div>
+
+                        <!-- HASTA -->
+                        <div class="col-md-2">
+                            <label class="form-label small">
+                                HASTA
+                            </label>
+
+                            <input type="date"
+                                name="hasta"
+                                value="{{ request.GET.hasta }}"
+                                class="form-control form-control-sm"
+                                style="height:33px;">
+                        </div>
+
+                        <!-- ESTADO -->
+                        <div class="col-md-2">
+                            <label class="form-label small">
+                                ESTADO
+                            </label>
+
+                            <select name="estado"
+                                    class="form-select form-select-sm">
+
+                                <option value="">Todos</option>
+
+                                <option value="abierta"
+                                    {% if request.GET.estado == "abierta" %}selected{% endif %}>
+                                    Abierta
+                                </option>
+
+                                <option value="cerrada"
+                                    {% if request.GET.estado == "cerrada" %}selected{% endif %}>
+                                    Cerrada
+                                </option>
+
+                            </select>
+                        </div>
+
+                        <!-- BUSCAR -->
+                        <div class="col-md-1">
+                            <label class="form-label small">&nbsp;</label>
+
+                            <button type="submit"
+                                    class="btn btn-outline-primary btn-sm w-100"
+                                    style="height:33px;">
+
+                                <i class="bi bi-search"></i>
+                                Buscar
+
+                            </button>
+                        </div>
+
+                        <!-- LIMPIAR -->
+                        <div class="col-md-1">
+                            <label class="form-label small">&nbsp;</label>
+
+                            <a href="{% url 'caja_lista' %}"
+                            class="btn btn-outline-secondary btn-sm w-100"
+                            style="height:33px;">
+
+                                <i class="bi bi-arrow-clockwise"></i>
+                                Limpiar
+
+                            </a>
+                        </div>
+
+                    </form>
+
+                </div>
+            </div>
+      <!-- TABLA -->
+        <div class="card shadow-sm">
+
+            <div class="table-responsive">
+
+                <table class="table table-hover align-middle mb-0">
+
+                    <thead class="table-light">
+
+                        <tr>
+                            <th style="width: 10%">ID</th>
+                            <th style="width: 10%">Fecha Apertura</th>
+                            <th style="width: 10%">Fecha Cierre</th>
+                            <th style="width: 10%">Monto Inicial</th>
+                            <th style="width: 10%">Saldo</th>
+                            <th style="width: 10%">Estado</th>
+                            <th style="width: 15%">Usuario</th>
+                            <th style="width: 15%" class="text-center">Acciones</th>
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        {% for caja in cajas %}
+
+                        <tr>
+
+                            <td>
+                                {{ caja.id }}
+                            </td>
+
+                            <td>
+                                {{ caja.fecha_apertura|date:"d/m/Y | H:i" }}
+                            </td>
+
+                            <td>
+
+                                {% if caja.fecha_cierre %}
+                                    {{ caja.fecha_cierre|date:"d/m/Y | H:i" }}
+                                {% else %}
+                                    —
+                                {% endif %}
+
+                            </td>
+
+                            <td class="text-center">
+                                ₲ <span class="fmt">{{ caja.monto_inicial|floatformat:0 }}</span>
+                            </td>
+
+                            <td class="text-center fw-bold">
+
+                                {% if caja.estado == "cerrada" %}
+                                    ₲ <span class="fmt">{{ caja.saldo_cierre|floatformat:0 }}</span>
+                                {% else %}
+                                    ₲ <span class="fmt">{{ caja.saldo_actual|floatformat:0 }}</span>
+                                {% endif %}
+
+                            </td>
+
+                            <td>
+
+                                {% if caja.estado == "abierta" %}
+                                    <span class="badge bg-success">
+                                        Abierta
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary">
+                                        Cerrada
+                                    </span>
+                                {% endif %}
+
+                            </td>
+
+                            <td>
+                                {{ caja.usuario_apertura }}
+                            </td>
+
+                            <td class="text-center">
+
+                                <div class="btn-group btn-group-sm">
+
+                                    <a href="{% url 'dashboard_finanza' %}"
+                                    class="btn btn-outline-success"
+                                    title="Dashboard">
+                                        <i class="bi bi-speedometer2"></i>
+                                    </a>
+
+                                    <a href="{% url 'movimiento_lista' %}"
+                                    class="btn btn-outline-primary"
+                                    title="Movimientos">
+                                        <i class="bi bi-list"></i>
+                                    </a>
+
+                                    <a href="{% url 'cuentas_cobrar' %}"
+                                    class="btn btn-outline-info"
+                                    title="Cuentas por Cobrar">
+                                        <i class="bi bi-wallet2"></i>
+                                    </a>
+
+                                    <a href="{% url 'cuentas_pagar' %}"
+                                    class="btn btn-outline-danger"
+                                    title="Cuentas por Pagar">
+                                        <i class="bi bi-cash-coin"></i>
+                                    </a>
+
+                                    {% if caja.estado == "abierta" %}
+
+                                        {% if perms.seguridad.cerrar_caja %}
+                                        <button type="button"
+                                                class="btn btn-outline-danger"
+                                                title="Cerrar Caja"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#modalCerrarCaja{{ caja.id }}">
+                                            <i class="bi bi-lock"></i>
+                                        </button>
+                                        {% endif %}
+
+                                    {% else %}
+
+                                        <button type="button"
+                                                class="btn btn-outline-secondary"
+                                                disabled
+                                                title="Caja Cerrada">
+                                            <i class="bi bi-check-circle"></i>
+                                        </button>
+
+                                    {% endif %}
+
+                                </div>
+
+                            </td>
+                        <!-- MODAL CERRAR CAJA -->
+                        <div class="modal fade" id="modalCerrarCaja{{ caja.id }}" tabindex="-1">
+                            <div class="modal-dialog modal-dialog-centered modal-sm">
+                                <div class="modal-content">
+                                    <div class="modal-header bg-danger text-white">
+                                        <h5 class="modal-title">Confirmar Cierre</h5>
+                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body text-center">
+                                        <div style="font-size: 50px; color: #dc3545;">
+                                            <i class="bi bi-cash-stack"></i>
+                                        </div>
+                                        <p class="mt-3">
+                                            ¿Desea <strong class="text-danger">CERRAR</strong> la caja <strong>#{{ caja.id }}</strong>?
+                                        </p>
+                                        <p class="text-muted small">Esta acción no se puede deshacer</p>
+                                    </div>
+                                    <div class="modal-footer justify-content-center">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                            Cancelar
+                                        </button>
+                                        <form method="post" action="{% url 'caja_cierre' caja.id %}">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-danger">
+                                                <i class="bi bi-lock"></i> Cerrar
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {% empty %}
+
+                        <tr>
+
+                            <td colspan="8"
+                                class="text-center py-4 text-muted">
+
+                                No existen cajas registradas.
+
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        <!-- PAGINACIÓN -->
+        {% if cajas.has_other_pages %}
+
+        <div class="card-body pt-2">
+          <div class="d-flex justify-content-between align-items-center">
+
+                    <small class="text-muted">
+
+                        Mostrando
+                        {{ cajas.start_index }}
+                        -
+                        {{ cajas.end_index }}
+                        de
+                        {{ cajas.paginator.count }}
+
+                    </small>
+
+                    <ul class="pagination pagination-sm mb-0">
+
+                        {% if cajas.has_previous %}
+
+                        <li class="page-item">
+                            <a class="page-link"
+                               href="?page=1">
+                               «
+                            </a>
+                        </li>
+
+                        <li class="page-item">
+                            <a class="page-link"
+                               href="?page={{ cajas.previous_page_number }}">
+                               ‹
+                            </a>
+                        </li>
+
+                        {% endif %}
+
+                        <li class="page-item active">
+                            <span class="page-link">
+                                {{ cajas.number }}
+                            </span>
+                        </li>
+
+                        {% if cajas.has_next %}
+
+                        <li class="page-item">
+                            <a class="page-link"
+                               href="?page={{ cajas.next_page_number }}">
+                               ›
+                            </a>
+                        </li>
+
+                        <li class="page-item">
+                            <a class="page-link"
+                               href="?page={{ cajas.paginator.num_pages }}">
+                               »
+                            </a>
+                        </li>
+
+                        {% endif %}
+
+                    </ul>
+
+                </div>
+
+            </div>
+
+        </div>
+        {% endif %}
+        </div>
+
+</div>
+
+<!-- SCRIPT PARA FORMATEAR NÚMEROS -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  // Formatear números con separador de miles (Guaraníes)
+  const fmt = n => {
+    if (!n && n !== 0) return '0';
+    return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  };
+  
+  document.querySelectorAll('.fmt').forEach(el => {
+    const num = parseFloat(el.textContent || '0');
+    el.textContent = fmt(Math.round(num));
+  });
+});
+</script>
+
+{% endblock %}

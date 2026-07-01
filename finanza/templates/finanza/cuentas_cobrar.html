@@ -1,0 +1,271 @@
+{% extends "seguridad/base.html" %}
+
+{% block content %}
+
+<div class="container-fluid py-0">
+    <div class="row justify-content-center">
+        <div class="col-12 col-xl-12">
+
+            <!-- HEADER -->
+            <div class="d-flex justify-content-between align-items-center mb-2">
+
+                <h2 class="h4 fw-bold mb-0">
+                    CUENTAS POR COBRAR
+                </h2>
+
+                <a href="{% url 'dashboard_finanza' %}"
+                class="text-decoration-none text-secondary">
+                    <i class="bi bi-arrow-left"></i> Volver
+                </a>
+
+            </div>
+
+            <!-- FILTROS -->
+            <div class="card mb-2">
+                <div class="card-body p-2">
+
+                    <form method="get" class="row g-2 align-items-end">
+
+                        <div class="col-md-3">
+                            <label class="form-label small">CLIENTE</label>
+                            <input type="text"
+                                name="cliente"
+                                value="{{ request.GET.cliente }}"
+                                class="form-control form-control-sm"
+                                style="height:33px;"
+                                placeholder="Buscar cliente">
+                        </div>
+
+                        <div class="col-md-2">
+                            <label class="form-label small">FACTURA</label>
+                            <input type="text"
+                                name="factura"
+                                value="{{ request.GET.factura }}"
+                                class="form-control form-control-sm"
+                                style="height:33px;"
+                                placeholder="N° Factura">
+                        </div>
+
+                        <div class="col-md-2">
+                            <label class="form-label small">ESTADO</label>
+                            <select name="estado" class="form-select form-select-sm">
+                                <option value="">Todos</option>
+                                <option value="pendiente"
+                                    {% if request.GET.estado == "pendiente" %}selected{% endif %}>
+                                    Pendiente
+                                </option>
+                                <option value="pagado"
+                                    {% if request.GET.estado == "pagado" %}selected{% endif %}>
+                                    Pagado
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-2">
+                            <label class="form-label small">VENCIMIENTO</label>
+                            <input type="date"
+                                name="vencimiento"
+                                value="{{ request.GET.vencimiento }}"
+                                class="form-control form-control-sm"
+                                style="height:33px;">
+                        </div>
+
+                        <div class="col-md-1">
+                            <label class="form-label small">&nbsp;</label>
+                            <button type="submit"
+                                    class="btn btn-outline-primary btn-sm w-100"
+                                    style="height:33px;">
+                                <i class="bi bi-search"></i> Buscar
+                            </button>
+                        </div>
+
+                        <div class="col-md-2">
+                            <label class="form-label small">&nbsp;</label>
+                            <a href="{% url 'cuentas_cobrar' %}"
+                            class="btn btn-outline-secondary btn-sm w-100"
+                            style="height:33px;">
+                                <i class="bi bi-arrow-clockwise"></i> Limpiar
+                            </a>
+                        </div>
+
+                    </form>
+
+                </div>
+            </div>
+
+            <!-- TABLA -->
+            <div class="card">
+
+                <div class="table-responsive">
+
+                    <table class="table table-hover align-middle mb-0">
+
+                        <thead class="table-light">
+                            <tr>
+                                <th>Factura</th>
+                                <th>Cliente</th>
+                                <th>Total</th>
+                                <th>Saldo Pendiente</th>
+                                <th>Vencimiento</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+
+                            {% for cuenta in cuentas %}
+
+                            <tr>
+
+                                <td>
+                                    {{ cuenta.factura.numero_formateado|default:cuenta.factura.id }}
+                                </td>
+
+                                <td>
+                                    {{ cuenta.cliente.nombre }}
+                                </td>
+
+                                <td>
+                                    ₲ {{ cuenta.monto_total|floatformat:0 }}
+                                </td>
+
+                                <td>
+                                    <span class="fw-bold text-danger">
+                                        ₲ {{ cuenta.saldo_pendiente|floatformat:0 }}
+                                    </span>
+                                </td>
+
+                                <td>
+                                    {{ cuenta.fecha_vencimiento|date:"d/m/Y" }}
+                                </td>
+
+                                <td>
+
+                                    {% if cuenta.pagado %}
+                                        <span class="badge bg-success">
+                                            Pagado
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-danger">
+                                            Pendiente
+                                        </span>
+                                    {% endif %}
+
+                                </td>
+
+                                <td>
+
+                                    {% if not cuenta.pagado %}
+
+                                        <a href="{% url 'cobro_crear' cuenta.id %}"
+                                           class="btn btn-success btn-sm">
+
+                                            <i class="bi bi-cash"></i>
+                                            Cobrar
+
+                                        </a>
+
+                                    {% else %}
+
+                                        <span class="badge bg-success">
+                                            Cobro Completo
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+                            </tr>
+
+                            {% empty %}
+
+                            <tr>
+                                <td colspan="7"
+                                    class="text-center py-4 text-muted">
+
+                                    No existen cuentas por cobrar registradas.
+
+                                </td>
+                            </tr>
+
+                            {% endfor %}
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+            <!-- PAGINACIÓN -->
+            {% if cuentas.has_other_pages %}
+            <div class="card mt-2">
+                <div class="card-body py-2">
+
+                    <div class="d-flex justify-content-between align-items-center">
+
+                        <small class="text-muted">
+                            Mostrando
+                            {{ cuentas.start_index }}
+                            -
+                            {{ cuentas.end_index }}
+                            de
+                            {{ cuentas.paginator.count }}
+                            registros
+                        </small>
+
+                        <ul class="pagination pagination-sm mb-0">
+
+                            {% if cuentas.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link"
+                                   href="?page=1">
+                                   «
+                                </a>
+                            </li>
+
+                            <li class="page-item">
+                                <a class="page-link"
+                                   href="?page={{ cuentas.previous_page_number }}">
+                                   ‹
+                                </a>
+                            </li>
+                            {% endif %}
+
+                            <li class="page-item active">
+                                <span class="page-link">
+                                    {{ cuentas.number }}
+                                </span>
+                            </li>
+
+                            {% if cuentas.has_next %}
+                            <li class="page-item">
+                                <a class="page-link"
+                                   href="?page={{ cuentas.next_page_number }}">
+                                   ›
+                                </a>
+                            </li>
+
+                            <li class="page-item">
+                                <a class="page-link"
+                                   href="?page={{ cuentas.paginator.num_pages }}">
+                                   »
+                                </a>
+                            </li>
+                            {% endif %}
+
+                        </ul>
+
+                    </div>
+
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+
+{% endblock %}

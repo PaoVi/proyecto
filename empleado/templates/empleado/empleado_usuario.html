@@ -1,0 +1,310 @@
+{% extends 'seguridad/base.html' %}
+
+{% block content %}
+<div class="container-fluid py-0">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-8">
+
+      <!-- HEADER -->
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <div>
+          <h2 class="h4 mb-1">USUARIO VINCULADO</h2>
+        </div>
+        <div class="d-flex gap-2">
+        <button type="button" onclick="window.history.back()" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-arrow-left"></i>Volver
+        </button>
+        </div>
+      </div>
+
+      <!-- RESUMEN DEL EMPLEADO -->
+      <div class="card">
+        <div class="card-body py-1">
+          <div class="row">
+            <div class="col-md-8">
+              <small class="text-muted">Empleado:</small>
+              <div class="fw-semibold">{{ empleado.nombre }}</div>
+            </div>
+            <div class="col-md-4">
+              <small class="text-muted">Documento:</small>
+              <div class="documento-cell">{{ empleado.cedula_ruc }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LISTA SIMPLE DEL USUARIO -->
+      <div class="card">
+        <div class="card-body p-0">
+          {% if empleado.user %}
+            <div class="list-group list-group-flush">
+              <div class="list-group-item">
+                <div class="row align-items-center">
+                  <!-- INFORMACIÓN DEL USUARIO - IZQUIERDA -->
+                  <div class="col-md-6">
+                    <div class="d-flex align-items-start">
+                      <div class="flex-grow-1">
+                        <!-- USUARIO -->
+                        <div class="fw-semibold text-start mb-1">
+                          <i class="bi bi-person text-muted"></i>
+                          {{ empleado.user.username }}
+                        </div>
+                        <!-- EMAIL -->
+                        <div class="small text-muted text-start mb-1">
+                          <i class="bi bi-envelope"></i>
+                          {{ empleado.user.email|default:"Sin email" }}
+                        </div>
+                        <!-- TELÉFONO -->
+                        <div class="small text-muted text-start">
+                          <i class="bi bi-telephone"></i>
+                          <span class="telefono-cell">{{ empleado.user.telefono|default:"Sin teléfono" }}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- ESTADO - CENTRO -->
+                  <div class="col-md-2 text-center">
+                    <div class="d-flex flex-column align-items-center">
+                      {% if empleado.user.is_active %}
+                        <span class="badge bg-success">Activo</span>
+                      {% else %}
+                        <span class="badge bg-secondary">Inactivo</span>
+                      {% endif %}
+                    </div>
+                  </div>
+
+                  <!-- ACCIONES - DERECHA -->
+                  <div class="col-md-4 text-end">
+                    <div class="btn-group btn-group-sm">
+                      <!-- VER USUARIO -->
+                      {% if perms.seguridad.ver_usuarios %}
+                        <a class="btn btn-outline-info btn-sm" title="Ver usuario" href="{% url 'usuario_ver' empleado.user.pk %}">
+                          <i class="bi bi-eye"></i>
+                        </a>
+                      {% endif %}
+                      
+                      <!-- EDITAR USUARIO -->
+                      {% if perms.seguridad.editar_usuarios %}
+                      <a class="btn btn-outline-primary btn-sm" title="Editar usuario" href="{% url 'usuario_editar' empleado.user.pk %}">
+                        <i class="bi bi-pencil"></i>
+                      </a>
+                      {% endif %}
+                      
+                      <!-- DESVINCULAR -->
+                      {% if perms.seguridad.editar_empleados %}
+                      <button type="button" class="btn btn-outline-danger btn-sm" 
+                              data-bs-toggle="modal" data-bs-target="#eliminarUsuarioModal"
+                              data-empleado-id="{{ empleado.pk }}"
+                              data-usuario-info="{{ empleado.user.username }}"
+                              title="Desvincular usuario">
+                        <i class="bi bi-x-circle"></i>
+                      </button>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% else %}
+            <!-- ESTADO VACÍO -->
+            <div class="text-center py-5">
+                <i class="bi bi-person-x display-1 text-muted mb-3"></i>
+                <h5 class="text-muted">No hay usuario vinculado</h5>
+                <p class="text-muted mb-3">Este empleado no tiene un usuario del sistema asociado.</p>
+                
+                {% if perms.seguridad.editar_empleados %}
+                <div class="d-flex gap-2 justify-content-center">
+                    <a href="{% url 'empleado_asignar_usuario' empleado.pk %}" class="btn btn-success btn-sm">
+                    <i class="bi bi-link"></i>Vincular usuario existente
+                    </a>
+                    <!--<a href="{% url 'usuario_crear' %}?empleado={{ empleado.pk }}" class="btn btn-primary btn-sm">
+                    <i class="bi bi-plus-circle"></i>Crear nuevo usuario
+                    </a>-->
+                </div>
+                {% endif %}
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- PIE DE PÁGINA CON ESTADÍSTICAS -->
+        {% if empleado.user %}
+        <div class="card-footer bg-light py-2">
+          <div class="row text-end">
+              <small class="text-muted">Último acceso</small>
+              <div class="fw-semibold">
+                {% if empleado.user.last_login %}
+                  {{ empleado.user.last_login|date:"d/m/Y H:i" }}
+                {% else %}
+                  Nunca
+                {% endif %}
+              </div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PARA ELIMINAR USUARIO -->
+<div class="modal fade" id="eliminarUsuarioModal" tabindex="-1" aria-labelledby="eliminarUsuarioModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title" id="eliminarUsuarioModalLabel">Desvincular Usuario</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <p>¿Desvincular usuario <strong id="usuarioInfoEliminar"></strong>?</p>
+        <p class="small text-muted mt-1">Esta acción no elimina el usuario, solo lo desvincula de este empleado.</p>
+      </div>
+      <div class="modal-footer">
+        <form method="post" action="{% url 'empleado_eliminar_usuario' empleado.pk %}" id="eliminarUsuarioForm">
+          {% csrf_token %}
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-danger btn-sm">Desvincular</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.container-fluid { max-width: 1000px; }
+.list-group-item { padding: 1rem 1.25rem; border-bottom: 1px solid #e9ecef; }
+.list-group-item:last-child { border-bottom: none; }
+.btn-sm { padding: 0.25rem 0.5rem; font-size: 0.75rem; }
+
+/* Estilos para el modal de eliminación */
+#eliminarUsuarioModal .modal-dialog {
+  max-width: 300px;
+  width: 90%;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  min-height: calc(100% - 2rem);
+}
+#eliminarUsuarioModal .modal-content {
+  min-height: 50px;
+}
+#eliminarUsuarioModal .modal-title,
+#eliminarUsuarioModal .modal-body {
+  text-align: center;
+}
+#eliminarUsuarioModal .modal-footer {
+  justify-content: center;
+  gap: .5rem;
+}
+#eliminarUsuarioModal .modal-footer .btn {
+  padding: 0.45rem 0.9rem;
+  font-size: 0.75rem;
+  min-width: 120px;
+  line-height: 1.15;
+  border-radius: 8px;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const modal = document.getElementById('eliminarUsuarioModal');
+  
+  modal.addEventListener('show.bs.modal', function(event) {
+    const button = event.relatedTarget;
+    
+    // Obtener datos
+    const empleadoId = button.getAttribute('data-empleado-id');
+    const usuarioInfo = button.getAttribute('data-usuario-info');
+    
+    document.getElementById('usuarioInfoEliminar').textContent = usuarioInfo;
+    
+    // Actualizar la URL del formulario
+    const form = document.getElementById('eliminarUsuarioForm');
+    form.action = "{% url 'empleado_eliminar_usuario' 0 %}".replace('0', empleadoId);
+  });
+
+  // Función para formatear documento (cédula/RUC) con puntos
+  function formatDocumento(documento) {
+    if (!documento || documento === 'Sin documento') return documento;
+    
+    // Limpiar el documento
+    const docLimpio = documento.toString().trim();
+    
+    // Si tiene guion (RUC)
+    if (docLimpio.includes('-')) {
+      const partes = docLimpio.split('-');
+      const partePrincipal = partes[0];
+      const digitoVerificador = partes[1];
+      
+      // Formatear la parte principal con puntos
+      const parteFormateada = partePrincipal.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+      
+      return `${parteFormateada}-${digitoVerificador}`;
+    } else {
+      // Formatear documento simple con puntos
+      return docLimpio.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    }
+  }
+
+  // Función para formatear teléfono
+  function formatTelefono(telefono) {
+    if (!telefono || telefono === 'Sin teléfono') return telefono;
+    
+    // Limpiar el teléfono de espacios y caracteres especiales
+    const telefonoLimpio = telefono.toString().replace(/\D/g, '');
+    
+    // Si está vacío después de limpiar, retornar original
+    if (!telefonoLimpio) return telefono;
+    
+    // Formato para Paraguay: +595 981 123456
+    if (telefonoLimpio.startsWith('595') && telefonoLimpio.length === 12) {
+      return `+${telefonoLimpio.substring(0, 3)} ${telefonoLimpio.substring(3, 6)} ${telefonoLimpio.substring(6)}`;
+    }
+    // Formato con código de país completo (11 dígitos)
+    else if (telefonoLimpio.startsWith('595') && telefonoLimpio.length === 11) {
+      return `+${telefonoLimpio.substring(0, 3)} ${telefonoLimpio.substring(3, 6)} ${telefonoLimpio.substring(6)}`;
+    }
+    // Formato local (0981) 123-456
+    else if (telefonoLimpio.startsWith('098') && telefonoLimpio.length === 10) {
+      return `(${telefonoLimpio.substring(0, 4)}) ${telefonoLimpio.substring(4, 7)}-${telefonoLimpio.substring(7)}`;
+    }
+    // Formato local (098) 123-456
+    else if (telefonoLimpio.startsWith('098') && telefonoLimpio.length === 9) {
+      return `(${telefonoLimpio.substring(0, 3)}) ${telefonoLimpio.substring(3, 6)}-${telefonoLimpio.substring(6)}`;
+    }
+    // Formato simple con separadores para números locales
+    else if (telefonoLimpio.length >= 7) {
+      return telefonoLimpio.replace(/(\d{3})(\d{3})(\d+)/, '$1 $2 $3');
+    }
+    
+    return telefono;
+  }
+
+  // Aplicar formato a documentos y teléfonos
+  function aplicarFormatos() {
+    // Formatear documentos
+    const documentoElements = document.querySelectorAll('.documento-cell');
+    documentoElements.forEach(element => {
+      const originalText = element.textContent.trim();
+      if (originalText && originalText !== '—' && originalText !== 'Sin documento') {
+        element.textContent = formatDocumento(originalText);
+      }
+    });
+
+    // Formatear teléfonos
+    const telefonoElements = document.querySelectorAll('.telefono-cell');
+    telefonoElements.forEach(element => {
+      const originalText = element.textContent.trim();
+      if (originalText && originalText !== '—' && originalText !== 'Sin teléfono') {
+        element.textContent = formatTelefono(originalText);
+      }
+    });
+  }
+
+  // Ejecutar cuando el DOM esté listo
+  aplicarFormatos();
+});
+</script>
+
+{% endblock %}

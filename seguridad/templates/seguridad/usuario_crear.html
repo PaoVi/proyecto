@@ -1,0 +1,243 @@
+{% extends 'seguridad/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-0"> 
+    <div class="row justify-content-center">
+        <div class="col-12 col-xl-8">
+            
+            <!-- HEADER -->
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <div>
+                    <h2 class="h4 mb-1">CREAR USUARIO</h2>
+                </div>
+                <button type="button" onclick="window.history.back()" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left"></i>Volver
+                </button>
+            </div>
+
+            <!-- FORMULARIO -->
+            <div class="card">
+                <div class="card-body">
+                    <!-- Quitamos .needs-validation; dejamos novalidate -->
+                    <form action="{% url 'usuario_crear' %}" method="post" novalidate>
+                        {% csrf_token %}
+                        
+                        {% if formulario.non_field_errors %}
+                        <div class="alert alert-danger alert-sm mb-2">
+                            {% for error in formulario.non_field_errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        
+                        <div class="row">
+                            <!-- COLUMNA IZQUIERDA -->
+                            <div class="col-md-6">
+                                <!-- USUARIO --> 
+                                <div class="mb-2">
+                                    <label for="{{ formulario.username.id_for_label }}" class="form-label small fw-semibold text-muted">
+                                        <i class="form-label small"></i>Usuario
+                                    </label>
+                                    <input type="text" class="form-control form-control-sm" 
+                                           id="{{ formulario.username.id_for_label }}" 
+                                           name="{{ formulario.username.name }}" 
+                                           placeholder="Nombre de usuario"
+                                           value="{{ formulario.username.value|default_if_none:'' }}" 
+                                           required
+                                           autocomplete="username">
+                                    {% if formulario.username.errors %}
+                                    <div class="invalid-feedback d-block small">
+                                        {% for error in formulario.username.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+
+                                <!-- ROL -->
+                                <div class="mb-2">
+                                    <label for="{{ formulario.rol.id_for_label }}" class="form-label small fw-semibold text-muted">
+                                        <i class="form-label smal"></i>Rol
+                                    </label>
+                                    <select class="form-select form-select-sm" 
+                                            id="{{ formulario.rol.id_for_label }}" 
+                                            name="{{ formulario.rol.name }}" 
+                                            required>
+                                        <option value="" disabled {% if not formulario.rol.value %}selected{% endif %}>
+                                            Seleccionar rol
+                                        </option>
+                                        {% for val, texto in formulario.rol.field.choices %}
+                                            {% if val %}
+                                            <option value="{{ val }}" {% if formulario.rol.value == val %}selected{% endif %}>
+                                                {{ texto }}
+                                            </option>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </select>
+                                    {% if formulario.rol.errors %}
+                                    <div class="invalid-feedback d-block small">
+                                        {% for error in formulario.rol.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- COLUMNA DERECHA -->
+                            <div class="col-md-6">
+                            <!-- CONTRASEÑA -->
+                            <div class="mb-2">
+                                <label for="{{ formulario.password1.id_for_label }}" class="form-label small fw-semibold text-muted">
+                                    <i class="form-label smal"></i>Contraseña
+                                </label>
+                                <div class="input-group input-group-sm">
+                                    <input type="password" class="form-control"
+                                        id="{{ formulario.password1.id_for_label }}"
+                                        name="{{ formulario.password1.name }}"
+                                        placeholder="Contraseña"
+                                        required
+                                        autocomplete="new-password"
+                                        value="{{ formulario.password1.value|default_if_none:'' }}">
+                                    <span class="input-group-text toggle-password" data-target="{{ formulario.password1.id_for_label }}">
+                                        <i class="bi bi-eye-fill"></i>
+                                    </span>
+                                </div>
+                                <div class="form-text small text-muted">
+                                    <i class="bi bi-info-circle"></i>
+                                    Mínimo de 8 caracteres y al menos 1 número.
+                                </div>
+                                {% if formulario.password1.errors %}
+                                <div class="invalid-feedback d-block small">
+                                    {% for error in formulario.password1.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- CONFIRMAR CONTRASEÑA -->
+                            <div class="mb-2">
+                                <label for="{{ formulario.password2.id_for_label }}" class="form-label small fw-semibold text-muted">
+                                    <i class="form-label smal"></i>Confirmar Contraseña
+                                </label>
+                                <div class="input-group input-group-sm">
+                                    <input type="password" class="form-control"
+                                        id="{{ formulario.password2.id_for_label }}"
+                                        name="{{ formulario.password2.name }}"
+                                        placeholder="Repetir contraseña"
+                                        required
+                                        autocomplete="new-password"
+                                        value="{{ formulario.password2.value|default_if_none:'' }}">
+                                    <span class="input-group-text toggle-password" data-target="{{ formulario.password2.id_for_label }}">
+                                        <i class="bi bi-eye-fill"></i>
+                                    </span>
+                                </div>
+                                {% if formulario.password2.errors %}
+                                <div class="invalid-feedback d-block small">
+                                    {% for error in formulario.password2.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            </div>
+                        </div>
+                        
+                        <!-- BOTONES -->
+                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-center pt-3 border-top gap-2">
+                            <a href="{% url 'usuario_lista' %}" class="btn btn-outline-secondary btn-sm w-100 w-md-auto order-2 order-md-1">
+                                <i class="bi bi-x-circle"></i>Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary btn-sm w-100 w-md-auto order-1 order-md-2">
+                                <i class="bi bi-person-plus"></i>Crear Usuario
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- INFORMACIÓN DE AYUDA -->
+            <div class="card">
+                <div class="card-body py-2">
+                    <div class="row">
+                        <div class="col-12">
+                            <small class="text-muted">
+                                <i class="bi bi-info-circle"></i>
+                                Asegúrese de que la contraseña cumpla con los requisitos de seguridad.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<style>
+.container-fluid { 
+    max-width: 1000px; 
+}
+.btn-sm {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+    min-width: 100px;
+}
+.form-control, .form-select {
+    border-radius: 0.375rem;
+    border: 1px solid #ced4da;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+}
+.form-control:focus, .form-select:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.2rem rgba(13,110,253,.25);
+}
+.toggle-password { cursor: pointer; background-color: #fff; border-left: 0; transition: all .3s ease; }
+.toggle-password:hover { background-color: #f8f9fa; }
+.input-group-text { border-top-right-radius: 0.375rem; border-bottom-right-radius: 0.375rem; }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Focus en el primer campo
+    const first = document.getElementById('{{ formulario.username.id_for_label }}');
+    if (first) first.focus();
+
+    // Toggle mostrar/ocultar contraseña (sin customValidity)
+    function setupPasswordToggle() {
+        document.querySelectorAll('.toggle-password').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('data-target');
+                const input = document.getElementById(targetId);
+                const icon = this.querySelector('i');
+                if (!input) return;
+                const type = input.type === 'password' ? 'text' : 'password';
+                input.type = type;
+                if (type === 'text') {
+                    icon.classList.remove('bi-eye-fill');
+                    icon.classList.add('bi-eye-slash-fill');
+                } else {
+                    icon.classList.remove('bi-eye-slash-fill');
+                    icon.classList.add('bi-eye-fill');
+                }
+            });
+        });
+    }
+    setupPasswordToggle();
+
+    // Auto-cierre de alertas
+    document.querySelectorAll('.alert').forEach(alert => {
+        setTimeout(() => {
+            if (alert.isConnected && window.bootstrap?.Alert) {
+                new bootstrap.Alert(alert).close();
+            }
+        }, 5000);
+    });
+});
+</script>
+{% endblock %}

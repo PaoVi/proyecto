@@ -1,0 +1,291 @@
+{% extends 'seguridad/base.html' %}
+
+{% block content %}
+<div class="container-fluid py-0">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-8">
+
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <h2 class="h4 mb-1">DETALLES DEL CLIENTE</h2>
+        <div class="d-flex gap-2">
+          <button type="button" onclick="window.history.back()" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i>Volver
+          </button>
+          {% if perms.seguridad.editar_clientes %}
+          <a href="{% url 'cliente_editar' cliente.id %}" class="btn btn-primary btn-sm">
+            <i class="bi bi-pencil"></i>Editar
+          </a>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-body">
+
+          <div class="row g-3">
+            <!-- COLUMNA IZQUIERDA - IDENTIFICACIÓN -->
+            <div class="col-md-6">
+              <h6 class="mb-2 border-bottom pb-2 small fw-semibold text-muted">IDENTIFICACIÓN</h6>
+
+              <div class="mb-2">
+                <label class="form-label small text-muted">Nombre/Razón Social</label>
+                <p class="mb-0 fw-semibold">{{ cliente.nombre }}</p>
+              </div>
+
+              <!-- TIPO DE CLIENTE -->
+              <div class="mb-2">
+                <label class="form-label small text-muted">Tipo de Cliente</label>
+                <p class="mb-0">
+                  <span class="text-truncate
+                    {% if cliente.tipo_cliente == 'fisica' %}bg-info-subtle text-info-emphasis
+                    {% elif cliente.tipo_cliente == 'juridica' %}bg-warning-subtle text-warning-emphasis
+                    {% else %}bg-secondary
+                    {% endif %}">
+                    {{ cliente.get_tipo_cliente_display|default:cliente.tipo_cliente|default:"—" }}
+                  </span>
+                </p>
+              </div>
+
+              <!-- DOCUMENTACIÓN -->
+              <div class="mb-2">
+                <label class="form-label small text-muted">Tipo Documento</label>
+                <p class="mb-0 fw-semibold">{{ cliente.get_tipo_documento_display|default:cliente.tipo_documento }}</p>
+              </div>
+
+              <div class="mb-2">
+                <label class="form-label small text-muted">N° Documento</label>
+                <p class="mb-0 fw-semibold documento-cell">{{ cliente.numero_documento }}</p>
+              </div>
+
+              <!-- FECHA SEGÚN TIPO -->
+              {% if cliente.tipo_cliente == 'fisica' %}
+                <div class="mb-2">
+                  <label class="form-label small text-muted">Fecha de Nacimiento</label>
+                  <p class="mb-0">{{ cliente.fecha_nacimiento|date:"d/m/Y"|default:"—" }}</p>
+                </div>
+              {% elif cliente.tipo_cliente == 'juridica' %}
+                <div class="mb-2">
+                  <label class="form-label small text-muted">Fecha de Constitución</label>
+                  <p class="mb-0">{{ cliente.fecha_constitucion|date:"d/m/Y"|default:"—" }}</p>
+                </div>
+              {% endif %}
+
+            </div>
+
+            <!-- COLUMNA DERECHA - CONTACTO Y ESTADO -->
+            <div class="col-md-6">
+              <h6 class="mb-2 border-bottom pb-2 small fw-semibold text-muted">CONTACTO</h6>
+
+              <div class="mb-2">
+                <label class="form-label small text-muted">Teléfono</label>
+                <p class="mb-0 telefono-cell">{{ cliente.telefono|default:"—" }}</p>
+              </div>
+
+              <div class="mb-2">
+                <label class="form-label small text-muted">Correo electrónico</label>
+                <p class="mb-0">{{ cliente.email|default:"—" }}</p>
+              </div>
+
+              <div class="mb-2">
+                <label class="form-label small text-muted">Dirección</label>
+                <p class="mb-0">{{ cliente.direccion|default:"—" }}</p>
+              </div>
+
+              <div class="mb-2">
+                <label class="form-label small text-muted">Estado</label>
+                <p class="mb-0">
+                  {% if cliente.is_active %}
+                    <span class="badge bg-success">Activo</span>
+                  {% else %}
+                    <span class="badge bg-secondary">Inactivo</span>
+                  {% endif %}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECCIÓN DE VÍNCULOS DEL CLIENTE -->
+          <div class="row mt-4">
+            <div class="col-12">
+              <h6 class="mb-3 border-bottom pb-2 small fw-semibold text-muted">VÍNCULOS DEL CLIENTE</h6>
+              
+              <div class="row g-2">
+                <!-- VEHÍCULOS -->
+                <div class="col-6 col-md-3">
+                  <a href="{% url 'cliente_vehiculos' cliente.id %}" class="btn btn-outline-primary w-100">
+                    <div class="d-flex flex-column align-items-center text-center">
+                      <i class="bi bi-car-front fs-5 mb-1"></i>
+                      <div class="fw-semibold small">Vehículos</div>
+                      <small class="text-muted">Vinculados</small>
+                    </div>
+                  </a>
+                </div>
+
+                <!-- PRESUPUESTOS -->
+                {% if perms.seguridad.ver_presupuesto %}
+                <div class="col-6 col-md-3">
+                  <a href="{% url 'cliente_presupuestos' cliente.id %}" class="btn btn-outline-success w-100">
+                    <div class="d-flex flex-column align-items-center text-center">
+                      <i class="bi bi-file-earmark-text fs-5 mb-1"></i>
+                      <div class="fw-semibold small">Presupuestos</div>
+                      <small class="text-muted">Asociados</small>
+                    </div>
+                  </a>
+                </div>
+                {% endif %}
+
+                <!-- ÓRDENES DE TRABAJO -->
+                {% if perms.seguridad.ver_ordenes_trabajo %}
+                <div class="col-6 col-md-3">
+                  <a href="{% url 'cliente_ordenes' cliente.id %}" class="btn btn-outline-warning w-100">
+                    <div class="d-flex flex-column align-items-center text-center">
+                      <i class="bi bi-clipboard-check fs-5 mb-1"></i>
+                      <div class="fw-semibold small">Órdenes</div>
+                      <small class="text-muted">Trabajo</small>
+                    </div>
+                  </a>
+                </div>
+              {% endif %}
+
+                <!-- FACTURAS -->
+                {% if perms.seguridad.ver_facturas %}
+                <div class="col-6 col-md-3">
+                  <a href="{% url 'cliente_facturas' cliente.id %}" class="btn btn-outline-info w-100">
+                    <div class="d-flex flex-column align-items-center text-center">
+                      <i class="bi bi-receipt fs-5 mb-1"></i>
+                      <div class="fw-semibold small">Facturas</div>
+                      <small class="text-muted">Emitidas</small>
+                    </div>
+                  </a>
+                </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+
+          <!-- INFORMACIÓN DEL SISTEMA -->
+          <div class="row mt-3">
+            <div class="col-12">
+              <h6 class="mb-2 border-bottom pb-2 small fw-semibold text-muted">INFORMACIÓN DEL SISTEMA</h6>
+              <div class="row">
+                <div class="col-md-6">
+                  <label class="form-label small text-muted">Registrado</label>
+                  <p class="mb-0 small">
+                    <i class="bi bi-calendar-plus text-muted"></i>
+                    {{ cliente.fecha_registro|date:"d/m/Y H:i" }}
+                  </p>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label small text-muted">Actualizado</label>
+                  <p class="mb-0 small">
+                    <i class="bi bi-clock-history text-muted"></i>
+                    {{ cliente.fecha_actualizacion|date:"d/m/Y H:i" }}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div><!-- /card-body -->
+        
+        <!-- FOOTER DE LA TARJETA -->
+        <div class="card-footer bg-light py-1">
+          <div class="d-flex justify-content-between align-items-center">
+            <small class="text-muted">
+              <i class="bi bi-hash"></i>ID: {{ cliente.pk }}
+            </small>
+          </div>
+        </div>
+      </div><!-- /card -->
+
+    </div>
+  </div>
+</div>
+
+<style>
+.container-fluid { max-width: 1000px; }
+.btn-sm { padding: 0.25rem 0.5rem; font-size: 0.75rem; }
+.small { font-size: 0.875rem; }
+
+/* Estilos para los botones de vínculos */
+.btn-outline-primary:hover { background-color: #0d6efd; color: black; }
+.btn-outline-success:hover { background-color: #198754; color: black; }
+.btn-outline-warning:hover { background-color: #ffc107; color: black; }
+.btn-outline-info:hover { background-color: #0dcaf0; color: black; }
+
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Función para formatear documento (cédula/RUC)
+  function formatDocumento(documento) {
+    if (!documento) return documento;
+    
+    // Si tiene guion (RUC)
+    if (documento.includes('-')) {
+      const partes = documento.split('-');
+      const partePrincipal = partes[0];
+      const digitoVerificador = partes[1];
+      
+      // Formatear la parte principal con puntos
+      const parteFormateada = partePrincipal.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+      
+      return `${parteFormateada}-${digitoVerificador}`;
+    } else {
+      // Formatear documento simple
+      return documento.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    }
+  }
+
+  // Función para formatear teléfono
+  function formatTelefono(telefono) {
+    if (!telefono) return telefono;
+    
+    // Limpiar el teléfono de espacios y caracteres especiales
+    const telefonoLimpio = telefono.replace(/\D/g, '');
+    
+    // Formato para Paraguay: +595 981 123456
+    if (telefonoLimpio.startsWith('595') && telefonoLimpio.length === 12) {
+      return `+${telefonoLimpio.substring(0, 3)} ${telefonoLimpio.substring(3, 6)} ${telefonoLimpio.substring(6)}`;
+    }
+    // Formato con código de país completo
+    else if (telefonoLimpio.startsWith('595') && telefonoLimpio.length === 11) {
+      return `+${telefonoLimpio.substring(0, 3)} ${telefonoLimpio.substring(3, 6)} ${telefonoLimpio.substring(6)}`;
+    }
+    // Formato local (0981) 123-456
+    else if (telefonoLimpio.startsWith('098') && telefonoLimpio.length === 10) {
+      return `(${telefonoLimpio.substring(0, 4)}) ${telefonoLimpio.substring(4, 7)}-${telefonoLimpio.substring(7)}`;
+    }
+    // Formato local (098) 123-456
+    else if (telefonoLimpio.startsWith('098') && telefonoLimpio.length === 9) {
+      return `(${telefonoLimpio.substring(0, 3)}) ${telefonoLimpio.substring(3, 6)}-${telefonoLimpio.substring(6)}`;
+    }
+    // Formato simple con separadores
+    else if (telefonoLimpio.length >= 7) {
+      // Para números locales sin código de área
+      return telefonoLimpio.replace(/(\d{3})(\d{3})(\d+)/, '$1 $2 $3');
+    }
+    
+    return telefono;
+  }
+
+  // Aplicar formato a documentos y teléfonos
+  const documentoCells = document.querySelectorAll('.documento-cell');
+  const telefonoCells = document.querySelectorAll('.telefono-cell');
+
+  documentoCells.forEach(cell => {
+    const originalText = cell.textContent.trim();
+    if (originalText && originalText !== '—') {
+      cell.textContent = formatDocumento(originalText);
+    }
+  });
+
+  telefonoCells.forEach(cell => {
+    const originalText = cell.textContent.trim();
+    if (originalText && originalText !== '—') {
+      cell.textContent = formatTelefono(originalText);
+    }
+  });
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,620 @@
+{% extends 'seguridad/base.html' %}
+
+{% block content %}
+<div class="container-fluid py-0">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-8">
+
+      <!-- HEADER -->
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <h2 class="h4 mb-1">Registrar Vehículo</h2>
+        <button type="button" onclick="window.history.back()" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-arrow-left"></i>Volver
+        </button>
+      </div>
+
+      <!-- MENSAJES -->
+      {% if messages %}
+        <div class="mb-2">
+          {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} small mb-2">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <!-- ERRORES NO ASOCIADOS A CAMPOS -->
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger small">
+          {% for e in form.non_field_errors %}<div>{{ e }}</div>{% endfor %}
+        </div>
+      {% endif %}
+
+      <!-- FORMULARIO -->
+      <div class="card">
+        <div class="card-body">
+          <form method="post" class="needs-validation" novalidate>
+            {% csrf_token %}
+
+            <div class="row g-3">
+
+            <!-- PROPIETARIO Y POSEEDOR CON SELECT2 -->
+            <div class="col-md-6">
+                <label for="propietario-search" class="form-label small">Propietario</label>
+                <select id="propietario-search" class="form-control {% if form.propietario.errors %}is-invalid{% endif %}" name="propietario">
+                    {% if form.propietario.value %}
+                        <option value="{{ form.propietario.value }}" selected>
+                            {% if form.instance.propietario %}
+                                {{ form.instance.propietario.numero_documento }} - {{ form.instance.propietario.nombre }}
+                            {% else %}
+                                Cargando propietario...
+                            {% endif %}
+                        </option>
+                    {% endif %}
+                </select>
+                {% if form.propietario.errors %}
+                    <div class="invalid-feedback d-block small">
+                        {% for e in form.propietario.errors %}{{ e }}{% endfor %}
+                    </div>
+                {% endif %}
+                <div class="form-text small">Dueño legal</div>
+            </div>
+
+            <div class="col-md-6">
+                <label for="poseedor-search" class="form-label small">Poseedor/Responsable</label>
+                <select id="poseedor-search" class="form-control {% if form.poseedor.errors %}is-invalid{% endif %}" name="poseedor">
+                    {% if form.poseedor.value %}
+                        <option value="{{ form.poseedor.value }}" selected>
+                            {% if form.instance.poseedor %}
+                                {{ form.instance.poseedor.numero_documento }} - {{ form.instance.poseedor.nombre }}
+                            {% else %}
+                                Cargando poseedor...
+                            {% endif %}
+                        </option>
+                    {% endif %}
+                </select>
+                {% if form.poseedor.errors %}
+                    <div class="invalid-feedback d-block small">
+                        {% for e in form.poseedor.errors %}{{ e }}{% endfor %}
+                    </div>
+                {% endif %}
+                <div class="form-text small">Persona que usa/maneja</div>
+            </div>
+
+              <!-- MARCA / MODELO -->
+              <div class="col-md-6">
+                <label for="id_marca" class="form-label small">Marca</label>
+                {{ form.marca }}
+                {% if form.marca.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.marca.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+              <div class="col-md-6">
+                <label for="id_modelo" class="form-label small">Modelo</label>
+                {{ form.modelo }}
+                {% if form.modelo.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.modelo.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- AÑO / COLOR -->
+              <div class="col-md-6">
+                <label for="id_anio" class="form-label small">Año</label>
+                {{ form.anio }}
+                {% if form.anio.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.anio.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+              <div class="col-md-6">
+                <label for="id_color" class="form-label small">Color</label>
+                {{ form.color }}
+                {% if form.color.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.color.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- CHAPA / CHASIS -->
+              <div class="col-md-6">
+                <label for="id_nro_chapa" class="form-label small">N° de Chapa</label>
+                {{ form.nro_chapa }}
+                {% if form.nro_chapa.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.nro_chapa.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+              <div class="col-md-6">
+                <label for="id_nro_chasis" class="form-label small">N° de Chasis</label>
+                {{ form.nro_chasis }}
+                {% if form.nro_chasis.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.nro_chasis.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- USO / COMBUSTIBLE -->
+              <div class="col-md-6">
+                <label for="id_uso" class="form-label small">Uso</label>
+                {{ form.uso }}
+                {% if form.uso.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.uso.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+              <div class="col-md-6">
+                <label for="id_tipo_combustible" class="form-label small">Tipo de Combustible</label>
+                {{ form.tipo_combustible }}
+                {% if form.tipo_combustible.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.tipo_combustible.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- PUERTAS / MOTOR -->
+              <div class="col-md-6">
+                <label for="id_cantidad_puerta" class="form-label small">Cantidad de Puertas</label>
+                {{ form.cantidad_puerta }}
+                {% if form.cantidad_puerta.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.cantidad_puerta.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+
+              <div class="col-md-6">
+                <label for="id_motor_cilindrada" class="form-label small">Motor / Cilindrada</label>
+                <input
+                  type="text"
+                  name="motor_cilindrada"
+                  id="id_motor_cilindrada"
+                  class="form-control"
+                  placeholder="Formato '1.600 cc'"
+                  value="{{ form.motor_cilindrada.value|default_if_none:'' }}"
+                >
+                {% if form.motor_cilindrada.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.motor_cilindrada.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- TRANSMISIÓN / VÍA IMP. PROCEDENCIA -->
+              <div class="col-md-4">
+                <label for="id_tipo_transmision" class="form-label small">Tipo de Transmisión</label>
+                {{ form.tipo_transmision }}
+                {% if form.tipo_transmision.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.tipo_transmision.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+              <div class="col-md-4">
+                <label for="id_via_importacion" class="form-label small">Vía de Importación</label>
+                {{ form.via_importacion }}
+                {% if form.via_importacion.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.via_importacion.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+              <div class="col-md-4">
+                <label for="id_procedencia" class="form-label small">Procedencia</label>
+                {{ form.procedencia }}
+                {% if form.procedencia.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.procedencia.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- CÉDULA VERDE / ALARMA / GPS -->
+              <div class="col-md-4">
+                <label class="form-label small d-block">Cédula Verde</label>
+                <div class="form-check form-switch">
+                  {{ form.cedula_verde }}
+                  <label class="form-check-label small" for="id_cedula_verde">Sí / No</label>
+                </div>
+                {% if form.cedula_verde.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.cedula_verde.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small d-block">Alarma</label>
+                <div class="form-check form-switch">
+                  {{ form.alarma }}
+                  <label class="form-check-label small" for="id_alarma">Sí / No</label>
+                </div>
+                {% if form.alarma.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.alarma.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small d-block">GPS</label>
+                <div class="form-check form-switch">
+                  {{ form.gps }}
+                  <label class="form-check-label small" for="id_gps">Sí / No</label>
+                </div>
+                {% if form.gps.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.gps.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- BOTONES -->
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-center pt-3 border-top gap-2">
+              <a href="{% url 'vehiculo_lista' %}" class="btn btn-outline-secondary btn-sm w-100 w-md-auto order-2 order-md-1">
+                <i class="bi bi-x-circle"></i>Cancelar
+              </a>
+              <button type="submit" class="btn btn-primary btn-sm w-100 w-md-auto order-1 order-md-2">
+                <i class="bi bi-check-circle"></i>Registrar Vehículo
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Incluir Select2 CSS y JS -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+<style>
+  .container-fluid { max-width: 1000px; }
+  .form-control, .form-select {
+    border-radius: 0.375rem; border: 1px solid #ced4da;
+    padding: 0.375rem 0.75rem; font-size: 0.875rem;
+  }
+  .form-control:focus, .form-select:focus {
+    border-color: #86b7fe; box-shadow: 0 0 0 0.2rem rgba(13,110,253,.25);
+  }
+  .form-control.is-invalid {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+  }
+  .btn-sm { padding: 0.375rem 0.75rem; font-size: 0.875rem; min-width: 100px; }
+  
+  #id_anio::-webkit-outer-spin-button,
+  #id_anio::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+        margin: 0;
+  }
+
+/* ESTILOS SIMPLIFICADOS PARA SELECT2 */
+.select2-container--default .select2-selection--single {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    height: 38px;
+    background-color: #fff;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    color: #212529;
+    line-height: 1.5;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 30px;
+    right: 8px;
+}
+
+/* DROPDOWN SIMPLIFICADO - FONDO BLANCO */
+.select2-container--default .select2-dropdown {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    background: white;
+    box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+}
+
+/* RESULTADOS SIMPLES - FONDO BLANCO, TEXTO OSCURO */
+.select2-container--default .select2-results__option {
+    padding: 0.5rem 0.75rem;
+    background: white;
+    color: #212529;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+.select2-container--default .select2-results__option:last-child {
+    border-bottom: none;
+}
+
+/* RESALTADO AL PASAR MOUSE */
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background-color: #e9ecef;
+    color: #00264dff;
+}
+
+/* ELEMENTO SELECCIONADO */
+.select2-container--default .select2-results__option[aria-selected=true] {
+    background-color: #f8f9fa;
+    color: #212529;
+}
+
+/* CAMPO DE BÚSQUEDA */
+.select2-container--default .select2-search--dropdown .select2-search__field {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+    background: white;
+    color: #212529;
+}
+
+/* ESTILOS PERSONALIZADOS PARA LOS RESULTADOS */
+.select2-result-item {
+    padding: 0.15rem 0;
+}
+
+.select2-result-cliente .nombre {
+    font-size: 0.8rem;
+    color: #212529;
+    font-weight: 500;
+    display: block;
+}
+
+.select2-result-cliente .documento {
+    font-size: 0.65rem;
+    color: #033e7e;
+    display: block;
+}
+
+/* ESTILOS PARA MENSAJES "NO SE ENCONTRARON..." */
+.select2-container--default .select2-results__option--disabled {
+    font-size: 0.02rem !important;
+    color: #6c757d !important;
+    background-color: transparent !important;
+    text-align: center;
+    padding: 0.3rem 0.5rem 
+}
+
+/* OCULTAR MENSAJES DE CARÁCTER MÍNIMO */
+.select2-container--default .select2-results__option--load-more,
+.select2-container--default .select2-results__option--loading {
+    display: none !important;
+}
+
+/* BÚSQUEDA INMEDIATA - SIN MENSAJES */
+.select2-container--default .select2-search--dropdown {
+    padding: 0.5rem;
+}
+</style>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  // Inicializar Select2 para Propietario
+  $('#propietario-search').select2({
+      placeholder: 'Buscar por N° de documento',
+      allowClear: false,
+      width: '100%',
+      language: {
+          noResults: function() {
+              return "No se encontraron clientes";
+          },
+          searching: function() {
+              return "Buscando...";
+          },
+          inputTooShort: function() {
+              return "Ingrese al menos 1 carácter";
+          },
+          errorLoading: function() {
+              return "Error al cargar resultados";
+          }
+      },
+      ajax: {
+          url: '{% url "buscar_clientes_vincular" %}',
+          dataType: 'json',
+          delay: 300,
+          data: function (params) {
+              return {
+                  q: params.term || '',
+                  contexto: 'vinculacion'
+              };
+          },
+          processResults: function (data) {
+              if (!Array.isArray(data)) {
+                  return { results: [] };
+              }
+              return {
+                  results: $.map(data, function (item) {
+                      return {
+                          id: item.id,
+                          text: item.text || 'Sin nombre',
+                          documento: item.documento || '',
+                          nombre: item.nombre || '',
+                          telefono: item.telefono || ''
+                      };
+                  })
+              };
+          },
+          error: function(xhr, status, error) {
+              console.error('Error loading clientes:', error);
+              return { results: [] };
+          }
+      },
+      minimumInputLength: 0,
+      templateResult: formatCliente,
+      templateSelection: formatClienteSelection
+  });
+
+  // Inicializar Select2 para Poseedor
+  $('#poseedor-search').select2({
+      placeholder: 'Buscar por N° de documento',
+      allowClear: false,
+      width: '100%',
+      language: {
+          noResults: function() {
+              return "No se encontraron clientes";
+          },
+          searching: function() {
+              return "Buscando...";
+          },
+          inputTooShort: function() {
+              return "Ingrese al menos 1 carácter";
+          },
+          errorLoading: function() {
+              return "Error al cargar resultados";
+          }
+      },
+      ajax: {
+          url: '{% url "buscar_clientes_vincular" %}',
+          dataType: 'json',
+          delay: 300,
+          data: function (params) {
+              return {
+                  q: params.term || '',
+                  contexto: 'vinculacion'
+              };
+          },
+          processResults: function (data) {
+              if (!Array.isArray(data)) {
+                  return { results: [] };
+              }
+              return {
+                  results: $.map(data, function (item) {
+                      return {
+                          id: item.id,
+                          text: item.text || 'Sin nombre',
+                          documento: item.documento || '',
+                          nombre: item.nombre || '',
+                          telefono: item.telefono || ''
+                      };
+                  })
+              };
+          },
+          error: function(xhr, status, error) {
+              console.error('Error loading clientes:', error);
+              return { results: [] };
+          }
+      },
+      minimumInputLength: 0,
+      templateResult: formatCliente,
+      templateSelection: formatClienteSelection
+  });
+
+  // Formatear cómo se muestran los resultados de Clientes
+  function formatCliente(cliente) {
+      if (cliente.loading) {
+          return cliente.text;
+      }
+      
+      if (!cliente.id) {
+          return cliente.text;
+      }
+      
+      var $container = $(
+          '<div class="select2-result-item select2-result-cliente">' +
+              '<span class="nombre">' + (cliente.nombre || 'Sin nombre') + '</span>' +
+              '<span class="documento text-primary small">Documento: ' + (cliente.documento || 'Sin documento') + '</span>' +
+          '</div>'
+      );
+      
+      return $container;
+  }
+
+  // Formatear cómo se muestra la selección de Clientes
+  function formatClienteSelection(cliente) {
+      if (!cliente.id) {
+          return 'Buscar por N° de documento';
+      }
+      
+      if (cliente.nombre && cliente.documento) {
+          return cliente.nombre + ' - ' + cliente.documento;
+      }
+      
+      return cliente.text || 'Cliente seleccionado';
+  }
+
+  // Abrir automáticamente el dropdown al hacer click (búsqueda inmediata)
+  $('#propietario-search, #poseedor-search').on('select2:open', function() {
+      setTimeout(function() {
+          const $search = $('.select2-container--open .select2-search__field');
+          if ($search.length && !$search.val()) {
+              $search.trigger('input');
+          }
+      }, 100);
+  });
+
+  // Aplicar estilos de error a Select2 cuando hay errores de Django
+  if (document.querySelector('#propietario-search').classList.contains('is-invalid')) {
+      $('#propietario-search').next('.select2-container').find('.select2-selection').addClass('is-invalid');
+  }
+  if (document.querySelector('#poseedor-search').classList.contains('is-invalid')) {
+      $('#poseedor-search').next('.select2-container').find('.select2-selection').addClass('is-invalid');
+  }
+  
+  // Aplicar estilos de error en tiempo real cuando Select2 cambia
+  $('#propietario-search, #poseedor-search').on('change', function() {
+      const select2Container = $(this).next('.select2-container').find('.select2-selection');
+      if (this.value) {
+          $(this).removeClass('is-invalid');
+          select2Container.removeClass('is-invalid');
+      }
+  });
+
+  // Resto del código existente para otros campos...
+  const chapa = document.getElementById('id_nro_chapa');
+  const chasis = document.getElementById('id_nro_chasis');
+  [chapa, chasis].forEach(el => {
+    if (!el) return;
+    el.addEventListener('input', () => { el.value = el.value.toUpperCase().trimStart(); });
+  });
+
+  const anio = document.getElementById('id_anio');
+  if (anio) {
+    anio.setAttribute('inputmode','numeric');
+    anio.addEventListener('input', () => {
+      anio.value = (anio.value || '').replace(/\D/g,'').slice(0,4);
+    });
+  }
+
+  const cc = document.getElementById('id_motor_cilindrada');
+  const form = document.querySelector('form');
+
+  function fmtCC(n) {
+    if (!n) return '';
+    const d = String(n).replace(/\D/g, '');
+    if (!d) return '';
+    return Number(d).toLocaleString('es-PY') + ' cc';
+  }
+
+  function unfmtCC(txt) {
+    if (!txt) return '';
+    return String(txt).replace(/\s*cc$/i, '').replace(/\./g, '').replace(/,/g, '').replace(/\D/g,'');
+  }
+
+  if (cc) {
+    if (cc.value) cc.value = fmtCC(cc.value);
+
+    cc.addEventListener('input', () => {
+      const raw = unfmtCC(cc.value);
+      cc.value = fmtCC(raw);
+    });
+
+    form?.addEventListener('submit', () => {
+      cc.value = unfmtCC(cc.value);
+    });
+  }
+});
+</script>
+{% endblock %}

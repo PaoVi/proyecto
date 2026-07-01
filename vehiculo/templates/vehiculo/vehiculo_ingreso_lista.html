@@ -1,0 +1,337 @@
+{% extends 'seguridad/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-0">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-12">
+
+      <!-- HEADER -->
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <h2 class="h4 mb-1">CONTROL SEMANAL DE INGRESO VEHICULAR</h2>
+        <div class="d-flex gap-2">
+          <button type="button" onclick="window.history.back()" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i>Volver
+          </button>
+          <a href="{% url 'vehiculo_ingreso_crear' %}" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-circle"></i>Nuevo Ingreso
+          </a>
+        </div>
+      </div>
+
+      <!-- FILTROS -->
+      <div class="card mb-2">
+        <div class="card-body p-2">
+          <form method="get" class="row g-2 align-items-end">
+            <!-- FILTRO POR CHAPA -->
+            <div class="col-md-2">
+              <label class="form-label small">CHAPA</label>
+              <input type="text" name="chapa" value="{{ request.GET.chapa }}" 
+                     class="form-control form-control-sm" style="height: 33px;" 
+                     placeholder="Buscar por n° chapa">
+            </div>
+
+            <!-- FILTRO POR CLIENTE -->
+            <div class="col-md-2">
+              <label class="form-label small">CLIENTE</label>
+              <input type="text" name="cliente" value="{{ request.GET.cliente }}" 
+                     class="form-control form-control-sm" style="height: 33px;" 
+                     placeholder="Nombre/Apellido">
+            </div>
+
+            <!-- FILTRO POR ESTADO DE INGRESO -->
+            <div class="col-md-2">
+              <label class="form-label small">ESTADO INGRESO</label>
+              <select name="estado_ingreso" class="form-select form-select-sm" style="height: 33px;">
+                <option value="">Todos los estados</option>
+                <option value="en_taller" {% if request.GET.estado_ingreso == 'en_taller' %}selected{% endif %}>En Taller</option>
+                <option value="en_reparacion" {% if request.GET.estado_ingreso == 'en_reparacion' %}selected{% endif %}>En Reparación</option>
+                <option value="en_pausa" {% if request.GET.estado_ingreso == 'en_pausa' %}selected{% endif %}>En Pausa</option>
+                <option value="esperando_repuesto" {% if request.GET.estado_ingreso == 'esperando_repuesto' %}selected{% endif %}>Esperando Repuesto</option>
+                <option value="entregado" {% if request.GET.estado_ingreso == 'entregado' %}selected{% endif %}>Entregado</option>
+              </select>
+            </div>
+
+            <!-- FILTRO POR FECHA INGRESO -->
+            <div class="col-md-2">
+              <label class="form-label small">FECHA INGRESO</label>
+              <input type="date" name="fecha_ingreso" value="{{ request.GET.fecha_ingreso }}" 
+                     class="form-control form-control-sm" style="height: 33px;">
+            </div>
+
+            <!-- BOTONES DE ACCIÓN -->
+            <div class="col-md-2">
+              <label class="form-label small">&nbsp;</label>
+              <button type="submit" class="btn btn-outline-primary w-100 btn-sm" style="height: 33px;">
+                <i class="bi bi-search"></i>Buscar
+              </button>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label small">&nbsp;</label>
+              <a href="{% url 'vehiculo_ingreso_lista' %}" class="btn btn-outline-secondary w-100 btn-sm" style="height: 33px;">
+                <i class="bi bi-arrow-clockwise"></i> Limpiar
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- ESTADÍSTICAS SEMANALES -->
+      <div class="row mb-3">
+        <div class="col-md-3">
+          <div class="card border-dark">
+            <div class="card-body py-2 text-center">
+              <h6 class="card-title mb-1 text-black">INGRESOS SEMANA</h6>
+              <h4 class="mb-0 fw-bold text-black" id="contadorIngresos">{{ estadisticas.ingresos_semana|default:"0" }}</h4>
+              <small class="text-muted">Vehículos nuevos</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card border-primary">
+            <div class="card-body py-2 text-center">
+              <h6 class="card-title mb-1 text-primary">EN REPARACIÓN</h6>
+              <h4 class="mb-0 fw-bold text-primary" id="contadorReparacion">{{ estadisticas.en_reparacion|default:"0" }}</h4>
+              <small class="text-muted">En proceso</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card border-info">
+            <div class="card-body py-2 text-center">
+              <h6 class="card-title mb-1 text-info">ANTERIORES</h6>
+              <h4 class="mb-0 fw-bold text-info" id="contadorAnteriores">{{ estadisticas.anteriores|default:"0" }}</h4>
+              <small class="text-muted">No salieron aún</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card border-success">
+            <div class="card-body py-2 text-center">
+              <h6 class="card-title mb-1 text-success">TOTAL TALLER</h6>
+              <h4 class="mb-0 fw-bold text-success" id="contadorTotal">{{ estadisticas.total_taller|default:"0" }}</h4>
+              <small class="text-muted">Vehículos actuales</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LISTA DE VEHÍCULOS -->
+      <div class="card">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0" id="vehiculosTable">
+            <thead class="table-light">
+              <tr>
+                <th style="width: 8%" class="text-center">CHAPA</th>
+                <th style="width: 12%">MARCA / MODELO</th>
+                <th style="width: 15%">CLIENTE</th>
+                <th style="width: 9%" class="text-center">TELÉFONO</th>
+                <th style="width: 10%" class="text-center">PRESUPUESTO</th>
+                <th style="width: 8%" class="text-center">ESTADO PRES.</th>
+                <th style="width: 8%" class="text-center">ORDEN TRABAJO</th>
+                <th style="width: 8%" class="text-center">ESTADO ORDEN</th>
+                <th style="width: 8%" class="text-center">FECHA INGRESO</th>
+                <th style="width: 8%" class="text-center">ESTADO INGRESO</th>
+                <th style="width: 7%" class="text-center">FECHA SALIDA</th>
+                <th style="width: 10%" class="text-center">ACCIONES</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for vehiculo in vehiculos %}
+              <tr>
+                <td class="text-center fw-semibold">{{ vehiculo.chapa }}</td>
+                <td>
+                  <div class="fw-semibold">{{ vehiculo.marca }}</div>
+                  <small class="text-muted">{{ vehiculo.modelo }}</small>
+                </td>
+                <td>
+                  <div class="fw-semibold">{{ vehiculo.cliente_nombre }}</div>
+                  <small class="text-muted">CI: {{ vehiculo.cliente_documento }}</small>
+                </td>
+                <td class="text-center">{{ vehiculo.cliente_telefono }}</td>
+                <td class="text-center">
+                  <span class="badge bg-light text-dark">#{{ vehiculo.presupuesto_numero }}</span>
+                </td>
+                <td class="text-center">
+                  {% if vehiculo.presupuesto_estado == 'pendiente' %}
+                    <span class="fw-semibold text-primary small">Pendiente</span>
+                  {% elif vehiculo.presupuesto_estado == 'aprobado' %}
+                    <span class="fw-semibold text-success small">Aprobado</span>
+                  {% elif vehiculo.presupuesto_estado == 'rechazado' %}
+                    <span class="fw-semibold text-danger small">Rechazado</span>
+                  {% else %}
+                    <span class="fw-semibold text-secondary small">{{ vehiculo.presupuesto_estado }}</span>
+                  {% endif %}
+                </td>
+                <td class="text-center">
+                  <span class="badge bg-light text-dark">#{{ vehiculo.orden_trabajo_numero }}</span>
+                </td>
+                <!-- ESTADO -->
+                <td>
+                  <span class="{% if vehiculo.orden_trabajo_estado == 'facturado' %}fw-bold{% else %}fw-semibold{% endif %}
+                                {% if vehiculo.orden_trabajo_estado == 'completado' %} text-success
+                                {% elif vehiculo.orden_trabajo_estado == 'facturado' %} text-dark
+                                {% elif vehiculo.orden_trabajo_estado == 'cancelado' %} text-danger
+                                {% elif vehiculo.orden_trabajo_estado == 'en_proceso' %} text-primary
+                                {% elif vehiculo.orden_trabajo_estado == 'espera_repuestos' %} text-info
+                                {% elif vehiculo.orden_trabajo_estado == 'pausado' %} text-warning
+                                {% else %} text-secondary{% endif %}">
+                    {{ vehiculo.orden_trabajo_get_estado_display }}
+                  </span>
+                </td>
+                <td class="text-center">
+                  <small>{{ vehiculo.fecha_ingreso }}</small>
+                </td>
+                <td class="text-center">
+                  {% if vehiculo.estado_ingreso == 'en_taller' %}
+                    <span class="badge bg-primary">En Taller</span>
+                  {% elif vehiculo.estado_ingreso == 'en_reparacion' %}
+                    <span class="badge bg-warning">En Reparación</span>
+                  {% elif vehiculo.estado_ingreso == 'esperando_repuesto' %}
+                    <span class="badge bg-info">Esperando Repuesto</span>
+                  {% elif vehiculo.estado_ingreso == 'salio' %}
+                    <span class="badge bg-success">Salió</span>
+                  {% elif vehiculo.estado_ingreso == 'entregado' %}
+                    <span class="badge bg-success">Entregado</span>
+                  {% else %}
+                    <span class="badge bg-secondary">{{ vehiculo.estado_ingreso }}</span>
+                  {% endif %}
+                </td>
+                <td class="text-center">
+                  {% if vehiculo.fecha_salida %}
+                    <small>{{ vehiculo.fecha_salida }}</small>
+                  {% else %}
+                    <small class="text-muted">--/--/----</small>
+                  {% endif %}
+                </td>
+                <td class="text-center">
+                  <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-info" title="Ver Detalles">
+                      <i class="bi bi-eye"></i>
+                    </button>
+                    <button class="btn btn-outline-primary" title="Editar">
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-outline-success" title="Cambiar Estado">
+                      <i class="bi bi-arrow-repeat"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="12" class="text-center py-4 text-muted">
+                  <i class="bi bi-car-front display-6 d-block mb-2"></i>
+                  <p>No se encontraron vehículos en el taller</p>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- PAGINACIÓN -->
+        {% if vehiculos.has_other_pages %}
+        <div class="card-body pt-2">
+          <div class="d-flex justify-content-between align-items-center">
+            <small class="text-muted">
+              Mostrando {{ vehiculos.start_index }}–{{ vehiculos.end_index }} de {{ vehiculos.paginator.count }}
+            </small>
+            <ul class="pagination pagination-sm mb-0">
+              {% if vehiculos.has_previous %}
+                <li class="page-item">
+                  <a class="page-link" href="?page=1{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">«</a>
+                </li>
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ vehiculos.previous_page_number }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">‹</a>
+                </li>
+              {% else %}
+                <li class="page-item disabled"><span class="page-link">«</span></li>
+                <li class="page-item disabled"><span class="page-link">‹</span></li>
+              {% endif %}
+
+              {% for i in vehiculos.paginator.page_range %}
+                {% if i == vehiculos.number %}
+                  <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+                {% elif i >= vehiculos.number|add:'-2' and i <= vehiculos.number|add:'2' %}
+                  <li class="page-item">
+                    <a class="page-link" href="?page={{ i }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">{{ i }}</a>
+                  </li>
+                {% endif %}
+              {% endfor %}
+
+              {% if vehiculos.has_next %}
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ vehiculos.next_page_number }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">›</a>
+                </li>
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ vehiculos.paginator.num_pages }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">»</a>
+                </li>
+              {% else %}
+                <li class="page-item disabled"><span class="page-link">›</span></li>
+                <li class="page-item disabled"><span class="page-link">»</span></li>
+              {% endif %}
+            </ul>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<style>
+.container-fluid { max-width: 100%; }
+.btn-sm { padding: 0.25rem 0.5rem; font-size: 0.75rem; }
+.table th { font-size: 0.8rem; font-weight: 600; text-align: center; }
+.table td { font-size: 0.85rem; vertical-align: middle; }
+.badge { font-size: 0.75rem; }
+
+/* Estilos para los estados */
+.estado-en_taller { background-color: #0d6efd; color: white; }
+.estado-en_reparacion { background-color: #fd7e14; color: white; }
+.estado-esperando_repuesto { background-color: #6f42c1; color: white; }
+.estado-salio { background-color: #198754; color: white; }
+.estado-entregado { background-color: #20c997; color: white; }
+
+/* Cards de estadísticas */
+.card { border-radius: 0.5rem; }
+.card-title { font-size: 0.8rem; }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Función para formatear teléfono
+  function formatearTelefono(telefono) {
+    if (!telefono || telefono === '—') return '—';
+    // Eliminar todo excepto números
+    const numeros = telefono.replace(/\D/g, '');
+    
+    if (numeros.length === 9) {
+      return numeros.replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3');
+    } else if (numeros.length === 10) {
+      return numeros.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3');
+    }
+    
+    return telefono;
+  }
+
+  // Aplicar formato a teléfonos
+  const celdasTelefono = document.querySelectorAll('td:nth-child(4)');
+  celdasTelefono.forEach(celda => {
+    const textoOriginal = celda.textContent.trim();
+    if (textoOriginal && textoOriginal !== '—') {
+      celda.textContent = formatearTelefono(textoOriginal);
+    }
+  });
+
+  // Configurar filtros con valores actuales
+  const estadoIngresoSelect = document.querySelector('select[name="estado_ingreso"]');
+  if (estadoIngresoSelect && "{{ request.GET.estado_ingreso }}") {
+    estadoIngresoSelect.value = "{{ request.GET.estado_ingreso }}";
+  }
+});
+</script>
+
+{% endblock %}

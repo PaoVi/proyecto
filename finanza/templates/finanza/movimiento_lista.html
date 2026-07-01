@@ -1,0 +1,348 @@
+{% extends "seguridad/base.html" %}
+
+{% block content %}
+
+<div class="container-fluid py-0">
+    <div class="row justify-content-center">
+        <div class="col-12 col-xl-12">
+
+            <!-- HEADER -->
+            <div class="d-flex justify-content-between align-items-center mb-1">
+
+                <div>
+                    <h2 class="h4 mb-1">
+                        GESTIÓN FINANCIERA
+                    </h2>
+                </div>
+
+                <div class="d-flex gap-2">
+
+                    <a href="{% url 'dashboard_finanza' %}"
+                    class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i>
+                        Volver
+                    </a>
+
+                    {% if perms.seguridad.gestionar_finanzas %}
+                    <a href="{% url 'movimiento_crear' %}"
+                    class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i>
+                        Nuevo Movimiento
+                    </a>
+                    {% endif %}
+
+                </div>
+            </div>
+
+            <!-- FILTRO -->
+            <div class="card mb-2">
+                <div class="card-body p-2">
+
+                    <form method="GET" class="row g-2 align-items-end">
+
+                        <div class="col-md-4">
+                            <label class="form-label small">
+                                DESCRIPCIÓN
+                            </label>
+
+                            <input type="text"
+                                name="q"
+                                value="{{ request.GET.q }}"
+                                class="form-control form-control-sm"
+                                style="height:33px;"
+                                placeholder="Descripción">
+                        </div>
+
+                        <div class="col-md-2">
+                            <label class="form-label small">
+                                DESDE
+                            </label>
+
+                            <input type="date"
+                                name="desde"
+                                value="{{ request.GET.desde }}"
+                                class="form-control form-control-sm"
+                                style="height:33px;">
+                        </div>
+
+                        <div class="col-md-2">
+                            <label class="form-label small">
+                                HASTA
+                            </label>
+
+                            <input type="date"
+                                name="hasta"
+                                value="{{ request.GET.hasta }}"
+                                class="form-control form-control-sm"
+                                style="height:33px;">
+                        </div>
+
+                        <div class="col-md-2">
+                            <label class="form-label small">
+                                TIPO
+                            </label>
+
+                            <select name="tipo"
+                                    class="form-select form-select-sm">
+
+                                <option value="">Todos</option>
+
+                                <option value="ingreso"
+                                    {% if request.GET.tipo == "ingreso" %}selected{% endif %}>
+                                    Ingreso
+                                </option>
+
+                                <option value="egreso"
+                                    {% if request.GET.tipo == "egreso" %}selected{% endif %}>
+                                    Egreso
+                                </option>
+
+                            </select>
+                        </div>
+
+                        <div class="col-md-1">
+                            <label class="form-label small">&nbsp;</label>
+
+                            <button type="submit"
+                                    class="btn btn-outline-primary btn-sm w-100"
+                                    style="height:33px;">
+                                <i class="bi bi-search"></i>
+                                Buscar
+                            </button>
+                        </div>
+
+                        <div class="col-md-1">
+                            <label class="form-label small">&nbsp;</label>
+
+                            <a href="{% url 'movimiento_lista' %}"
+                            class="btn btn-outline-secondary btn-sm w-100"
+                            style="height:33px;">
+                                <i class="bi bi-arrow-clockwise"></i>
+                                Limpiar
+                            </a>
+                        </div>
+
+                    </form>
+
+                </div>
+            </div>
+
+            <!-- TABLA -->
+            <div class="card">
+
+                <div class="table-responsive">
+
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+
+                            <tr>
+                                <th style="width: 12%">Fecha</th>
+                                <th style="width: 10%">Tipo</th>
+                                <th style="width: 10%">Origen</th>
+                                <th style="width: 40%">Descripción</th>
+                                <th style="width: 10%">Monto</th>
+                                <th style="width: 10%">Usuario</th>
+                                <th style="width: 13%" class="text-center">Acciones</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+
+                            {% for movimiento in movimientos %}
+
+                            <tr>
+
+                                <td>
+                                    {{ movimiento.fecha|date:"d/m/Y | H:i" }}
+                                </td>
+
+                                <td>
+
+                                    {% if movimiento.tipo == "ingreso" %}
+
+                                        <span class="badge bg-success">
+                                            Ingreso
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="badge bg-danger">
+                                            Egreso
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+                                <td>
+                                    {{ movimiento.get_origen_display }}
+                                </td>
+
+                                <td class="text-start">
+                                    {{ movimiento.descripcion }}
+                                </td>
+
+                                <td class="text-center">
+                                    {% if movimiento.tipo == "ingreso" %}
+                                        <span class="text-success fw-bold">
+                                            ₲ <span class="fmt">{{ movimiento.monto|floatformat:0 }}</span>
+                                        </span>
+                                    {% else %}
+                                        <span class="text-danger fw-bold">
+                                            ₲ <span class="fmt">{{ movimiento.monto|floatformat:0 }}</span>
+                                        </span>
+                                    {% endif %}
+                                </td>
+
+                                <td class="text-center">
+                                    {{ movimiento.usuario }}
+                                </td>
+
+                                <td class="text-center">
+
+                                    <div class="btn-group btn-group-sm">
+
+                                        <a href="{% url 'caja_lista' %}"
+                                        class="btn btn-outline-success btn-sm"
+                                        title="Caja">
+
+                                            <i class="bi bi-safe2"></i>
+
+                                        </a>
+
+                                        <a href="{% url 'cuentas_cobrar' %}"
+                                        class="btn btn-outline-primary btn-sm"
+                                        title="Cobros">
+
+                                            <i class="bi bi-cash-stack"></i>
+
+                                        </a>
+
+                                        <a href="{% url 'cuentas_pagar' %}"
+                                        class="btn btn-outline-danger btn-sm"
+                                        title="Pagos">
+
+                                            <i class="bi bi-cash-coin"></i>
+
+                                        </a>
+
+                                    </div>
+
+                                </td>
+                             
+                            </tr>
+
+                            {% empty %}
+
+                            <tr>
+
+                                <td colspan="7"
+                                    class="text-center py-4 text-muted">
+
+                                    No existen movimientos registrados.
+
+                                </td>
+
+                            </tr>
+
+                            {% endfor %}
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+            <!-- PAGINACIÓN -->
+            {% if movimientos.has_other_pages %}
+
+        <div class="card-body pt-2">
+          <div class="d-flex justify-content-between align-items-center">
+
+                        <small class="text-muted">
+
+                            Mostrando
+                            {{ movimientos.start_index }}
+                            -
+                            {{ movimientos.end_index }}
+                            de
+                            {{ movimientos.paginator.count }}
+                            registros
+
+                        </small>
+
+                        <ul class="pagination pagination-sm mb-0">
+
+                            {% if movimientos.has_previous %}
+
+                            <li class="page-item">
+                                <a class="page-link"
+                                   href="?page=1">
+                                    «
+                                </a>
+                            </li>
+
+                            <li class="page-item">
+                                <a class="page-link"
+                                   href="?page={{ movimientos.previous_page_number }}">
+                                    ‹
+                                </a>
+                            </li>
+
+                            {% endif %}
+
+                            <li class="page-item active">
+
+                                <span class="page-link">
+                                    {{ movimientos.number }}
+                                </span>
+
+                            </li>
+
+                            {% if movimientos.has_next %}
+
+                            <li class="page-item">
+                                <a class="page-link"
+                                   href="?page={{ movimientos.next_page_number }}">
+                                    ›
+                                </a>
+                            </li>
+
+                            <li class="page-item">
+                                <a class="page-link"
+                                   href="?page={{ movimientos.paginator.num_pages }}">
+                                    »
+                                </a>
+                            </li>
+
+                            {% endif %}
+
+                        </ul>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            {% endif %}
+
+        </div>
+            
+    </div>
+
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  // Formatear números con separador de miles (Guaraníes)
+  const fmt = n => {
+    if (!n && n !== 0) return '0';
+    return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  };
+  
+  document.querySelectorAll('.fmt').forEach(el => {
+    const num = parseFloat(el.textContent || '0');
+    el.textContent = fmt(Math.round(num));
+  });
+});
+</script>
+{% endblock %}

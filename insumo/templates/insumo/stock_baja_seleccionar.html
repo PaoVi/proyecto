@@ -1,0 +1,131 @@
+{% extends 'seguridad/base.html' %}
+
+{% block content %}
+<div class="container-fluid py-0">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-10">
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <h2 class="h4 mb-1">SUB-INSUMOS A RETIRAR</h2>
+        <button type="button" onclick="window.history.back()" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-arrow-left"></i>Volver
+        </button>
+      </div>
+
+      <div class="card">
+        <div class="card-body">
+          <!-- INFORMACIÓN -->
+          <div class="row g-3">
+            <h5 class="mb-2">{{ insumo_principal.nombre }}</h5>
+            <div class="row">
+              <div class="col-md-6 text-start">
+                <strong>Sub-insumos disponibles:</strong> {{ subinsumos.count }}
+              </div>
+              <div class="col-md-6 text-end">
+                <strong>Cantidad a retirar:</strong> {{ cantidad_necesaria }} {{ insumo_principal.unidad }}
+              </div>
+              <div class="col-md-6 text-start">
+                <strong>Total en sub-insumos:</strong> {{ total_disponible }} {{ insumo_principal.unidad }}
+              </div>
+            </div>
+          </div>
+
+          <!-- FORMULARIO DE SELECCIÓN -->
+          <form method="post">
+            {% csrf_token %}
+            
+            <!-- LISTA DE SUBINSUMOS -->
+            <div class="mb-3 py-2">
+              <h6 class="mb-2">Seleccione los sub-insumos:</h6>
+              
+              {% if subinsumos %}
+              <div class="table-responsive">
+                <table class="table table-hover">
+                  <thead class="table-light">
+                    <tr>
+                      <th style="width: 5%">
+                        <input type="checkbox" id="select-all" class="form-check-input">
+                      </th>
+                      <th style="width: 20%">Código</th>
+                      <th style="width: 20%">Cantidad</th>
+                      <th style="width: 20%">Estado</th>
+                      <th style="width: 30%">Descripción</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for sub in subinsumos %}
+                    <tr>
+                      <td>
+                        <input type="checkbox" name="subinsumos" value="{{ sub.id }}" 
+                               class="form-check-input subinsumo-checkbox"
+                               data-cantidad="{{ sub.stock_actual }}">
+                      </td>
+                      <td>
+                        <strong>{{ sub.codigo_completo }}</strong>
+                      </td>
+                      <td>{{ sub.stock_actual }} {{ sub.unidad }}</td>
+                      <td>
+                        <span class="fw-semibold text-success small">Activo</span>
+                      </td>
+                      <td class="small text-muted">
+                        {{ sub.descripcion|default:"-" }}
+                      </td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+              {% else %}
+              <div class="alert alert-warning">
+                No hay sub-insumos disponibles para este insumo.
+              </div>
+              {% endif %}
+            </div>
+
+            <!-- BOTONES -->
+            <div class="d-flex gap-2">
+              <a href="{% url 'stock_baja' %}" class="btn btn-outline-secondary w-50 w-md-auto order-1 order-md-2">
+                <i class="bi bi-x-circle"></i>Cancelar
+              </a>
+              <button type="submit" class="btn btn-primary btn-sm w-50 w-md-auto order-1 order-md-2" id="btn-confirmar">
+                <i class="bi bi-check-circle"></i>Confirmar Retiro
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.container-fluid { max-width: 1000px; }
+.btn-sm { padding: 0.375rem 0.75rem; font-size: 0.875rem; min-width: 100px; }
+.table th { font-size: 0.8rem; }
+.table td { font-size: 0.85rem; vertical-align: middle; }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const selectAll = document.getElementById('select-all');
+  const checkboxes = document.querySelectorAll('.subinsumo-checkbox');
+  const btnConfirmar = document.getElementById('btn-confirmar');
+
+  // Seleccionar/deseleccionar todos
+  if (selectAll) {
+    selectAll.addEventListener('change', function() {
+      checkboxes.forEach(checkbox => {
+        checkbox.checked = this.checked;
+      });
+    });
+  }
+
+  // Validación opcional: deshabilitar si no hay nada seleccionado
+  checkboxes.forEach(checkbox => {
+    checkbox.addEventListener('change', function() {
+      const algunSeleccionado = Array.from(checkboxes).some(cb => cb.checked);
+      btnConfirmar.disabled = !algunSeleccionado;
+    });
+  });
+});
+</script>
+{% endblock %}

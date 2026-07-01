@@ -1,0 +1,313 @@
+{% extends 'seguridad/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-0">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-8">
+      
+      <!-- HEADER -->
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <div>
+          <h2 class="h4 mb-1">EDITAR ROL</h2>
+        </div>
+        <button type="button" onclick="window.history.back()" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-arrow-left"></i>Volver
+        </button>
+      </div>
+
+      <!-- FORMULARIO -->
+      <div class="card">
+        <div class="card-body">
+          <!-- quitamos .needs-validation -->
+          <form action="{% url 'rol_editar' grupo.id %}" method="post" novalidate>
+            {% csrf_token %}
+
+            <div class="row g-3">
+              <!-- COLUMNA IZQUIERDA -->
+              <div class="col-md-5">
+                <h6 class="mb-2 border-bottom pb-2 small fw-semibold text-muted">INFORMACIÓN DEL ROL</h6>
+
+                <!-- NOMBRE DEL ROL (con fallback al valor anterior) -->
+                <div class="mb-2">
+                  <label for="{{ form.name.id_for_label }}" class="form-label small fw-semibold text-muted">Nombre del Rol</label>
+                  <input
+                    type="text"
+                    id="{{ form.name.id_for_label }}"
+                    name="{{ form.name.name }}"
+                    class="form-control"
+                    placeholder="Nombre del rol"
+                    value="{{ form.name.value|default:form.instance.name }}"
+                    autocomplete="off"
+                  >
+                  {% if form.name.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for error in form.name.errors %}{{ error }}{% endfor %}
+                  </div>
+                  {% endif %}
+                </div>
+
+                <!-- ESTADO DEL ROL -->
+                {% with usuarios_count=grupo.seguridad_usuario_set.count %}
+                <div class="mb-2 py-2">
+                  <div class="form-check form-switch">
+                    <input
+                      type="checkbox"
+                      name="{{ form.activo.name }}"
+                      id="{{ form.activo.id_for_label }}"
+                      class="form-check-input"
+                      {% if form.activo.value %}checked{% endif %}
+                      {% if usuarios_count > 0 or not puede_desactivar_roles %}disabled{% endif %}
+                      title="
+                        {% if usuarios_count > 0 %}
+                          No se puede desactivar: hay {{ usuarios_count }} usuario(s) con este rol.
+                        {% elif not puede_desactivar_roles %}
+                          No tienes permisos para desactivar roles.
+                        {% endif %}"
+                    >
+                    <label class="form-check-label small fw-semibold text-muted" for="{{ form.activo.id_for_label }}">
+                      Estado (Activo/Inactivo)
+                    </label>
+                  </div>
+                  
+                  {% if usuarios_count > 0 %}
+                    <!-- CONSERVAR EL VALOR ACTUAL SI ESTÁ DESHABILITADO POR USUARIOS -->
+                    <input type="hidden" name="{{ form.activo.name }}" value="{% if form.activo.value %}on{% endif %}">
+                    <div class="form-text small text-muted mt-1">
+                      <i class="bi bi-info-circle"></i>
+                      No se puede desactivar este rol porque tiene {{ usuarios_count }} usuario(s) asignado(s).
+                    </div>
+                  {% elif not puede_desactivar_roles %}
+                    <!-- CONSERVAR EL VALOR ACTUAL SI ESTÁ DESHABILITADO POR PERMISOS -->
+                    <input type="hidden" name="{{ form.activo.name }}" value="{% if form.activo.value %}on{% endif %}">
+                    <div class="form-text small text-muted mt-1">
+                      <i class="bi bi-info-circle"></i>
+                      No tienes permisos para cambiar el estado de roles.
+                    </div>
+                  {% endif %}
+
+                  {% if form.activo.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for error in form.activo.errors %}{{ error }}{% endfor %}
+                  </div>
+                  {% endif %}
+                </div>
+                {% endwith %}
+
+                <!-- ENCABEZADO PERMISOS -->
+                <h6 class="mt-3 mb-2 border-bottom pb-2 small fw-semibold text-muted">
+                  PERMISOS DEL ROL
+                  <small class="text-muted ms-1">({{ form.permisos.field.queryset.count }})</small>
+                </h6>
+
+                <!-- FILTROS + ACCIONES -->
+                <div class="input-group mb-2">
+                  <span class="input-group-text"><i class="bi bi-search"></i></span>
+                  <input type="text" class="form-control" id="filterPermisos" placeholder="Buscar permisos...">
+                  <button type="button" class="btn btn-outline-secondary" id="clearFilterBtn">
+                    <i class="bi bi-arrow-clockwise"></i>
+                  </button>
+                </div>
+
+                <div class="d-flex gap-2 mb-2">
+                  <button type="button" class="btn btn-outline-primary btn-sm" id="selectAllBtn">
+                    <i class="bi bi-check-all"></i>Seleccionar Todos
+                  </button>
+                  <button type="button" class="btn btn-outline-secondary btn-sm" id="deselectAllBtn">
+                    <i class="bi bi-x-circle"></i>Quitar Selección
+                  </button>
+                </div>
+
+                <!-- CONTADOR --> 
+                <div class="perm-counter mb-3">
+                  <i class="bi bi-info-circle-fill me-2"></i>
+                  <span id="contadorPermisos">{{ selected_ids|length }}</span>
+                  <span class="form-text.small.text-muted "> seleccionados de </span>
+                  <span id="totalPermisos">{{ form.permisos.field.queryset.count }}</span>
+                  <span class="form-text.small.text-muted "> disponibles</span>
+                </div>
+
+                <!-- ACCIONES -->
+                <div class="d-flex justify-content-between pt-2 border-top">
+                  <a href="{% url 'rol_lista' %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-x-circle"></i>Cancelar
+                  </a>
+                  <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="bi bi-check-circle"></i>Guardar Cambios
+                  </button>
+                </div>
+              </div>
+
+              <!-- COLUMNA DERECHA -->
+              <div class="col-md-7">
+                <h6 class="mb-2 border-bottom pb-2 small fw-semibold text-muted">LISTA DE PERMISOS</h6>
+
+                <!-- LISTA DE PERMISOS AGRUPADA -->
+                <div class="card">
+                  <div class="card-body permisos-scroll">
+
+                    {% regroup permisos_qs by content_type.app_label as grupos_permisos %}
+                    {% for grupo_app in grupos_permisos %}
+                      <div class="perm-group mb-2" data-group-index="{{ forloop.counter }}">
+                        <div class="perm-group-title">
+                          <button class="btn btn-link btn-sm p-0 me-2 toggle-group" type="button" data-target="#grp-{{ forloop.counter }}">
+                            <i class="bi bi-caret-down-fill"></i>
+                          </button>
+                          <span class="text-primary fw-semibold">{{ grupo_app.grouper|title }}</span>
+                          <span class="count-badge" data-group-count>{{ grupo_app.list|length }}</span>
+                        </div>
+
+                        <div id="grp-{{ forloop.counter }}" class="perm-grid mt-1">
+                          {% for p in grupo_app.list %}
+                            <label class="perm-chip permiso-item" data-text="{{ p.name|lower }}">
+                              <input
+                                class="form-check-input me-2"
+                                type="checkbox"
+                                name="permisos"
+                                value="{{ p.id }}"
+                                {% if p.id in selected_ids %}checked{% endif %}
+                              >
+                              <i class="bi bi-check2-circle"></i>
+                              <span class="perm-name">{{ p.name }}</span>
+                            </label>
+                          {% endfor %}
+                        </div>
+                      </div>
+                    {% empty %}
+                      <div class="text-center py-4">
+                        <i class="bi bi-shield-slash display-6 text-muted d-block mb-2"></i>
+                        <span class="text-muted">No hay permisos disponibles</span>
+                      </div>
+                    {% endfor %}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.container-fluid { 
+  max-width: 1000px; 
+}
+.form-control, .form-select {
+  border-radius: .375rem;
+  border: 1px solid #ced4da;
+  padding: .35rem .65rem;
+  font-size: .85rem;
+}
+.form-control:focus, .form-select:focus {
+  border-color: #86b7fe;
+  box-shadow: 0 0 0 .15rem rgba(13,110,253,.2);
+}
+/* Scroll lista permisos */
+.permisos-scroll {
+  max-height: 390px;
+  overflow: auto;
+  padding: .5rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--bs-primary) var(--bs-light);
+}
+.permisos-scroll::-webkit-scrollbar { width: 6px; }
+.permisos-scroll::-webkit-scrollbar-track { background: var(--bs-light); }
+.permisos-scroll::-webkit-scrollbar-thumb { background-color: var(--bs-primary); border-radius: 3px; }
+
+/* Items */
+.permiso-item { padding: .2rem .3rem; border-radius: .25rem; }
+.permiso-item:hover { background-color: #f8f9fa; }
+
+/* Switch */
+.form-check-input { transform: scale(.95); }
+.form-check-input:checked { background-color: #0d6efd; border-color: #0d6efd; }
+
+/* Grupo/encabezado */
+.perm-group-title{ display:flex; align-items:center; gap:.35rem; font-size:.85rem; color:#0d6efd }
+.count-badge{ background:#e9f2ff; color:#0d6efd; font-size:.72rem; padding:.05rem .45rem; border-radius:999px }
+
+/* Grid “chips” */
+.perm-grid{ display:grid; grid-template-columns:1fr; gap:.35rem }
+.perm-chip{
+  display:flex; align-items:center; gap:.35rem;
+  padding:.25rem .6rem; border:1px solid #eceff2;
+  border-radius:999px; background:#f8f9fa; font-size:.82rem
+}
+.perm-chip:hover{ background:#f1f5ff; border-color:#e3ecff }
+.perm-chip .form-check-input{ margin:0 }
+
+/* Botón de colapso */
+.toggle-group{ color:#0d6efd; text-decoration:none }
+.toggle-group:hover{ color:#0a58ca }
+
+/* Contador */
+.perm-counter{
+  display:flex; align-items:center; gap:.20rem;
+  background:#e9f5ff; border:1px solid #91fdc7ff;
+  border-radius:.5rem; padding:.15rem .60rem;
+  font-size:.75rem; line-height:1; min-height:36px; box-shadow:none;
+}
+.perm-counter .bi{ font-size:0.875rem; color:#016131ff; }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const filterInput = document.getElementById('filterPermisos');
+  const clearBtn = document.getElementById('clearFilterBtn');
+  const selectAllBtn = document.getElementById('selectAllBtn');
+  const deselectAllBtn = document.getElementById('deselectAllBtn');
+  const contadorPermisos = document.getElementById('contadorPermisos');
+
+  function actualizarContador() {
+    if (!contadorPermisos) return;
+    contadorPermisos.textContent = document.querySelectorAll('input[name="permisos"]:checked').length;
+  }
+  actualizarContador();
+
+  function aplicarFiltro() {
+    const q = (filterInput?.value || '').trim().toLowerCase();
+    document.querySelectorAll('.permiso-item').forEach(el => {
+      const txt = el.getAttribute('data-text') || '';
+      el.style.display = txt.includes(q) ? 'flex' : 'none';
+    });
+    document.querySelectorAll('.perm-group').forEach(group => {
+      const chips = group.querySelectorAll('.permiso-item');
+      const visibles = Array.from(chips).filter(ch => ch.style.display !== 'none').length;
+      const badge = group.querySelector('[data-group-count]');
+      if (badge) badge.textContent = visibles;
+      group.style.display = visibles > 0 ? '' : 'none';
+    });
+  }
+
+  filterInput?.addEventListener('input', aplicarFiltro);
+  clearBtn?.addEventListener('click', () => { if (filterInput) { filterInput.value = ''; aplicarFiltro(); } });
+  filterInput?.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); aplicarFiltro(); } });
+
+  selectAllBtn?.addEventListener('click', () => {
+    document.querySelectorAll('.permiso-item:not([style*="display: none"]) input[name="permisos"]').forEach(cb => cb.checked = true);
+    actualizarContador();
+  });
+  deselectAllBtn?.addEventListener('click', () => {
+    document.querySelectorAll('.permiso-item:not([style*="display: none"]) input[name="permisos"]').forEach(cb => cb.checked = false);
+    actualizarContador();
+  });
+
+  document.querySelectorAll('input[name="permisos"]').forEach(cb => {
+    cb.addEventListener('change', actualizarContador);
+  });
+
+  document.querySelectorAll('.toggle-group').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const sel = btn.getAttribute('data-target');
+      const target = document.querySelector(sel);
+      if (target) target.classList.toggle('d-none');
+      const icon = btn.querySelector('i');
+      icon?.classList.toggle('bi-caret-right-fill');
+      icon?.classList.toggle('bi-caret-down-fill');
+    });
+  });
+});
+</script>
+{% endblock %}

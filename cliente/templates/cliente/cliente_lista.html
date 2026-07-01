@@ -1,0 +1,359 @@
+{% extends 'seguridad/base.html' %}
+
+{% block content %}
+<div class="container-fluid py-0">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-12">
+
+      <!-- HEADER -->
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <div>
+          <h2 class="h4 mb-1">GESTIÓN DE CLIENTES</h2>
+        </div>
+        {% if perms.seguridad.agregar_clientes %}
+        <a href="{% url 'cliente_crear' %}" class="btn btn-primary btn-sm">
+          <i class="bi bi-plus-circle"></i>Nuevo Cliente
+        </a>
+        {% endif %}
+      </div>
+
+      <!-- FILTROS -->
+      <div class="card mb-2">
+        <div class="card-body p-2">
+          <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-3">
+              <label class="form-label small">DOCUMENTO</label>
+              <input type="text" name="doc" value="{{ request.GET.doc }}" class="form-control form-control-sm" style="height: 33px;" placeholder="Ej.: 1234567 o 80012345-1">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small">NOMBRE / APELLIDO</label>
+              <input type="text" name="nombre" value="{{ request.GET.nombre }}" class="form-control form-control-sm" style="height: 33px;" placeholder="Buscar por nombre o apellido">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label small">TIPO DE CLIENTE</label>
+              <select name="tipo_cliente" class="form-select form-select-sm">
+                <option value="">Todos</option>
+                <option value="fisica"   {% if request.GET.tipo_cliente == 'fisica' %}selected{% endif %}>Persona Física</option>
+                <option value="juridica" {% if request.GET.tipo_cliente == 'juridica' %}selected{% endif %}>Persona Jurídica</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label small">ESTADO</label>
+              <select name="estado" class="form-select form-select-sm">
+                <option value="">Todos</option>
+                <option value="activo" {% if request.GET.estado == 'activo' %}selected{% endif %}>Activo</option>
+                <option value="inactivo" {% if request.GET.estado == 'inactivo' %}selected{% endif %}>Inactivo</option>
+              </select>
+            </div>
+            <div class="col-md-1">
+              <label class="form-label small">&nbsp;</label>
+              <button type="submit" class="btn btn-outline-primary w-100 btn-sm" style="height: 33px;">
+                <i class="bi bi-search"></i>Buscar
+              </button>
+            </div>
+            <div class="col-md-1">
+              <label class="form-label small">&nbsp;</label>
+              <a href="{% url 'cliente_lista' %}" class="btn btn-outline-secondary w-100 btn-sm" style="height: 33px;">
+                <i class="bi bi-arrow-clockwise"></i> Limpiar
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- LISTA -->
+      <div class="card">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0" id="clientesTable">
+            <thead class="table-light">
+              <tr>
+                <th style="width: 17%">Documento</th>
+                <th style="width: 25%">Nombre / Apellido</th>
+                <th style="width: 10%">Tipo</th>
+                <th style="width: 10%">Teléfono</th>
+                <th style="width: 22%">Correo Electrónico</th>
+                <th style="width: 8%">Estado</th>
+                <th style="width: 8%" class="text-center">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for c in clientes %}
+              <tr class="{% if not c.is_active %}table-secondary{% endif %}" 
+                  data-documento="{{ c.numero_documento }}" 
+                  data-telefono="{{ c.telefono }}">
+                <!-- DOCUMENTO -->
+                <td>
+                  <div class="fw-semibold documento-cell">{{ c.numero_documento }}</div>
+                  <small class="text-muted">{{ c.get_tipo_documento_display }}</small>
+                </td>
+
+                <!-- NOMBRE -->
+                <td class="text-start" style="max-width: 260px;">{{ c.nombre }}</td>
+
+                <!-- TIPO DE CLIENTE -->
+                <td>
+                  <span class="text-truncate{% if c.tipo_cliente == 'fisica' %}bg-info-subtle text-info-emphasis{% else %}bg-warning-subtle text-warning-emphasis{% endif %}">
+                    {{ c.get_tipo_cliente_display }}
+                  </span>
+                </td>
+
+                <!-- TELÉFONO / EMAIL -->
+                <td class="telefono-cell">{{ c.telefono|default:"—" }}</td>
+                <td class="text-start text-truncate" style="max-width: 260px;">{{ c.email|default:"—" }}</td>
+
+                <!-- ESTADO -->
+                <td>
+                  {% if c.is_active %}
+                    <span class="badge bg-success">Activo</span>
+                  {% else %}
+                    <span class="badge bg-secondary small">Inactivo</span>
+                  {% endif %}
+                </td>
+
+                <!-- ACCIONES -->
+                <td class="text-center">
+                  <div class="btn-group btn-group-sm">
+                    {% if perms.seguridad.ver_clientes %}
+                    <a href="{% url 'cliente_ver' c.id %}" class="btn btn-outline-info btn-sm" title="Ver">
+                      <i class="bi bi-eye"></i>
+                    </a>
+                    {% endif %}
+
+                    {% if perms.seguridad.editar_clientes %}
+                    <a href="{% url 'cliente_editar' c.id %}" class="btn btn-outline-primary btn-sm" title="Editar">
+                      <i class="bi bi-pencil"></i>
+                    </a>
+                    {% endif %}
+
+                    {% if perms.seguridad.desactivar_clientes %}
+                      {% if c.is_active %}
+                      <button type="button" class="btn btn-outline-danger btn-sm" title="Desactivar"
+                              data-bs-toggle="modal" data-bs-target="#deactivateModal"
+                              data-cliente-id="{{ c.id }}" data-cliente-nombre="{{ c.nombre }}">
+                        <i class="bi bi-x-circle"></i>
+                      </button>
+                      {% else %}
+                      <button type="button" class="btn btn-outline-success btn-sm" title="Activar"
+                              data-bs-toggle="modal" data-bs-target="#activateModal"
+                              data-cliente-id="{{ c.id }}" data-cliente-nombre="{{ c.nombre }}">
+                        <i class="bi bi-check-circle"></i>
+                      </button>
+                      {% endif %}
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="7" class="text-center py-4 text-muted">No se encontraron clientes</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+      <!-- PAGINACIÓN -->
+      {% if clientes.has_other_pages %}
+      <div class="card-body pt-2">
+        <div class="d-flex justify-content-between align-items-center">
+          <small class="text-muted">
+            Mostrando {{ clientes.start_index }}–{{ clientes.end_index }} de {{ clientes.paginator.count }}
+          </small>
+          <ul class="pagination pagination-sm mb-0">
+            {% if clientes.has_previous %}
+              <li class="page-item">
+                <a class="page-link" href="?page=1{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">«</a>
+              </li>
+              <li class="page-item">
+                <a class="page-link" href="?page={{ clientes.previous_page_number }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">‹</a>
+              </li>
+            {% else %}
+              <li class="page-item disabled"><span class="page-link">«</span></li>
+              <li class="page-item disabled"><span class="page-link">‹</span></li>
+            {% endif %}
+
+            {% for i in clientes.paginator.page_range %}
+              {% if i == clientes.number %}
+                <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+              {% elif i >= clientes.number|add:'-2' and i <= clientes.number|add:'2' %}
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ i }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">{{ i }}</a>
+                </li>
+              {% endif %}
+            {% endfor %}
+
+            {% if clientes.has_next %}
+              <li class="page-item">
+                <a class="page-link" href="?page={{ clientes.next_page_number }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">›</a>
+              </li>
+              <li class="page-item">
+                <a class="page-link" href="?page={{ clientes.paginator.num_pages }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">»</a>
+              </li>
+            {% else %}
+              <li class="page-item disabled"><span class="page-link">›</span></li>
+              <li class="page-item disabled"><span class="page-link">»</span></li>
+            {% endif %}
+          </ul>
+        </div>
+      </div>
+      {% endif %}
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DESACTIVAR CLIENTE -->
+<div class="modal fade" id="deactivateModal" tabindex="-1" aria-labelledby="deactivateModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title" id="deactivateModalLabel">Desactivar Cliente</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>¿Desactivar cliente <strong id="clienteNombreDeactivate"></strong>?</p>
+      </div>
+      <div class="modal-footer">
+        <form method="post" action="" id="deactivateForm">
+          {% csrf_token %}
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-danger btn-sm">Desactivar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ACTIVAR CLIENTE -->
+<div class="modal fade" id="activateModal" tabindex="-1" aria-labelledby="activateModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title" id="activateModalLabel">Activar Cliente</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>¿Activar cliente <strong id="clienteNombreActivate"></strong>?</p>
+      </div>
+      <div class="modal-footer">
+        <form method="post" action="" id="activateForm">
+          {% csrf_token %}
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-success btn-sm">Activar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+#deactivateModal .modal-dialog,
+#activateModal .modal-dialog {
+  max-width: 300px;
+  width: 90%;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  min-height: calc(100% - 2rem);
+}
+#deactivateModal .modal-content,
+#activateModal .modal-content { min-height: 50px; }
+#deactivateModal .modal-title,
+#activateModal .modal-title,
+#deactivateModal .modal-body,
+#activateModal .modal-body { text-align: center; }
+#deactivateModal .modal-footer,
+#activateModal .modal-footer { justify-content: center; gap: .5rem; }
+#deactivateModal .modal-footer .btn,
+#activateModal .modal-footer .btn {
+  padding: 0.45rem 0.9rem;
+  font-size: 0.75rem;
+  min-width: 120px;
+  line-height: 1.15;
+  border-radius: 8px;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Función para formatear documento (cédula/RUC)
+  function formatDocumento(documento) {
+    if (!documento || documento === '—') return documento;
+    
+    // Si tiene guion (RUC)
+    if (documento.includes('-')) {
+      const partes = documento.split('-');
+      const partePrincipal = partes[0];
+      const digitoVerificador = partes[1];
+      
+      // Formatear la parte principal con puntos
+      const parteFormateada = partePrincipal.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+      
+      return `${parteFormateada}-${digitoVerificador}`;
+    } else {
+      // Formatear cédula simple
+      return documento.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    }
+  }
+
+  // Función para formatear teléfono
+  function formatTelefono(telefono) {
+    if (!telefono || telefono === '—') return telefono;
+    
+    // Para formato paraguayo +5959xxxxxxx
+    if (telefono.startsWith('+595') && telefono.length === 13) {
+      return `${telefono.substring(0, 4)} ${telefono.substring(4, 7)} ${telefono.substring(7)}`;
+    }
+    
+    // Para otros formatos, mantener original
+    return telefono;
+  }
+
+  // Aplicar formato a todos los documentos y teléfonos en la tabla
+  const documentoCells = document.querySelectorAll('.documento-cell');
+  const telefonoCells = document.querySelectorAll('.telefono-cell');
+
+  documentoCells.forEach(cell => {
+    const originalText = cell.textContent.trim();
+    if (originalText && originalText !== '—') {
+      cell.textContent = formatDocumento(originalText);
+    }
+  });
+
+  telefonoCells.forEach(cell => {
+    const originalText = cell.textContent.trim();
+    if (originalText && originalText !== '—') {
+      cell.textContent = formatTelefono(originalText);
+    }
+  });
+
+  // Modales para activar/desactivar clientes
+  const deactivateModal = document.getElementById('deactivateModal');
+  const activateModal = document.getElementById('activateModal');
+
+  if (deactivateModal) {
+    deactivateModal.addEventListener('show.bs.modal', function(event) {
+      const button = event.relatedTarget;
+      const id = button.getAttribute('data-cliente-id');
+      const nombre = button.getAttribute('data-cliente-nombre');
+      document.getElementById('clienteNombreDeactivate').textContent = nombre;
+      document.getElementById('deactivateForm').action =
+        "{% url 'cliente_desactivar' 0 %}".replace('0', id);
+    });
+  }
+
+  if (activateModal) {
+    activateModal.addEventListener('show.bs.modal', function(event) {
+      const button = event.relatedTarget;
+      const id = button.getAttribute('data-cliente-id');
+      const nombre = button.getAttribute('data-cliente-nombre');
+      document.getElementById('clienteNombreActivate').textContent = nombre;
+      document.getElementById('activateForm').action =
+        "{% url 'cliente_desactivar' 0 %}".replace('0', id);
+    });
+  }
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,213 @@
+{% extends "seguridad/base.html" %}
+
+{% block content %}
+<div class="container-fluid py-0">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-12">
+
+      <!-- HEADER -->
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <div>
+          <h2 class="h4 mb-1">NOTAS DE CRÉDITO</h2>
+        </div>
+        <div class="d-flex gap-2">
+          {% if perms.seguridad.anular_facturas %}
+          <a href="{% url 'nota_credito_factura' %}" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-circle"></i> Nueva Nota de Crédito
+          </a>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- FILTROS -->
+      <div class="card mb-2">
+        <div class="card-body p-2">
+          <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-3">
+              <label class="form-label small">#NOTA / FACTURA</label>
+              <input type="text" name="q" value="{{ request.GET.q }}"
+                     class="form-control form-control-sm"
+                     style="height: 33px"
+                     placeholder="Ej.: 1, 1001">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small">DESDE</label>
+              <input type="date" name="fecha_desde"
+                     class="form-control form-control-sm"
+                     style="height: 33px"
+                     value="{{ request.GET.fecha_desde }}">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small">HASTA</label>
+              <input type="date" name="fecha_hasta"
+                     class="form-control form-control-sm"
+                     style="height: 33px"
+                     value="{{ request.GET.fecha_hasta }}">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small">&nbsp;</label>
+              <button type="submit" class="btn btn-outline-primary w-100 btn-sm" style="height: 33px">
+                <i class="bi bi-search me-1"></i> Buscar
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- TABLA -->
+      <div class="card">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th style="width: 10%">#Nota</th>
+                <th style="width: 10%">#Factura</th>
+                <th style="width: 20%">Cliente</th>
+                <th style="width: 8%">Fecha</th>
+                <th style="width: 10%" class="text-center">Sub-Total</th>
+                <th style="width: 8%" class="text-center">IVA</th>
+                <th style="width: 10%" class="text-center">Total</th>
+                <th style="width: 6%">Tipo</th>
+                <th style="width: 10%">Estado</th> 
+                <th style="width: 6%" class="text-center">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for nc in notas_credito %}
+              <tr>
+                <td class="fw-semibold">{{ nc.numero_formateado }}</td>
+                <td>{{ nc.factura.numero_formateado }}</td>
+                <td>{{ nc.factura.cliente.nombre|default:"CONSUMIDOR FINAL" }}</td>
+                <td>{{ nc.fecha|date:"d/m/Y" }}</td>
+                <td class="text-center">₲ <span class="fmt">{{ nc.subtotal|floatformat:0 }}</span></td>
+                <td class="text-center">₲ <span class="fmt">{{ nc.total_iva|floatformat:0 }}</span></td>
+                <td class="text-center">₲ <span class="fmt">{{ nc.total_general|floatformat:0 }}</span></td>
+                <td class="text-center">
+                  {% if nc.tipo == 'TOTAL' %}
+                    <span class="badge bg-danger">Total</span>
+                  {% elif nc.tipo == 'PARCIAL' %}
+                    <span class="badge bg-primary">Parcial</span>
+                  {% else %}
+                    <span class="badge bg-secondary">{{ nc.get_tipo_display }}</span>
+                  {% endif %}
+                </td>
+                <td class="text-center">
+                  <div class="d-flex flex-column align-items-center gap-1">
+                    {% if nc.estado == 'RECHAZADA' or nc.estado == 'ANULADA' %}
+                      <span class="badge bg-danger">Rechazado</span>
+                    {% elif nc.estado == 'APROBADA' %}
+                      <span class="badge bg-success">Aprobado</span>
+                    {% elif nc.estado == 'PENDIENTE' %}
+                      <span class="badge bg-secondary">Pendiente</span>
+                      <small class="text-muted" style="font-size: 0.65rem;">
+                         {{ nc.created_at|date:"d/m/Y H:i" }}
+                      </small>
+                    {% else %}
+                      <span class="badge bg-secondary">{{ nc.get_estado_display }}</span>
+                    {% endif %}
+                  </div>
+                </td>
+                <td class="text-center">
+                  <div class="btn-group btn-group-sm">
+                    <a href="{% url 'nota_credito_ver' nc.id %}" class="btn btn-outline-info" title="Ver">
+                      <i class="bi bi-eye"></i>
+                    </a>
+                    <a href="{% url 'nota_credito_imprimir' nc.id %}" class="btn btn-outline-secondary" target="_blank" title="Imprimir">
+                      <i class="bi bi-printer"></i>
+                    </a>
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="10" class="text-center py-4 text-muted">
+                  No hay notas de crédito registradas.
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- PAGINACIÓN -->
+      {% if notas_credito.has_other_pages %}
+      <div class="card mt-2">
+        <div class="card-body pt-2">
+          <div class="d-flex justify-content-between align-items-center">
+            <small class="text-muted">
+              Mostrando {{ notas_credito.start_index }}–{{ notas_credito.end_index }} de {{ notas_credito.paginator.count }}
+            </small>
+            <ul class="pagination pagination-sm mb-0">
+              {% if notas_credito.has_previous %}
+                <li class="page-item">
+                  <a class="page-link" href="?page=1{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">«</a>
+                </li>
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ notas_credito.previous_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">‹</a>
+                </li>
+              {% else %}
+                <li class="page-item disabled"><span class="page-link">«</span></li>
+                <li class="page-item disabled"><span class="page-link">‹</span></li>
+              {% endif %}
+
+              {% for i in notas_credito.paginator.page_range %}
+                {% if i == notas_credito.number %}
+                  <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+                {% elif i >= notas_credito.number|add:'-2' and i <= notas_credito.number|add:'2' %}
+                  <li class="page-item">
+                    <a class="page-link" href="?page={{ i }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">{{ i }}</a>
+                  </li>
+                {% endif %}
+              {% endfor %}
+
+              {% if notas_credito.has_next %}
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ notas_credito.next_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">›</a>
+                </li>
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ notas_credito.paginator.num_pages }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">»</a>
+                </li>
+              {% else %}
+                <li class="page-item disabled"><span class="page-link">›</span></li>
+                <li class="page-item disabled"><span class="page-link">»</span></li>
+              {% endif %}
+            </ul>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  // Formatear números con separador de miles (Guaraníes)
+  const fmt = n => {
+    if (!n && n !== 0) return '0';
+    return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  };
+  
+  document.querySelectorAll('.fmt').forEach(el => {
+    const num = parseFloat(el.textContent || '0');
+    el.textContent = fmt(Math.round(num));
+  });
+});
+</script>
+
+<style>
+  .btn-group-sm > .btn {
+    padding: 0.25rem 0.5rem;
+  }
+  .table td, .table th {
+    vertical-align: middle;
+  }
+  .badge {
+    font-size: 0.75rem;
+    padding: 0.35rem 0.65rem;
+  }
+</style>
+
+{% endblock %}

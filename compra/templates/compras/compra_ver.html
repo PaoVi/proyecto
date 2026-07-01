@@ -1,0 +1,739 @@
+{% extends 'seguridad/base.html' %}
+
+{% block content %}
+
+<div class="container-fluid py-0">
+
+    <div class="row justify-content-center">
+
+        <div class="col-12 col-xl-10">
+
+            <!-- HEADER -->
+            <div class="d-flex justify-content-between align-items-center mb-1">
+
+                <h2 class="h4 mb-1">
+                    DETALLES DE COMPRA #{{ compra.id }}
+                </h2>
+
+                <div class="d-flex gap-2">
+
+                    <button type="button"
+                            onclick="window.history.back()"
+                            class="btn btn-outline-secondary btn-sm">
+
+                        <i class="bi bi-arrow-left"></i>
+                        Volver
+
+                    </button>
+
+                    {% if perms.seguridad.editar_compras and compra.es_editable %}
+
+                        <a href="{% url 'compra_editar' compra.id %}"
+                           class="btn btn-primary btn-sm">
+
+                            <i class="bi bi-pencil"></i>
+                            Editar
+
+                        </a>
+
+                    {% endif %}
+
+                    {% if perms.seguridad.imprimir_compras %}
+
+                        <a href="{% url 'compra_imprimir' compra.id %}"
+                           target="_blank"
+                           class="btn btn-info btn-sm">
+
+                            <i class="bi bi-printer"></i>
+                            Imprimir
+
+                        </a>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+            <!-- CARD PRINCIPAL -->
+            <div class="card">
+
+                <div class="card-body">
+
+                    <!-- INFORMACIÓN GENERAL -->
+                    <div class="row g-3">
+
+                        <div class="col-md-6">
+
+                            <h6 class="mb-2 border-bottom pb-2 small fw-semibold text-muted">
+                                INFORMACIÓN GENERAL
+                            </h6>
+
+                            <div class="mb-2">
+                                <label class="form-label small text-muted">
+                                    N° de compra
+                                </label>
+                                <p class="mb-0 fw-semibold">
+                                    {{ compra.id }}
+                                </p>
+                            </div>
+
+                            <div class="mb-2">
+                                <label class="form-label small text-muted">
+                                    Proveedor
+                                </label>
+                                <p class="mb-0 fw-semibold">
+                                    {% if compra.proveedor %}
+                                        <a href="{% url 'proveedor_ver' compra.proveedor.pk %}"
+                                           class="text-decoration-none">
+                                            <i class="bi bi-building"></i>
+                                            {{ compra.proveedor.razon_social }}
+                                        </a>
+                                        <div class="small">
+                                            RUC: {{ compra.proveedor.ruc }}
+                                        </div>
+                                    {% else %}
+                                        <small class="fw-semibold">
+                                            <i class="bi bi-building"></i>
+                                            No asignado
+                                        </small>
+                                    {% endif %}
+                                </p>
+                            </div>
+
+                            <!-- FACTURA / RECIBO -->
+                            <div class="mb-2">
+                                <label class="form-label small text-muted">
+                                    Factura PDF
+                                </label>
+                                
+                                {% if compra.factura_pdf %}
+                                
+                                    <!-- Si tiene factura, mostrarla -->
+                                    <div class="d-flex align-items-center justify-content-center gap-2">
+                                    <span class="small fw-semibold text-truncate">
+                                        {{ compra.nombre_factura|truncatechars:30 }}
+                                    </span>
+                                        <a href="{% url 'compra_ver_pdf' compra.id %}" 
+                                        target="_blank" 
+                                        class="text-danger"
+                                        title="Ver factura">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                    </div>
+                                    {% if compra.fecha_recepcion %}
+                                    <div class="small text-muted mt-1 text-center">
+                                        <i class="bi bi-calendar-check"></i> Recibido: {{ compra.fecha_recepcion|date:"d/m/Y" }}
+                                    </div>
+                                    {% endif %}
+                                    
+                                {% elif compra.estado == 'recibido' %}
+                                    <!-- Si está recibido pero no tiene factura, mostrar botón para cargar -->
+                                    <div class="text-center">
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-primary"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#modalCargarFactura">
+                                            <i class="bi bi-upload"></i>
+                                            Cargar Factura / Recibo
+                                        </button>
+                                    </div>
+                                    <div class="small text-muted text-center mt-1">
+                                        <i class="bi bi-info-circle"></i> La compra ya fue recibida
+                                    </div>
+                                {% else %}
+                                    <!-- Si NO está recibida y NO tiene factura -->
+                                    <div class="text-center">
+                                        <span class="small text-muted">
+                                            <i class="bi bi-file-earmark-text"></i> Sin archivo adjunto
+                                        </span>
+                                    </div>                                 
+                                {% endif %}
+                            </div>
+
+                        </div>
+
+                        <div class="col-md-6">
+
+                            <h6 class="mb-2 border-bottom pb-2 small fw-semibold text-muted">
+                                FECHAS Y ESTADO
+                            </h6>
+
+                            <div class="mb-2">
+                                <label class="form-label small text-muted">
+                                    Fecha de emisión
+                                </label>
+                                <p class="mb-1">
+                                    {{ compra.fecha_emision|date:"d/m/Y H:i" }}
+                                </p>
+                            </div>
+
+                            <div class="mb-2">
+                                <label class="form-label small text-muted">
+                                    Fecha de entrega
+                                </label>
+                                <p class="mb-0">
+                                    {{ compra.fecha_entrega_esperada|date:"d/m/Y"|default:'—' }}
+                                </p>
+                            </div>
+
+                            <div class="mb-2">
+                                <label class="form-label small text-muted">
+                                    Condición de Pago
+                                </label>
+                                <p class="mb-0 fw-semibold">
+                                    {% if compra.condicion_pago == 'contado' %}
+                                        <span class="badge bg-success">Contado</span>
+                                    {% else %}
+                                        <span class="badge bg-info">Crédito</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+
+                            <div class="mb-2">
+                                <label class="form-label small text-muted">
+                                    Estado
+                                </label>
+                                <p class="mb-0">
+
+                                    {% if compra.estado == 'pendiente' %}
+
+                                        <span class="badge bg-secondary">
+                                            Pendiente
+                                        </span>
+
+                                    {% elif compra.estado == 'aprobado' %}
+
+                                        <span class="badge bg-success">
+                                            Aprobado
+                                        </span>
+
+                                    {% elif compra.estado == 'rechazado' %}
+
+                                        <span class="badge bg-danger">
+                                            Rechazado
+                                        </span>
+
+                                    {% elif compra.estado == 'recibido' %}
+
+                                        <span class="badge bg-primary">
+                                            Recibido
+                                        </span>
+
+                                    {% endif %}
+
+                                </p>
+                            </div>
+
+                            <!-- Fecha de Recepción (si está recibido) -->
+                            {% if compra.estado == 'recibido' and compra.fecha_recepcion %}
+                            <div class="mb-2">
+                                <label class="form-label small text-muted">
+                                    Fecha de Recepción
+                                </label>
+                                <p class="mb-0">
+                                    {{ compra.fecha_recepcion|date:"d/m/Y" }}
+                                </p>
+                            </div>
+                            {% endif %}
+
+                        </div>
+
+                    </div>
+
+                    <!-- OBSERVACIONES DEL PEDIDO DE COMPRA -->
+                    <div class="row mt-3">
+
+                        <div class="col-12">
+
+                            <h6 class="mb-2 border-bottom pb-2 small fw-semibold text-muted">
+                                OBSERVACIONES DEL PEDIDO DE COMPRA
+                            </h6>
+
+                            <p class="mb-0">
+                                {{ compra.descripcion|default:'—' }}
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                    <!-- OBSERVACIONES DE RECEPCIÓN (si tiene) -->
+                    {% if compra.observaciones_recepcion %}
+                    <div class="row mt-3">
+
+                        <div class="col-12">
+
+                            <h6 class="mb-2 border-bottom pb-2 small fw-semibold text-muted">
+                                OBSERVACIONES DE RECEPCIÓN
+                            </h6>
+                            <p class="mb-0">
+                                {{ compra.observaciones_recepcion }}
+                            </p>
+                        </div>
+
+                    </div>
+                    {% endif %}
+
+                    <!-- PRODUCTOS DE LA COMPRA -->
+                    <div class="row mt-4">
+
+                        <div class="col-12">
+
+                            <h6 class="mb-3 border-bottom pb-2 small fw-semibold text-muted">
+                                PRODUCTOS DE LA COMPRA
+                            </h6>
+
+                            {% if compra.detalles.all %}
+
+                                <div class="table-responsive">
+
+                                    <table class="table table-sm table-hover">
+
+                                        <thead class="table-light">
+
+                                            <tr class="text-center">
+
+                                                <th style="width: 8%">
+                                                    Cód.
+                                                </th>
+
+                                                <th style="width: 32%">
+                                                    Producto
+                                                </th>
+
+                                                <th style="width: 10%">
+                                                    Cantidad
+                                                </th>
+
+                                                <th style="width: 10%">
+                                                    Recibido
+                                                </th>
+
+                                                <th style="width: 7%">
+                                                    IVA
+                                                </th>
+
+                                                <th style="width: 12%">
+                                                    Precio Unit.
+                                                </th>
+
+                                                <th style="width: 12%">
+                                                    Subtotal
+                                                </th>
+
+                                                <th style="width: 12%">
+                                                    Observación
+                                                </th>
+
+                                            </tr>
+
+                                        </thead>
+
+                                        <tbody>
+
+                                            {% for detalle in compra.detalles.all %}
+
+                                                <tr>
+
+                                                    <td class="text-center">
+
+                                                        <code class="fw-semibold"
+                                                              style="color: #003363; font-size: 0.8rem;">
+
+                                                            {{ detalle.producto.id }}
+
+                                                        </code>
+
+                                                    </td>
+
+                                                    <td class="text-start fw-semibold">
+                                                        {{ detalle.producto.nombre }}
+                                                    </td>
+
+                                                    <td class="text-center">
+                                                        {{ detalle.cantidad|floatformat:2 }}
+                                                    </td>
+                                                    
+                                                    <td class="text-center">
+                                                        {% if compra.estado == 'recibido' %}
+                                                            {{ detalle.cantidad_recibida|floatformat:2 }}
+                                                        {% else %}
+                                                            —
+                                                        {% endif %}
+                                                    </td>
+                                                    
+                                                    <td class="text-center">
+                                                        {{ compra.iva_porcentaje|floatformat:"0" }}%
+                                                    </td>
+
+                                                    <td class="text-end">
+                                                        <span data-precio="{{ detalle.producto.costo_unitario|default_if_none:'' }}">
+                                                            —
+                                                        </span>
+                                                    </td>
+
+                                                    <td class="text-end">
+                                                        {% if compra.estado == 'recibido' and detalle.cantidad_recibida > 0 %}
+                                                            Gs. <span class="subtotal-item-valor">{{ detalle.subtotal_recibido|floatformat:0 }}</span>
+                                                        {% else %}
+                                                            Gs. <span class="subtotal-item-valor">{{ detalle.subtotal|floatformat:0 }}</span>
+                                                        {% endif %}
+                                                    </td>
+
+                                                    <td class="text-start small">
+                                                        {% if detalle.cantidad_recibida != detalle.cantidad and detalle.cantidad_recibida >= 0 %}
+                                                            {% if detalle.observacion %}
+                                                                {{ detalle.observacion }}
+                                                            {% else %}
+                                                                <span class="text-muted">—</span>
+                                                            {% endif %}
+                                                        {% else %}
+                                                            <span class="text-muted">—</span>
+                                                        {% endif %}
+                                                    </td>
+
+                                                </tr>
+
+                                            {% endfor %}
+
+                                        </tbody>
+
+                                    </table>
+
+                                </div>
+
+                            {% else %}
+
+                                <div class="text-center py-4 text-muted">
+
+                                    <i class="bi bi-inbox display-6 d-block mb-2"></i>
+
+                                    <p>No hay productos cargados en esta compra.</p>
+
+                                </div>
+
+                            {% endif %}
+
+                        </div>
+
+                    </div>
+
+                    <!-- RESUMEN FINANCIERO -->
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <h6 class="mb-3 border-bottom pb-2 small fw-semibold text-muted">
+                                RESUMEN FINANCIERO
+                            </h6>
+
+                            <div class="table-responsive">
+                                <table class="table table-sm table-borderless">
+                                    <tbody>
+                                        <!-- Subtotal Productos -->
+                                        <tr>
+                                            <td class="text-end fw-semibold" style="width: 85%;">
+                                                Subtotal:
+                                            </td>
+                                            <td class="text-end" style="width: 15%;">
+                                                {% if compra.estado == 'recibido' %}
+                                                    Gs. <span class="subtotal-valor">{{ subtotal_real|floatformat:0 }}</span>
+                                                {% else %}
+                                                    Gs. <span data-precio="{{ compra.subtotal_productos|default_if_none:'' }}">—</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        
+                                        <!-- Descuento -->
+                                        <tr>
+                                            <td class="text-end fw-semibold">
+                                                Descuento:
+                                            </td>
+                                            <td class="text-end">
+                                                Gs. <span data-precio="{{ compra.descuento|default_if_none:'' }}">—</span>
+                                            </td>
+                                        </tr>
+                                        
+                                        <!-- Base Imponible -->
+                                        <tr>
+                                            <td class="text-end fw-semibold">
+                                                Base Imponible:
+                                            </td>
+                                            <td class="text-end">
+                                                {% if compra.estado == 'recibido' %}
+                                                    Gs. <span class="base-valor">{{ base_real|floatformat:0 }}</span>
+                                                {% else %}
+                                                    Gs. <span data-precio="{{ compra.base_imponible|default_if_none:'' }}">—</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        
+                                        <!-- IVA -->
+                                        <tr>
+                                            <td class="text-end fw-semibold">
+                                                IVA ({{ compra.iva_porcentaje|floatformat:"0" }}%):
+                                            </td>
+                                            <td class="text-end">
+                                                {% if compra.estado == 'recibido' %}
+                                                    Gs. <span class="iva-valor">{{ iva_real|floatformat:0 }}</span>
+                                                {% else %}
+                                                    Gs. <span data-precio="{{ compra.iva_monto|default_if_none:'' }}">—</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        
+                                        <!-- TOTAL -->
+                                        <tr class="table-primary">
+                                            <td class="text-end fw-bold">
+                                                TOTAL:
+                                            </td>
+                                            <td class="text-end fw-bold">
+                                                {% if compra.estado == 'recibido' %}
+                                                    Gs. <span class="total-valor">{{ total_real|floatformat:0 }}</span>
+                                                {% else %}
+                                                    Gs. <span data-precio="{{ compra.total|default_if_none:'' }}">—</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                <!-- FOOTER -->
+                <div class="card-footer bg-light py-1">
+
+                    <div class="d-flex justify-content-between align-items-center">
+
+                        <small class="text-muted">
+
+                            <i class="bi bi-hash"></i>
+                            ID: {{ compra.id }}
+
+                        </small>
+
+                        <small class="text-muted">
+
+                            {% if usuario_actualizacion and ultima_actualizacion %}
+
+                                Modificado: {{ ultima_actualizacion|date:"d/m/Y H:i" }}
+                                | {{ usuario_actualizacion.get_full_name|default:usuario_actualizacion.username }}
+
+                            {% elif usuario_creacion %}
+
+                                Creado: {{ compra.fecha_emision|date:"d/m/Y H:i" }}
+                                | {{ usuario_creacion.get_full_name|default:usuario_creacion.username }} 
+
+                            {% else %}
+
+                                Creado: {{ compra.fecha_emision|date:"d/m/Y H:i" }}
+
+                            {% endif %}
+
+                        </small>
+
+                    </div>
+
+                </div>
+
+            </div><!-- /card -->
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- MODAL PARA CARGAR FACTURA -->
+<div class="modal fade" id="modalCargarFactura" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <form method="POST" 
+                  action="{% url 'compra_cargar_factura' compra.id %}"
+                  enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h6 class="modal-title">
+                        <i class="bi bi-file-pdf"></i> Cargar Factura / Recibo
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">
+                            Seleccionar archivo PDF
+                        </label>
+                        <input type="file" 
+                               name="factura_pdf" 
+                               class="form-control form-control-sm"
+                               accept=".pdf"
+                               required>
+                        <div class="small text-muted mt-1">
+                            Solo archivos PDF (máx. 5MB)
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">
+                            Fecha de Recepción
+                        </label>
+                        <input type="text"
+                               name="fecha_recepcion"
+                               id="modal_fecha_recepcion"
+                               class="form-control form-control-sm"
+                               placeholder="DD/MM/AAAA"
+                               value="{{ compra.fecha_recepcion|date:'d/m/Y'|default:'' }}">
+                    </div>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="bi bi-upload"></i> Subir Factura
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+
+.container-fluid {
+    max-width: 1500px;
+}
+
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+}
+
+.small {
+    font-size: 0.875rem;
+}
+
+.table th {
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.table td {
+    font-size: 0.85rem;
+    vertical-align: middle;
+}
+
+.badge {
+    font-size: 0.75rem;
+}
+
+.btn-group-sm > .btn {
+    padding: 0.25rem 0.5rem;
+}
+
+code {
+    background-color: #f8f9fa;
+    padding: 0.2rem 0.4rem;
+    border-radius: 0.25rem;
+    font-size: 0.8rem;
+    font-family: monospace;
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+</style>
+
+<script>
+
+document.addEventListener('DOMContentLoaded', function () {
+
+    // ===== Formatear precios en guaraníes =====
+    function parseGsAttr(v) {
+        if (v === null || v === undefined) return null;
+        const raw = String(v).trim();
+        if (!raw) return null;
+
+        let clean = raw.replace(/[^0-9.,]/g, '');
+
+        if (/^\d{1,3}(\.\d{3})*(,\d+)$/.test(clean) || /^\d+(,\d+)$/.test(clean)) {
+            clean = clean.split(',')[0];
+        }
+        if (/^\d+(\.\d{2})$/.test(clean)) {
+            clean = clean.split('.')[0];
+        }
+
+        clean = clean.replace(/\./g, '').replace(/,/g, '');
+        if (!clean) return null;
+
+        const n = parseInt(clean, 10);
+        return isNaN(n) ? null : n;
+    }
+
+    function formatGsEntero(n) {
+        if (n === null || isNaN(n)) return '—';
+        return n.toLocaleString('es-PY');
+    }
+
+    // Aplicar formato a todos los elementos con data-precio
+    function aplicarFormatoPrecios() {
+        const elementosPrecio = document.querySelectorAll('[data-precio]');
+        elementosPrecio.forEach(el => {
+            const raw = el.getAttribute('data-precio');
+            const valor = parseGsAttr(raw);
+            el.textContent = formatGsEntero(valor);
+        });
+    }
+
+    // Formatear subtotal recibido
+    document.querySelectorAll('.subtotal-valor, .base-valor, .iva-valor, .total-valor, .subtotal-item-valor').forEach(el => {
+        const raw = el.textContent.trim();
+        if (raw && !isNaN(raw)) {
+            const num = parseInt(raw, 10);
+            el.textContent = num.toLocaleString('es-PY');
+        }
+    });
+
+    // Formateo de fecha en el modal
+    const fechaInput = document.getElementById('modal_fecha_recepcion');
+    if (fechaInput) {
+        fechaInput.setAttribute("placeholder", "DD/MM/AAAA");
+        fechaInput.setAttribute("inputmode", "numeric");
+        
+        fechaInput.addEventListener('input', function(e) {
+            let numbers = this.value.replace(/\D/g, '');
+            if (numbers.length > 8) numbers = numbers.slice(0, 8);
+            
+            let formatted = '';
+            if (numbers.length > 0) {
+                let day = numbers.slice(0, 2);
+                if (day.length === 2 && parseInt(day) > 31) day = '31';
+                formatted = day;
+                
+                if (numbers.length >= 3) {
+                    let month = numbers.slice(2, 4);
+                    if (month.length === 2 && parseInt(month) > 12) month = '12';
+                    formatted += '/' + month;
+                } else if (numbers.length === 3) {
+                    formatted += '/' + numbers.slice(2);
+                }
+                
+                if (numbers.length >= 5) {
+                    let year = numbers.slice(4, 8);
+                    formatted += '/' + year;
+                } else if (numbers.length === 4) {
+                    formatted += '/';
+                }
+            }
+            this.value = formatted;
+        });
+    }
+
+    // Ejecutar cuando el DOM esté listo
+    aplicarFormatoPrecios();
+
+});
+
+</script>
+
+{% endblock %}

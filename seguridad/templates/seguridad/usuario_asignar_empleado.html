@@ -1,0 +1,358 @@
+{% extends 'seguridad/base.html' %}
+
+{% block content %}
+<div class="container-fluid py-0">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-6">
+
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <h2 class="h4 mb-1">ASIGNAR EMPLEADO</h2>
+        <button type="button" onclick="window.history.back()" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-arrow-left"></i>Volver
+        </button>
+      </div>
+
+      <div class="card">
+        <div class="card-body p-2">
+          <!-- RESUMEN DEL USUARIO -->
+          <div class="mb-3">
+            <div class="small text-muted">Usuario</div>
+            <div class="fw-semibold">{{ usuario.username }}</div>
+          </div>
+
+          <!-- SELECCIONAR EMPLEADO CON AUTOCOMPLETADO -->
+          <form method="post" novalidate>
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+              <div class="alert alert-danger small">
+                {% for e in form.non_field_errors %}<div>{{ e }}</div>{% endfor %}
+              </div>
+            {% endif %}
+
+            <div class="mb-3">
+              <label for="empleado-search" class="form-label small">Seleccionar Empleado</label>
+              <select id="empleado-search" class="form-control {% if form.empleado.errors %}is-invalid{% endif %}" name="empleado">
+                {% if form.empleado.value %}
+                  <option value="{{ form.empleado.value }}" selected>
+                    {% if form.instance.empleado %}
+                      {{ form.instance.empleado.cedula_ruc }} - {{ form.instance.empleado.nombre }}
+                    {% else %}
+                      Cargando empleado...
+                    {% endif %}
+                  </option>
+                {% endif %}
+              </select>
+              {% if form.empleado.errors %}
+                <div class="invalid-feedback d-block small">
+                  {% for e in form.empleado.errors %}{{ e }}{% endfor %}
+                </div>
+              {% endif %}
+              <div class="form-text small text-muted">
+                Solo se listan empleados <strong>activos</strong> que aún no están vinculados a otro usuario.
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center gap-2">
+              <a href="{% url 'usuario_ver' usuario.pk %}" class="btn btn-outline-secondary btn-sm flex-grow-1">
+                <i class="bi bi-x-circle"></i>Cancelar
+              </a>
+              <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
+                <i class="bi bi-person-check"></i>Asignar Empleado
+              </button>
+            </div>
+          </form>
+        </div>
+      </div> 
+
+      <div class="card mt">
+        <div class="card-body py-2">
+          <small class="text-muted">
+            ¿No encuentras el empleado? 
+            <a href="{% url 'empleado_crear' %}?usuario={{ usuario.pk }}">Créalo</a> y vuelve para asignarlo.
+          </small>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Incluir Select2 CSS y JS -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+<style>
+.container-fluid { max-width: 1000px; }
+.form-control, .form-select { 
+  border-radius: 0.375rem; 
+  border: 1px solid #ced4da; 
+  padding: 0.375rem 0.75rem; 
+  font-size: 0.875rem; 
+}
+.form-control:focus, .form-select:focus {
+  border-color: #86b7fe;
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+.btn-sm { padding: 0.375rem 0.75rem; font-size: 0.875rem; min-width: 100px; }
+
+/* ESTILOS SIMPLIFICADOS PARA SELECT2 */
+.select2-container--default .select2-selection--single {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    height: 38px;
+    background-color: #fff;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    color: #212529;
+    line-height: 1.5;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 30px;
+    right: 8px;
+}
+
+/* DROPDOWN SIMPLIFICADO - FONDO BLANCO */
+.select2-container--default .select2-dropdown {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    background: white;
+    box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+}
+
+/* RESULTADOS SIMPLES - FONDO BLANCO, TEXTO OSCURO */
+.select2-container--default .select2-results__option {
+    padding: 0.5rem 0.75rem;
+    background: white;
+    color: #212529;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+.select2-container--default .select2-results__option:last-child {
+    border-bottom: none;
+}
+
+/* RESALTADO AL PASAR MOUSE */
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background-color: #e9ecef;
+    color: #00264dff;
+}
+
+/* ELEMENTO SELECCIONADO */
+.select2-container--default .select2-results__option[aria-selected=true] {
+    background-color: #f8f9fa;
+    color: #212529;
+}
+
+/* CAMPO DE BÚSQUEDA */
+.select2-container--default .select2-search--dropdown .select2-search__field {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+    background: white;
+    color: #212529;
+}
+
+/* ESTILOS PERSONALIZADOS PARA LOS RESULTADOS */
+.select2-result-item {
+    padding: 0.15rem 0;
+}
+
+.select2-result-empleado .nombre {
+    font-size: 0.875rem;
+    color: #212529;
+    font-weight: 500;
+    display: block;
+}
+
+.select2-result-empleado .cedula {
+    font-size: 0.75rem;
+    color: #033e7e;
+    display: block;
+}
+
+.select2-result-empleado .cargo {
+    font-size: 0.75rem;
+    color: #097241;
+    display: block;
+}
+
+/* ESTILOS PARA MENSAJES "NO SE ENCONTRARON..." */
+.select2-container--default .select2-results__option--disabled {
+    font-size: 0.1rem !important;
+    color: #6c757d !important;
+    background-color: transparent !important;
+    padding: 0.375rem 0.75rem;
+    text-align: center;
+}
+
+/* OCULTAR MENSAJES DE CARÁCTER MÍNIMO */
+.select2-container--default .select2-results__option--load-more,
+.select2-container--default .select2-results__option--loading {
+    display: none !important;
+}
+
+/* BÚSQUEDA INMEDIATA - SIN MENSAJES */
+.select2-container--default .select2-search--dropdown {
+    padding: 0.5rem;
+}
+</style>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Inicializar Select2 para Empleados - BÚSQUEDA INMEDIATA
+    $('#empleado-search').select2({
+        placeholder: 'Buscar por cédula, nombre o cargo',
+        allowClear: false,
+        width: '100%',
+        language: {
+            noResults: function() {
+                return "No se encontraron empleados disponibles";
+            },
+            searching: function() {
+                return "Buscando...";
+            },
+            inputTooShort: function() {
+                return "Ingrese al menos 1 carácter";
+            },
+            errorLoading: function() {
+                return "Error al cargar resultados";
+            }
+        },
+        ajax: {
+            url: '{% url "buscar_empleados_vincular" %}',
+            dataType: 'json',
+            delay: 300,
+            data: function (params) {
+                return {
+                    q: params.term || '',
+                    contexto: 'asignacion'  // Parámetro para filtrar empleados sin usuario
+                };
+            },
+            processResults: function (data) {
+                // Verificar que data sea un array
+                if (!Array.isArray(data)) {
+                    return { results: [] };
+                }
+                return {
+                    results: $.map(data, function (item) {
+                        return {
+                            id: item.id,
+                            text: item.text || 'Sin nombre',
+                            cedula: item.cedula || '',
+                            nombre: item.nombre || '',
+                            cargo: item.cargo || ''
+                        };
+                    })
+                };
+            },
+            error: function(xhr, status, error) {
+                console.error('Error loading empleados:', error);
+                return { results: [] };
+            }
+        },
+        minimumInputLength: 0,
+        templateResult: formatEmpleado,
+        templateSelection: formatEmpleadoSelection
+    });
+
+    // Formatear cómo se muestran los resultados de Empleados
+    function formatEmpleado(empleado) {
+        if (empleado.loading) {
+            return empleado.text;
+        }
+        
+        if (!empleado.id) {
+            return empleado.text;
+        }
+        
+        var $container = $(
+            '<div class="select2-result-item select2-result-empleado">' +
+                '<span class="nombre">' + (empleado.nombre || 'Sin nombre') + '</span>' +
+                '<span class="cedula text-primary small">Cédula/RUC: ' + (empleado.cedula || 'Sin cédula/RUC') + '</span>' +
+                '<span class="cargo text-success small">Cargo: ' + (empleado.cargo || 'Sin cargo') + '</span>' +
+            '</div>'
+        );
+        
+        return $container;
+    }
+
+    // Formatear cómo se muestra la selección de Empleados
+    function formatEmpleadoSelection(empleado) {
+        if (!empleado.id) {
+            return 'Buscar por cédula, nombre o cargo';
+        }
+        
+        // Si es un objeto completo (con nombre, cedula)
+        if (empleado.nombre && empleado.cedula) {
+            return empleado.cedula + ' - ' + empleado.nombre;
+        }
+        
+        // Si es solo texto (cuando viene del backend con error)
+        return empleado.text || 'Empleado seleccionado';
+    }
+
+    // CORRECCIÓN: Enfocar automáticamente el campo de búsqueda al abrir
+    $('#empleado-search').on('select2:open', function() {
+        setTimeout(function() {
+            // Buscar el campo de búsqueda dentro del dropdown
+            const $search = $('.select2-container--open .select2-search__field');
+            if ($search.length) {
+                // Enfocar y seleccionar todo el texto
+                $search.focus();
+                $search.trigger('select');
+                
+                // También disparar input para cargar resultados iniciales
+                if (!$search.val()) {
+                    $search.trigger('input');
+                }
+            }
+        }, 100);
+    });
+
+    // MEJORA ADICIONAL: Enfocar también al hacer click en el contenedor del select
+    $(document).on('click', '.select2-container', function(e) {
+        setTimeout(function() {
+            const $search = $('.select2-container--open .select2-search__field');
+            if ($search.length) {
+                $search.focus();
+                $search.trigger('select');
+            }
+        }, 150);
+    });
+
+    // Actualizar Select2 cuando hay valores existentes
+    setTimeout(function() {
+        const empleadoSelect = document.getElementById('empleado-search');
+        
+        if (empleadoSelect && empleadoSelect.value) {
+            $('#empleado-search').trigger('change');
+        }
+    }, 100);
+
+    // Aplicar estilos de error a Select2 cuando hay errores de Django
+    document.addEventListener('DOMContentLoaded', function() {
+        // Aplicar estilos de error a Select2 si hay errores al cargar la página
+        if (document.querySelector('#empleado-search').classList.contains('is-invalid')) {
+            $('#empleado-search').next('.select2-container').find('.select2-selection').addClass('is-invalid');
+        }
+        
+        // Aplicar estilos de error en tiempo real cuando Select2 cambia
+        $('#empleado-search').on('change', function() {
+            const select2Container = $(this).next('.select2-container').find('.select2-selection');
+            if (this.value) {
+                $(this).removeClass('is-invalid');
+                select2Container.removeClass('is-invalid');
+            }
+        });
+    });
+});
+</script>
+
+{% endblock %}

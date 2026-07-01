@@ -1,0 +1,482 @@
+{% extends 'seguridad/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-0">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-8">
+
+      <!-- HEADER -->
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <h2 class="h4 mb-1">{{ titulo }}</h2>
+        <button type="button" onclick="window.history.back()" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-arrow-left"></i>Volver
+        </button>
+      </div>
+
+      <!-- ERRORES NO ASOCIADOS A CAMPOS -->
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger small">
+          {% for e in form.non_field_errors %}<div>{{ e }}</div>{% endfor %}
+        </div>
+      {% endif %}
+
+      <!-- FORMULARIO -->
+      <div class="card">
+        <div class="card-body">
+          <form method="post" class="needs-validation" novalidate>
+            {% csrf_token %}
+
+            <div class="row g-3">
+              <!-- INSUMO CON AUTOCOMPLETADO -->
+              <div class="col-12">
+                <label for="insumo-search" class="form-label small">Insumo</label>
+                <select id="insumo-search" class="form-control" name="insumo">
+                  {% if form.insumo.value %}
+                    <option value="{{ form.insumo.value }}" selected>
+                      Cargando insumo seleccionado...
+                    </option>
+                  {% endif %}
+                </select>
+                {% if form.insumo.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.insumo.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- CANTIDAD -->
+              <div class="col-6">
+                <label for="{{ form.cantidad.id_for_label }}" class="form-label small">Cantidad</label>
+                <input 
+                  type="text" 
+                  name="cantidad" 
+                  id="id_cantidad" 
+                  class="form-control" 
+                  inputmode="decimal" 
+                  pattern="[0-9]*[.,]?[0-9]*"
+                  placeholder="Ej.: 12, 12.50"
+                  value="{{ form.cantidad.value|default_if_none:'' }}">
+                {% if form.cantidad.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.cantidad.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- MOTIVO -->
+              <div class="col-6">
+                <label for="{{ form.motivo.id_for_label }}" class="form-label small">Motivo</label>
+                <select name="motivo" id="id_motivo" class="form-select">
+                  {% for value, text in form.fields.motivo.choices %}
+                    <option value="{{ value }}" {% if form.motivo.value|stringformat:"s" == value|stringformat:"s" %}selected{% endif %}>
+                      {{ text }}
+                    </option>
+                  {% endfor %}
+                </select>
+                {% if form.motivo.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.motivo.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- OBSERVACIONES -->
+              <div class="col-12">
+                <label for="{{ form.observaciones.id_for_label }}" class="form-label small">Observaciones</label>
+                <textarea 
+                  name="observaciones" 
+                  id="id_observaciones" 
+                  class="form-control" 
+                  rows="3">{{ form.observaciones.value|default_if_none:'' }}</textarea>
+                {% if form.observaciones.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.observaciones.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+                {% if form.observaciones.help_text %}
+                  <div class="form-text small">{{ form.observaciones.help_text }}</div>
+                {% endif %}
+              </div>
+
+            </div> 
+
+            <!-- BOTONES -->
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-center pt-3 border-top gap-2">
+              <a href="{% url 'stock_control' %}" class="btn btn-outline-secondary btn-sm w-100 w-md-auto order-2 order-md-1">
+                <i class="bi bi-x-circle"></i>Cancelar
+              </a>
+              <button type="submit" class="btn btn-primary btn-sm w-100 w-md-auto order-1 order-md-2">
+                <i class="bi bi-check-circle"></i>Confirmar Movimiento
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+      
+      <!-- INFORMACIÓN DE AYUDA -->
+      <div class="card">
+        <div class="card-body py-2">
+          <div class="row">
+            <div class="col-12">
+              <small class="text-muted">
+                <i class="bi bi-info-circle"></i>
+                  Solo se listan insumos <strong>activos</strong>.
+              </small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Incluir Select2 CSS y JS -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+<style>
+  .container-fluid { max-width: 1000px; }
+  .form-control, .form-select {
+    border-radius: 0.375rem;
+    border: 1px solid #ced4da;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+  }
+  .btn-sm { padding: 0.375rem 0.75rem; font-size: 0.875rem; min-width: 100px; }
+
+  /* Eliminar flechas de campos numéricos */
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+
+  /* ESTILOS SIMPLIFICADOS PARA SELECT2 */
+  .select2-container--default .select2-selection--single {
+      border: 1px solid #ced4da;
+      border-radius: 0.375rem;
+      height: 38px;
+      background-color: #fff;
+  }
+
+  .select2-container--default .select2-selection--single .select2-selection__rendered {
+      color: #212529;
+      line-height: 1.5;
+      padding: 0.375rem 0.75rem;
+      font-size: 0.875rem;
+  }
+
+  .select2-container--default .select2-selection--single .select2-selection__arrow {
+      height: 30px;
+      right: 8px;
+  }
+
+  /* DROPDOWN SIMPLIFICADO - FONDO BLANCO */
+  .select2-container--default .select2-dropdown {
+      border: 1px solid #ced4da;
+      border-radius: 0.375rem;
+      background: white;
+      box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+  }
+
+  /* RESULTADOS SIMPLES - FONDO BLANCO, TEXTO OSCURO */
+  .select2-container--default .select2-results__option {
+      padding: 0.5rem 0.75rem;
+      background: white;
+      color: #212529;
+      border-bottom: 1px solid #f8f9fa;
+  }
+
+  .select2-container--default .select2-results__option:last-child {
+      border-bottom: none;
+  }
+
+  /* RESALTADO AL PASAR MOUSE */
+  .select2-container--default .select2-results__option--highlighted[aria-selected] {
+      background-color: #e9ecef;
+      color: #00264dff;
+  }
+
+  /* ELEMENTO SELECCIONADO */
+  .select2-container--default .select2-results__option[aria-selected=true] {
+      background-color: #f8f9fa;
+      color: #212529;
+  }
+
+  /* CAMPO DE BÚSQUEDA */
+  .select2-container--default .select2-search--dropdown .select2-search__field {
+      border: 1px solid #ced4da;
+      border-radius: 0.375rem;
+      padding: 0.375rem 0.75rem;
+      font-size: 0.875rem;
+      background: white;
+      color: #212529;
+  }
+
+  /* ESTILOS PERSONALIZADOS PARA LOS RESULTADOS */
+  .select2-result-item {
+      padding: 0.15rem 0;
+  }
+
+  .select2-result-insumo .nombre {
+      font-size: 0.875rem;
+      color: #212529;
+      font-weight: 500;
+      display: block;
+  }
+
+  .select2-result-insumo .detalles {
+      font-size: 0.75rem;
+      color: #6c757d;
+      display: block;
+  }
+
+  .select2-result-insumo .stock {
+      font-size: 0.75rem;
+      color: #097241ff;
+      font-weight: 500;
+      display: block;
+  }
+
+  /* ESTILOS PARA MENSAJES "NO SE ENCONTRARON..." */
+  .select2-container--default .select2-results__option--disabled {
+      font-size: 0.1rem !important;
+      color: #6c757d !important;
+      background-color: transparent !important;
+      padding: 0.375rem 0.75rem;
+      text-align: center;
+  }
+
+  /* OCULTAR MENSAJES DE CARÁCTER MÍNIMO */
+  .select2-container--default .select2-results__option--load-more,
+  .select2-container--default .select2-results__option--loading {
+      display: none !important;
+  }
+
+  /* BÚSQUEDA INMEDIATA - SIN MENSAJES */
+  .select2-container--default .select2-search--dropdown {
+      padding: 0.5rem;
+  }
+</style>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  // ====== SELECT2 PARA INSUMOS ======
+  $('#insumo-search').select2({
+      placeholder: 'Buscar por código o nombre de insumo',
+      allowClear: false,
+      width: '100%',
+      language: {
+          noResults: function() {
+              return "No se encontraron insumos disponibles";
+          },
+          searching: function() {
+              return "Buscando...";
+          },
+          inputTooShort: function() {
+              return "Ingrese al menos 1 carácter";
+          },
+          errorLoading: function() {
+              return "Error al cargar resultados";
+          }
+      },
+      ajax: {
+          url: '{% url "buscar_insumos_movimiento" %}',
+          dataType: 'json',
+          delay: 300,
+          data: function (params) {
+              return {
+                  q: params.term || ''
+              };
+          },
+          processResults: function (data) {
+              if (!Array.isArray(data)) {
+                  return { results: [] };
+              }
+              return {
+                  results: $.map(data, function (item) {
+                      return {
+                          id: item.id,
+                          text: item.text || 'Sin identificar',
+                          nombre: item.nombre || '',
+                          categoria: item.categoria || '',
+                          stock_actual: item.stock_actual || '0',
+                          unidad: item.unidad || ''
+                      };
+                  })
+              };
+          },
+          error: function(xhr, status, error) {
+              console.error('Error loading insumos:', error);
+              return { results: [] };
+          }
+      },
+      minimumInputLength: 0,
+      templateResult: formatInsumo,
+      templateSelection: formatInsumoSelection
+  });
+
+  // Formatear cómo se muestran los resultados de Insumos
+  function formatInsumo(insumo) {
+      if (insumo.loading) {
+          return insumo.text;
+      }
+      
+      if (!insumo.id) {
+          return insumo.text;
+      }
+      
+      var $container = $(
+        '<div class="select2-result-item select2-result-insumo">' +
+            '<span class="nombre">' + (insumo.nombre || '') + ' <small class="text-muted">(Cod.: ' + (insumo.id || '') + ')</small></span>' +
+            '<span class="detalles">Categoría: ' + (insumo.categoria || 'Sin categoría') + '</span>' +
+            '<span class="stock">Stock: ' + (insumo.stock_actual || '0') + ' ' + (insumo.unidad || '') + '</span>' +
+        '</div>'
+      );
+      
+      return $container;
+  }
+
+  // Formatear cómo se muestra la selección de Insumos
+  function formatInsumoSelection(insumo) {
+      if (!insumo.id) {
+          return 'Buscar por código o nombre de insumo';
+      }
+      
+      // Si es un objeto completo (con nombre, stock, unidad)
+      if (insumo.nombre && insumo.stock_actual && insumo.unidad) {
+          return insumo.nombre + ' - Stock: ' + insumo.stock_actual + ' ' + insumo.unidad;
+      }
+      
+      // Si es solo texto (cuando viene del backend con error)
+      return insumo.text || 'Insumo seleccionado';
+  }
+
+  // ====== CARGAR INSUMO SELECCIONADO CUANDO HAY VALOR INICIAL ======
+  const insumoId = '{{ form.insumo.value|default_if_none:"" }}';
+  
+  if (insumoId) { 
+      // Hacer una petición para obtener los datos del insumo específico
+      $.ajax({
+          url: '{% url "buscar_insumos_movimiento" %}',
+          data: { 
+              q: insumoId // Buscar por ID
+          },
+          dataType: 'json',
+          success: function(data) {
+              if (Array.isArray(data) && data.length > 0) {
+                  // Buscar el insumo específico en los resultados
+                  const insumoEncontrado = data.find(item => item.id == insumoId);
+                  if (insumoEncontrado) {
+                      // Crear una opción y seleccionarla
+                      const option = new Option(
+                          insumoEncontrado.nombre + ' - Stock: ' + insumoEncontrado.stock_actual + ' ' + insumoEncontrado.unidad,
+                          insumoEncontrado.id,
+                          true,
+                          true
+                      );
+                      $('#insumo-search').empty().append(option).trigger('change');
+                  }
+              }
+          },
+          error: function() {
+              console.error('Error al cargar insumo seleccionado');
+          }
+      });
+  }
+
+  // ====== VALIDACIÓN DE CANTIDAD ======
+  const cantidadInput = document.getElementById('id_cantidad');
+  
+  if (cantidadInput) {
+      cantidadInput.addEventListener('input', function(e) {
+          // Permitir solo números, punto y coma
+          let value = e.target.value;
+          value = value.replace(/[^\d.,]/g, '');
+          
+          // Reemplazar coma por punto para decimales
+          value = value.replace(',', '.');
+          
+          // Permitir solo un punto decimal
+          const parts = value.split('.');
+          if (parts.length > 2) {
+              value = parts[0] + '.' + parts.slice(1).join('');
+          }
+          
+          e.target.value = value;
+      });
+
+      cantidadInput.addEventListener('blur', function(e) {
+          // Formatear a 2 decimales si es necesario
+          let value = e.target.value;
+          if (value && value.includes('.')) {
+              const parts = value.split('.');
+              if (parts[1].length > 2) {
+                  parts[1] = parts[1].substring(0, 2);
+                  e.target.value = parts.join('.');
+              }
+          }
+      });
+  }
+
+  // ====== MEJORAS DE USABILIDAD ======
+  const form = document.querySelector('form');
+  if (form) {
+      // Validación antes de enviar
+      form.addEventListener('submit', function(e) {
+          const cantidad = document.getElementById('id_cantidad');
+          if (cantidad && cantidad.value) {
+              // Asegurar que la cantidad tenga formato correcto
+              let value = cantidad.value.replace(',', '.');
+              if (!value.includes('.')) {
+                  value = value + '.00';
+              } else {
+                  const parts = value.split('.');
+                  if (parts[1].length === 1) {
+                      value = parts[0] + '.' + parts[1] + '0';
+                  } else if (parts[1].length === 0) {
+                      value = parts[0] + '.00';
+                  }
+              }
+              cantidad.value = value;
+          }
+      });
+  }
+
+  // CORRECCIÓN: Enfocar automáticamente el campo de búsqueda al abrir
+  $('#insumo-search').on('select2:open', function() {
+      setTimeout(function() {
+          // Buscar el campo de búsqueda dentro del dropdown
+          const $search = $('.select2-container--open .select2-search__field');
+          if ($search.length) {
+              // Enfocar y seleccionar todo el texto
+              $search.focus();
+              $search.trigger('select');
+              
+              // También disparar input para cargar resultados iniciales
+              if (!$search.val()) {
+                  $search.trigger('input');
+              }
+          }
+      }, 100);
+  });
+
+  // MEJORA ADICIONAL: Enfocar también al hacer click en el contenedor del select
+  $(document).on('click', '.select2-container', function(e) {
+      setTimeout(function() {
+          const $search = $('.select2-container--open .select2-search__field');
+          if ($search.length) {
+              $search.focus();
+              $search.trigger('select');
+          }
+      }, 150);
+  });
+});
+</script>
+
+{% endblock %}

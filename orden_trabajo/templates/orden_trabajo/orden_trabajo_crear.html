@@ -1,0 +1,1608 @@
+{% extends 'seguridad/base.html' %}
+
+{% block content %}
+<div class="container-fluid py-0"> 
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-10">
+
+      <!-- HEADER -->
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <h2 class="h4 mb-1">CREAR ORDEN DE TRABAJO</h2>
+        <button type="button" onclick="window.history.back()" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-arrow-left"></i>Volver
+        </button>
+      </div>
+
+      <!-- FORMULARIO -->
+      <div class="card">
+        <div class="card-body">
+          <form method="post" class="needs-validation" novalidate id="orden-form">
+            {% csrf_token %}
+            
+            {% if presupuesto_origen %}
+                <input type="hidden" name="presupuesto_id" value="{{ presupuesto_origen.id }}">
+            {% endif %}
+
+            <!-- ERRORES GENERALES DEL FORMULARIO -->
+            {% if form.non_field_errors %}
+              <div class="alert alert-danger small">
+                {% for error in form.non_field_errors %}
+                  <div>{{ error }}</div>
+                {% endfor %}
+              </div>
+            {% endif %}
+
+            <!-- INFORMACIÓN BÁSICA -->
+            <div class="row g-3">
+              <!-- CLIENTE CON AUTOCOMPLETADO -->
+              <div class="col-md-6">
+                <label for="cliente-search" class="form-label small">Cliente</label>
+                <select id="cliente-search" class="form-control {% if form.cliente.errors %}is-invalid{% endif %}" name="cliente">
+                  {% if form.cliente.value %}
+                    <option value="{{ form.cliente.value }}" selected>
+                      {% if form.instance.cliente %}
+                        {{ form.instance.cliente.nombre }} - {{ form.instance.cliente.numero_documento }}
+                      {% else %}
+                        Cargando cliente...
+                      {% endif %}
+                    </option>
+                  {% endif %}
+                </select>
+                {% if form.cliente.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {{ form.cliente.errors.0 }}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- VEHÍCULO CON AUTOCOMPLETADO -->
+              <div class="col-md-6">
+                <label for="vehiculo-search" class="form-label small">Vehículo</label>
+                <select id="vehiculo-search" class="form-control {% if form.vehiculo.errors %}is-invalid{% endif %}" name="vehiculo">
+                  {% if form.vehiculo.value %}
+                    <option value="{{ form.vehiculo.value }}" selected>
+                      {% if form.instance.vehiculo %}
+                        {{ form.instance.vehiculo.marca }} {{ form.instance.vehiculo.modelo }} - {{ form.instance.vehiculo.nro_chapa }} - {{ form.instance.vehiculo.nro_chasis }}
+                      {% else %}
+                        Cargando vehículo...
+                      {% endif %}
+                    </option>
+                  {% endif %}
+                </select>
+                {% if form.vehiculo.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {{ form.vehiculo.errors.0 }}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- DESCRIPCIÓN -->
+              <div class="col-12">
+                <label for="{{ form.descripcion.id_for_label }}" class="form-label small">Descripción del Trabajo</label>
+                {{ form.descripcion }}
+                {% if form.descripcion.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.descripcion.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- SECCIÓN SERVICIOS CON EMPLEADOS -->
+            <div class="row mt-4"> 
+              <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <label class="form-label small fw-semibold mb-0">Servicios a Realizar</label>
+                  <span class="badge bg-primary" id="contador-servicios">0 servicios</span>
+                </div>             
+                
+                <!-- SERVICIOS AGREGADOS -->
+                <div id="servicios-container" class="mb-3">
+                  <!-- Los servicios se agregarán aquí dinámicamente -->
+                </div>
+
+                <!-- FORMULARIO PARA AGREGAR SERVICIO -->
+                <div class="card border">
+                <div class="card-body py-2">
+                    <div class="row g-2 align-items-center">
+                    <div class="col-md-2">
+                        <label class="form-label small">Cantidad</label>
+                        <input type="number" id="servicio-cantidad" class="form-control form-control-sm" 
+                            value="1" step="0.01" min="0.01" placeholder="1.00">
+                        <div id="cantidad-error" class="invalid-feedback d-block small" style="display: none;"></div>
+                    </div>
+                    
+                    <div class="col-md-5">
+                        <label class="form-label small">Servicio</label>
+                        <select id="servicio-select" class="form-select form-select-sm">
+                        <option value="">Seleccionar servicio...</option>
+                        {% for servicio in servicios_disponibles %}
+                        <option value="{{ servicio.id }}" 
+                                data-precio="{{ servicio.precio_base }}" 
+                                data-tiempo="{{ servicio.tiempo_min_estimado }}"
+                                data-categoria="{{ servicio.categoria|default:'Sin categoría' }}">
+                            ({{ servicio.id }}) {{ servicio.nombre }} - Gs. <span class="total-valor">{{ servicio.precio_base|floatformat:0 }}</span> (<span class="tiempo-hhmm" data-minutos="{{ servicio.tiempo_min_estimado }}"></span>)
+                        </option>
+                        {% endfor %}
+                        </select>
+                        <div id="servicio-error" class="invalid-feedback d-block small" style="display: none;"></div>
+                    </div>
+
+                    <!-- EMPLEADOS PARA EL SERVICIO -->
+                    <div class="col-md-4">
+                        <label class="form-label small">Empleado(s)</label>
+                        <select id="empleado-select" class="form-select form-select-sm" multiple>
+                        {% for empleado in empleados_disponibles %}
+                        <option value="{{ empleado.pk }}">{{ empleado.nombre }}</option>
+                        {% endfor %}
+                        </select>
+                        <div id="empleado-error" class="invalid-feedback d-block small" style="display: none;"></div>
+                    </div>
+                    
+                    <!-- BOTÓN + -->
+                    <div class="col-md-1 d-flex align-items-center justify-content-center">
+                        <button 
+                        type="button" 
+                        id="agregar-servicio-btn" 
+                        class="btn btn-success btn-small w-100" 
+                        style="padding: 0.35rem 0.8rem; margin-top: 1.25rem;"
+                        title="Agregar servicio">
+                        <i class="bi bi-plus-circle" style="font-size: 0.9rem;"></i>
+                        </button>
+                    </div> 
+                    </div>
+                </div>
+                </div>
+
+                <!-- RESUMEN DE SERVICIOS -->
+                <div class="card border-primary mt-3">
+                  <div class="card-body py-2">
+                    <div class="row text-center">
+                      <div class="col-md-6">
+                        <div class="small text-muted">Total Servicios</div>
+                        <div class="h6 mb-0 js-gs" id="total-servicios-display" data-precio="0">Gs. 0</div>
+                      </div>
+                      <div class="col-md-6">
+                        <div class="small text-muted">Tiempo Estimado (hh:mm)</div>
+                        <div class="h6 mb-0" id="tiempo-total-display">0 hh:mm</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- SERVICIOS OCULTOS PARA ENVÍO -->
+                <div id="servicios-hidden-fields">
+                  <!-- Los campos hidden para los servicios se generarán aquí -->
+                </div>
+              </div>
+            </div>
+
+            <!-- BOTONES -->
+            <div class="d-flex justify-content-between align-items-center pt-3 border-top gap-2">
+              <a href="{% url 'orden_trabajo_lista' %}" class="btn btn-outline-secondary btn-sm flex-grow-1">
+                <i class="bi bi-x-circle"></i>Cancelar
+              </a>
+              <button type="submit" class="btn btn-primary btn-sm flex-grow-1" id="submit-btn">
+                <i class="bi bi-check-circle"></i>Crear Orden
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- INFORMACIÓN DE AYUDA -->
+      <div class="card">
+        <div class="card-body py-2">
+          <div class="row">
+            <div class="col-12">
+              <small class="text-muted">
+                <i class="bi bi-info-circle"></i>
+                La orden debe tener al menos un servicio. Cada servicio puede tener uno o más empleados asignados.
+              </small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Incluir Select2 CSS y JS -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+<style>
+.container-fluid { max-width: 1000px; }
+.form-control, .form-select {
+  border-radius: 0.375rem;
+  border: 1px solid #ced4da;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+}
+.form-control:focus, .form-select:focus {
+  border-color: #86b7fe;
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+.btn-sm { padding: 0.375rem 0.75rem; font-size: 0.875rem; min-width: 100px; }
+.servicio-item { border-left: 3px solid #0d6efd; }
+.empleados-list { font-size: 0.75rem; }
+
+/* ESTILOS SIMPLIFICADOS PARA SELECT2 */
+.select2-container--default .select2-selection--single {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    height: 38px;
+    background-color: #fff;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    color: #212529;
+    line-height: 1.5;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 30px;
+    right: 8px;
+}
+
+.select2-container--default .select2-selection--multiple {
+    min-height: 38px;
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+}
+
+.select2-container--default .select2-selection--multiple .select2-selection__choice {
+    background-color: #e9ecef;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    margin-top: 4px;
+}
+
+/* DROPDOWN SIMPLIFICADO - FONDO BLANCO */
+.select2-container--default .select2-dropdown {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    background: white;
+    box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+}
+
+/* RESULTADOS SIMPLES - FONDO BLANCO, TEXTO OSCURO */
+.select2-container--default .select2-results__option {
+    padding: 0.5rem 0.75rem;
+    background: white;
+    color: #212529;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+.select2-container--default .select2-results__option:last-child {
+    border-bottom: none;
+}
+
+/* RESALTADO AL PASAR MOUSE */
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background-color: #e9ecef;
+    color: #00264dff;
+}
+
+/* ELEMENTO SELECCIONADO */
+.select2-container--default .select2-results__option[aria-selected=true] {
+    background-color: #f8f9fa;
+    color: #212529;
+}
+
+/* CAMPO DE BÚSQUEDA */
+.select2-container--default .select2-search--dropdown .select2-search__field {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+    background: white;
+    color: #212529;
+}
+
+/* ESTILOS PERSONALIZADOS PARA LOS RESULTADOS */
+.select2-result-item {
+    padding: 0.15rem 0;
+}
+
+.select2-result-cliente .nombre {
+    font-size: 0.875rem;
+    color: #212529;
+    font-weight: 500;
+    display: block;
+}
+
+.select2-result-cliente .documento {
+    font-size: 0.75rem;
+    color: #033e7e;
+    display: block;
+}
+
+.select2-result-vehiculo .marca-modelo {
+    font-size: 0.875rem;
+    color: #212529;
+    font-weight: 500;
+    display: block;
+}
+
+.select2-result-vehiculo .chapa {
+    font-size: 0.75rem;
+    color: #097241ff;
+    display: block;
+}
+
+/* ESTILOS PARA MENSAJES "NO SE ENCONTRARON..." */
+.select2-container--default .select2-results__option--disabled {
+    font-size: 0.1rem !important;
+    color: #6c757d !important;
+    background-color: transparent !important;
+    padding: 0.375rem 0.75rem;
+    text-align: center;
+}
+
+/* OCULTAR MENSAJES DE CARÁCTER MÍNIMO */
+.select2-container--default .select2-results__option--load-more,
+.select2-container--default .select2-results__option--loading {
+    display: none !important;
+}
+
+/* BÚSQUEDA INMEDIATA - SIN MENSAJES */
+.select2-container--default .select2-search--dropdown {
+    padding: 0.5rem;
+}
+/* ESTILOS MÁS PEQUEÑOS SOLO PARA EMPLEADOS */
+.select2-container--default .select2-results__option--empleado {
+    font-size: 0.7rem !important;
+    padding: 0.3rem 0.6rem !important;
+    line-height: 1.2 !important;
+}
+
+/* Los badges de empleados en los servicios agregados también más pequeños */
+.empleados-list .badge {
+    font-size: 0.65rem !important;
+    padding: 0.2rem 0.4rem !important;
+}
+/* TEXTO MÁS PEQUEÑO SOLO PARA LOS RESULTADOS DEL DROPDOWN DE EMPLEADOS */
+.select2-container--default .select2-results__option {
+    font-size: 0.75rem !important;
+    padding: 0.4rem 0.75rem !important;
+}
+/* ESTILOS PARA EMPLEADOS UNO SOBRE OTRO */
+.empleados-list div {
+    margin-bottom: 0.1rem;
+    font-size: 0.8rem;
+    text-align: left !important;
+}
+
+/* BOTÓN QUITAR MÁS PEQUEÑO */
+.eliminar-servicio {
+    font-size: 0.7rem !important;
+    padding: 0.15rem 0.4rem !important;
+}
+
+/* SELECT DE SERVICIOS */
+#servicio-select + .select2-container--default .select2-selection--single {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    height: 38px;
+    background-color: #fff;
+}
+
+#servicio-select + .select2-container--default .select2-selection--single .select2-selection__rendered {
+    color: #212529;
+    line-height: 1.5;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.8rem;
+}
+
+#servicio-select + .select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 30px;
+    right: 8px;
+}
+
+/* Estilo para las opciones en el dropdown */
+.select2-container--default .select2-results__option--servicio {
+    font-size: 0.8rem;
+    padding: 0.4rem 0.75rem;
+}
+
+/* Contenedor principal del servicio */
+.select2-container--default .select2-results__option .servicio-item {
+    line-height: 1;
+}
+
+/* Nombre del servicio en negrita */
+.select2-container--default .select2-results__option .servicio-nombre {
+    font-weight: 600;
+    color: #212529;
+    margin-left: 2px;
+}
+
+/* Detalles (precio y tiempo) más pequeños en nueva línea */
+.select2-container--default .select2-results__option .servicio-detalle {
+    font-size: 0.8rem;
+    color: #6c757d;
+    display: block;
+    margin-top: 2px;
+    margin-left: 0;
+}
+
+/* ICONOS en SweetAlert2 - WARNING (modal) */
+.swal2-icon.swal2-warning {
+    width: 2.5em !important;
+    height: 2.5em !important;
+    margin: 0.5em auto 0.3em !important;
+}
+
+.swal2-popup {
+    border-radius: 20px !important;
+}
+
+.swal2-icon.swal2-warning .swal2-icon-content {
+    font-size: 1.8em !important;
+}
+
+/* TOAST DE ÉXITO */
+.swal2-toast {
+    min-height: 2.5em !important;  
+    padding: 0.2em 0.8em !important;  
+    display: flex !important;
+    align-items: center !important;
+    border-radius: 25px !important;  
+    max-width: fit-content !important;    /* Se ajusta al contenido */
+    width: auto !important;                /* Ancho automático */
+}
+
+.swal2-toast .swal2-icon.swal2-success {
+    width: 0.5em !important;        
+    height: 1.1em !important;       
+    margin: 0 0.2em 0 0 !important;  
+    flex-shrink: 0 !important;
+    border-width: 2px !important;
+    font-size: 0.7em !important;   /* Controla el tamaño relativo */
+    align-self: center !important;    /* Asegura alineación vertical */
+    transform: translateY(-3px) !important; 
+}
+
+.swal2-toast .swal2-icon.swal2-success .swal2-icon-content {
+    font-size: 0.7em !important;    /* Ajustado para que el check se vea bien */
+    line-height: 1 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.swal2-toast .swal2-title {
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1.3em !important;
+    font-size: 0.9em !important;
+    font-weight: 500 !important;
+}
+
+/* NOMBRE DEL INSUMO - MÁS GRANDE Y NEGRITA */
+.swal2-html-container p strong {
+    font-size: 1.2em !important;
+}
+
+.swal2-html-container div[style*="font-weight: 500;"] {
+    font-size: 1.1em !important;
+    font-weight: 600 !important;
+    color: #000000 !important;
+    margin-bottom: 8px !important;
+}
+
+/* Ajuste para el contenedor del insumo */
+.swal2-html-container div[style*="background: #f8f9fa;"] {
+    padding: 8px !important;
+    border-radius: 1px !important;
+}
+
+/* Reducir espacio entre icono y título en modal */
+.swal2-title {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+    line-height: 1.4 !important;
+}
+
+.swal2-header {
+    padding-bottom: 0 !important;
+}
+</style>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // ========== AUTOCOMPLETADO CLIENTE Y VEHÍCULO ==========
+    // Inicializar Select2 para Clientes
+    $('#cliente-search').select2({
+        placeholder: 'Buscar por N° de documento',
+        allowClear: false,
+        width: '100%',
+        language: {
+            noResults: function() {
+                return "No se encontraron clientes";
+            },
+            searching: function() {
+                return "Buscando...";
+            },
+            inputTooShort: function() {
+                return "Ingrese al menos 1 carácter";
+            },
+            errorLoading: function() {
+                return "Error al cargar resultados";
+            }
+        },
+        ajax: {
+            url: '/buscar-clientes-autocomplete/',
+            dataType: 'json',
+            delay: 300,
+            data: function (params) {
+                return {
+                    q: params.term || ''
+                };
+            },
+            processResults: function (data) {
+                // Verificar que data sea un array
+                if (!Array.isArray(data)) {
+                    return { results: [] };
+                }
+                return {
+                    results: $.map(data, function (item) {
+                        return {
+                            id: item.id,
+                            text: item.text || 'Sin nombre',
+                            documento: item.documento || '',
+                            nombre: item.nombre || '',
+                            telefono: item.telefono || ''
+                        };
+                    })
+                };
+            },
+            error: function(xhr, status, error) {
+                console.error('Error loading clientes:', error);
+                return { results: [] };
+            }
+        },
+        minimumInputLength: 0,
+        templateResult: formatCliente,
+        templateSelection: formatClienteSelection
+    });
+
+    // Inicializar Select2 para Vehículos
+    $('#vehiculo-search').select2({
+        placeholder: 'Buscar por N° de chapa o N° de chasis',
+        allowClear: false,
+        width: '100%',
+        language: {
+            noResults: function() {
+                return "No se encontraron vehículos";
+            },
+            searching: function() {
+                return "Buscando...";
+            },
+            inputTooShort: function() {
+                return "Ingrese al menos 1 carácter";
+            },
+            errorLoading: function() {
+                return "Error al cargar resultados";
+            }
+        },
+        ajax: {
+            url: '{% url "buscar_vehiculos_autocomplete" %}',
+            dataType: 'json',
+            delay: 300,
+            data: function (params) {
+                return {
+                    q: params.term || ''
+                };
+            },
+            processResults: function (data) {
+                if (!Array.isArray(data)) {
+                    return { results: [] };
+                }
+                return {
+                    results: $.map(data, function (item) {
+                        return {
+                            id: item.id,
+                            text: item.text || 'Sin identificar',
+                            marca: item.marca || '',
+                            modelo: item.modelo || '',
+                            chapa: item.chapa || '',
+                            chasis: item.chasis || '',
+                        };
+                    })
+                };
+            },
+            error: function(xhr, status, error) {
+                console.error('Error loading vehiculos:', error);
+                return { results: [] };
+            }
+        },
+        minimumInputLength: 0,
+        templateResult: formatVehiculo,
+        templateSelection: formatVehiculoSelection
+    });
+
+    // Inicializar Select2 para Servicios (búsqueda local)
+    $('#servicio-select').select2({
+        placeholder: 'Buscar servicio por nombre o ID...',
+        allowClear: false,
+        width: '100%',
+        language: {
+            noResults: function() {
+                return "No se encontraron servicios";
+            },
+            searching: function() {
+                return "Buscando...";
+            }
+        },
+        matcher: function(params, data) {
+            if ($.trim(params.term) === '') {
+                return data;
+            }
+            var term = params.term.toLowerCase();
+            var text = data.text.toLowerCase();
+            
+            // Buscar por ID exacto
+            if (!isNaN(term)) {
+                var idMatch = data.text.match(/^\((\d+)\)/);
+                if (idMatch && idMatch[1] === term) {
+                    return data;
+                }
+            }
+            
+            // Búsqueda normal por texto
+            if (text.indexOf(term) > -1) {
+                return data;
+            }
+            return null;
+        },
+        templateResult: function(data) {
+            if (data.loading || !data.id) {
+                return data.text;
+            }
+            
+            // Extraer ID, nombre, precio y tiempo del texto
+            var texto = data.text;
+            var idMatch = texto.match(/^\((\d+)\)/);
+            var id = idMatch ? idMatch[1] : '';
+            
+            var nombreMatch = texto.replace(/^\(\d+\)\s*/, '').match(/(.+?)\s+-\s+Gs\./);
+            var nombre = nombreMatch ? nombreMatch[1] : texto;
+            
+            var precioMatch = texto.match(/Gs\.\s*([\d,.]+)/);
+            var precio = precioMatch ? precioMatch[1] : '';
+            
+            var tiempoMatch = texto.match(/\((\d{2}:\d{2})\)/);
+            var tiempo = tiempoMatch ? tiempoMatch[1] : '';
+            
+            var $container = $(
+                '<div class="select2-results__option--servicio">' +
+                    '<div class="servicio-item">' +
+                        '<span class="servicio-nombre">' + nombre + '</span>' +
+                        '<span class="servicio-detalle">Gs. ' + precio + ' • ' + tiempo + '</span>' +
+                    '</div>' +
+                '</div>'
+            );
+            
+            return $container;
+        },
+        templateSelection: function(data) {
+            if (!data.id) {
+                return data.text;
+            }
+            
+            // Extraer solo (ID) Nombre del texto original
+            var texto = data.text;
+            var match = texto.match(/^\((\d+)\)\s*([^(]+)/);
+            if (match) {
+                return '(' + match[1] + ') ' + match[2].trim();
+            }
+            
+            return data.text;
+        }
+    });
+
+    // Formatear cómo se muestran los resultados de Clientes
+    function formatCliente(cliente) {
+        if (cliente.loading) {
+            return cliente.text;
+        }
+        
+        if (!cliente.id) {
+            return cliente.text;
+        }
+        
+        var $container = $(
+            '<div class="select2-result-item select2-result-cliente">' +
+                '<span class="nombre">' + (cliente.nombre || 'Sin nombre') + '</span>' +
+                '<span class="documento text-primary small">Documento: ' + (cliente.documento || 'Sin documento') + '</span>' +
+            '</div>'
+        );
+        
+        return $container;
+    }
+
+    // Formatear cómo se muestra la selección de Clientes
+    function formatClienteSelection(cliente) {
+        if (!cliente.id) {
+            return 'Buscar por N° de documento';
+        }
+        
+        // Si es un objeto completo (con nombre, documento)
+        if (cliente.nombre && cliente.documento) {
+            return cliente.nombre + ' - ' + cliente.documento;
+        }
+        
+        // Si es solo texto (cuando viene del backend con error)
+        return cliente.text || 'Cliente seleccionado';
+    }
+
+    // Formatear cómo se muestran los resultados de Vehículos
+    function formatVehiculo(vehiculo) {
+        if (vehiculo.loading) {
+            return vehiculo.text;
+        }
+        
+        if (!vehiculo.id) {
+            return vehiculo.text;
+        }
+        
+        var $container = $(
+            '<div class="select2-result-item select2-result-vehiculo">' +
+                '<span class="marca-modelo">' + (vehiculo.marca || '') + ' ' + (vehiculo.modelo || '') + '</span>' +
+                '<span class="chapa text-success small">Chapa: ' + (vehiculo.chapa || 'Sin chapa') + '</span>' +
+                '<span class="chasis text-primary small">Chasis: ' + (vehiculo.chasis || 'Sin chasis') + '</span>' +
+            '</div>'
+        );
+        
+        return $container;
+    }
+
+    // Formatear cómo se muestra la selección de Vehículos
+    function formatVehiculoSelection(vehiculo) {
+        if (!vehiculo.id) {
+            return 'Buscar por N° de chapa o N° de chasis';
+        }
+        
+        // Usar el formato marca modelo - chapa - chasis
+        if (vehiculo.marca && vehiculo.modelo && vehiculo.chapa && vehiculo.chasis) {
+            return vehiculo.marca + ' ' + vehiculo.modelo + ' - ' + vehiculo.chapa + ' - ' + vehiculo.chasis;
+        }
+        
+        // Si es solo texto (cuando viene del backend con error)
+        return vehiculo.text || 'Vehículo seleccionado';
+    }
+
+    // Cargar el vehículo seleccionado cuando hay un valor inicial
+    const vehiculoSelect = document.getElementById('vehiculo-search');
+    if (vehiculoSelect && vehiculoSelect.value) { 
+        const vehiculoId = vehiculoSelect.value;
+        
+        // Hacer una petición para obtener los datos del vehículo específico
+        $.ajax({
+            url: '{% url "buscar_vehiculos_autocomplete" %}',
+            data: { 
+                q: '',
+                id_especifico: vehiculoId
+            },
+            dataType: 'json',
+            success: function(data) {
+                if (Array.isArray(data) && data.length > 0) {
+                    const vehiculoEncontrado = data.find(item => item.id == vehiculoId);
+                    if (vehiculoEncontrado) {
+                        // Crear una opción con el formato correcto
+                        const option = new Option(
+                            vehiculoEncontrado.marca + ' ' + vehiculoEncontrado.modelo + ' - ' + vehiculoEncontrado.chapa + ' - ' + vehiculoEncontrado.chasis,
+                            vehiculoEncontrado.id,
+                            true,
+                            true
+                        );
+                        $('#vehiculo-search').append(option).trigger('change');
+                    }
+                }
+            }
+        });
+    }
+
+    // Inicializar Select2 para múltiples empleados
+    $('#empleado-select').select2({
+        placeholder: 'Seleccionar empleado(s)...',
+        width: '100%',
+        closeOnSelect: false
+    });
+
+    // Enfocar automáticamente el campo de búsqueda al abrir 
+    $('#cliente-search').on('select2:open', function() {
+        setTimeout(function() {
+            // Buscar el campo de búsqueda dentro del dropdown
+            const $search = $('.select2-container--open .select2-search__field');
+            if ($search.length) {
+                // Enfocar y seleccionar todo el texto
+                $search.focus();
+                $search.trigger('select');
+                
+                // También disparar input para cargar resultados iniciales
+                if (!$search.val()) {
+                    $search.trigger('input');
+                }
+            }
+        }, 100);
+    });
+
+    $('#vehiculo-search').on('select2:open', function() {
+        setTimeout(function() {
+            // Buscar el campo de búsqueda dentro del dropdown
+            const $search = $('.select2-container--open .select2-search__field');
+            if ($search.length) {
+                // Enfocar y seleccionar todo el texto
+                $search.focus();
+                $search.trigger('select');
+                
+                // También disparar input para cargar resultados iniciales
+                if (!$search.val()) {
+                    $search.trigger('input');
+                }
+            }
+        }, 100);
+    });
+
+    // Enfocar también al hacer click en el contenedor del select
+    $(document).on('click', '.select2-container', function(e) {
+        setTimeout(function() {
+            const $search = $('.select2-container--open .select2-search__field');
+            if ($search.length) {
+                $search.focus();
+                $search.trigger('select');
+            }
+        }, 150);
+    });
+
+    // Actualizar Select2 cuando hay valores existentes
+    setTimeout(function() {
+        const clienteSelect = document.getElementById('cliente-search');
+        const vehiculoSelect = document.getElementById('vehiculo-search');
+        
+        if (clienteSelect && clienteSelect.value) {
+            $('#cliente-search').trigger('change');
+        }
+        
+        if (vehiculoSelect && vehiculoSelect.value) {
+            $('#vehiculo-search').trigger('change');
+        }
+    }, 100);
+
+    // Aplicar estilos de error a Select2 cuando hay errores de Django
+    if (document.querySelector('#cliente-search').classList.contains('is-invalid')) {
+        $('#cliente-search').next('.select2-container').find('.select2-selection').addClass('is-invalid');
+    }
+    if (document.querySelector('#vehiculo-search').classList.contains('is-invalid')) {
+        $('#vehiculo-search').next('.select2-container').find('.select2-selection').addClass('is-invalid');
+    }
+    
+    // Aplicar estilos de error en tiempo real cuando Select2 cambia
+    $('#cliente-search').on('change', function() {
+        const select2Container = $(this).next('.select2-container').find('.select2-selection');
+        if (this.value) {
+            $(this).removeClass('is-invalid');
+            select2Container.removeClass('is-invalid');
+        }
+    });
+    
+    $('#vehiculo-search').on('change', function() {
+        const select2Container = $(this).next('.select2-container').find('.select2-selection');
+        if (this.value) {
+            $(this).removeClass('is-invalid');
+            select2Container.removeClass('is-invalid');
+        }
+    });
+
+    // ========== GESTIÓN DE SERVICIOS CON EMPLEADOS ==========
+    let servicioCounter = 0;
+    const serviciosContainer = document.getElementById('servicios-container');
+    const hiddenFieldsContainer = document.getElementById('servicios-hidden-fields');
+    const agregarBtn = document.getElementById('agregar-servicio-btn');
+    const contadorServicios = document.getElementById('contador-servicios');
+    const totalServiciosDisplay = document.getElementById('total-servicios-display');
+    const tiempoTotalDisplay = document.getElementById('tiempo-total-display');
+
+    // FUNCIÓN PARA FORMATEAR A HH:MM 
+    function minutosToHHMM(minutos) {
+        if (!minutos || isNaN(minutos)) return '00:00';
+        const totalMin = parseInt(minutos, 10);
+        const horas = Math.floor(totalMin / 60);
+        const min = totalMin % 60;
+        return `${String(horas).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+    }
+    
+    // Aplicar a todas las opciones del select
+    document.querySelectorAll('#servicio-select option .tiempo-hhmm').forEach(span => {
+        const minutos = span.getAttribute('data-minutos');
+        span.textContent = minutosToHHMM(minutos);
+    });
+    
+    // FUNCIÓN PARA FORMATEAR NÚMEROS CON SEPARADOR DE MILES
+    function formatearNumero(numero) {
+      if (!numero && numero !== 0) return '';
+      const numeroLimpio = numero.toString().replace(/\./g, '');
+      if (isNaN(numeroLimpio)) return numero;
+      return numeroLimpio.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    }
+
+    // Función para formatear precios
+    function formatearGs(valorNum) { 
+      if (valorNum === null || valorNum === '' || isNaN(valorNum)) return 'Gs. 0';
+      const n = Math.floor(Number(valorNum));
+      return 'Gs. ' + formatearNumero(n);
+    }
+
+    // APLICAR FORMATEO A LOS PRECIOS EN EL SELECT DE SERVICIOS
+    function aplicarFormatoMilesSelect() {
+      const servicioOptions = document.querySelectorAll('#servicio-select option');
+      servicioOptions.forEach(function(option) {
+        if (option.value) {
+          const texto = option.textContent;
+          // Buscar el patrón "Gs. XXXXXX" donde XXXXXX es el número
+          const match = texto.match(/Gs\.\s*(\d+)/);
+          if (match) {
+            const precioSinFormato = match[1];
+            const precioFormateado = formatearNumero(precioSinFormato);
+            // Reemplazar en el texto
+            option.textContent = texto.replace(
+              /Gs\.\s*\d+/,
+              `Gs. ${precioFormateado}`
+            );
+          }
+        }
+      });
+    }
+
+    // EJECUTAR CUANDO EL DOM ESTÉ LISTO
+    aplicarFormatoMilesSelect();
+
+    // Función para actualizar contador de servicios
+    function actualizarContadorServicios() {
+        const cantidad = document.querySelectorAll('[data-servicio-id]').length;
+        contadorServicios.textContent = `${cantidad} servicio${cantidad !== 1 ? 's' : ''}`;
+    }
+
+    // Función para actualizar totales y tiempos
+    function actualizarTotalesVisuales() {
+        let subtotal = 0;
+        let tiempoTotal = 0;
+        
+        // Calcular subtotal y tiempo total de servicios
+        const serviciosItems = document.querySelectorAll('[data-servicio-id]');
+        serviciosItems.forEach(item => {
+            const precio = parseFloat(item.getAttribute('data-precio')) || 0;
+            const cantidad = parseFloat(item.getAttribute('data-cantidad')) || 0;
+            const tiempo = parseFloat(item.getAttribute('data-tiempo')) || 0;
+            subtotal += precio * cantidad;
+            tiempoTotal += tiempo * cantidad;
+        });
+        
+        // Actualizar displays
+        totalServiciosDisplay.textContent = formatearGs(subtotal);
+        totalServiciosDisplay.setAttribute('data-precio', subtotal);
+        tiempoTotalDisplay.textContent = minutosToHHMM(tiempoTotal);
+    }
+
+    // Función para mostrar errores
+    function mostrarError(campoId, mensaje) {
+        const errorDiv = document.getElementById(campoId);
+        errorDiv.textContent = mensaje;
+        errorDiv.style.display = 'block';
+        
+        const campo = campoId === 'cantidad-error' ? document.getElementById('servicio-cantidad') : 
+                     campoId === 'empleado-error' ? document.getElementById('empleado-select') :
+                     document.getElementById('servicio-select');
+        campo.classList.add('is-invalid');
+    }
+
+    // Función para limpiar errores
+    function limpiarErrores() {
+        const errores = ['cantidad-error', 'servicio-error', 'empleado-error'];
+        errores.forEach(errorId => {
+            const errorDiv = document.getElementById(errorId);
+            errorDiv.style.display = 'none';
+            errorDiv.textContent = '';
+            
+            const campo = errorId === 'cantidad-error' ? document.getElementById('servicio-cantidad') : 
+                         errorId === 'empleado-error' ? document.getElementById('empleado-select') :
+                         document.getElementById('servicio-select');
+            campo.classList.remove('is-invalid');
+        });
+    }
+
+    // Función para agregar servicio con empleados y verificación de stock
+    function agregarServicio() {
+        limpiarErrores();
+        
+        const cantidadInput = document.getElementById('servicio-cantidad');
+        const servicioSelect = document.getElementById('servicio-select');
+        const empleadoSelect = document.getElementById('empleado-select');
+        const selectedServicio = servicioSelect.options[servicioSelect.selectedIndex];
+        
+        const cantidad = parseFloat(cantidadInput.value);
+        const servicioId = servicioSelect.value;
+        const servicioNombre = selectedServicio.text.split(' - ')[0];
+        const servicioPrecio = selectedServicio.getAttribute('data-precio');
+        const servicioTiempo = selectedServicio.getAttribute('data-tiempo');
+        const servicioCategoria = selectedServicio.getAttribute('data-categoria');
+        const empleadosSeleccionados = Array.from(empleadoSelect.selectedOptions).map(opt => ({
+            id: opt.value,
+            nombre: opt.text
+        }));
+
+        let hayErrores = false;
+
+        if (!servicioId) {
+            mostrarError('servicio-error', 'Seleccione un servicio');
+            hayErrores = true;
+        }
+
+        if (!cantidad || cantidad <= 0 || isNaN(cantidad)) {
+            mostrarError('cantidad-error', 'Cantidad debe ser mayor a 0.00');
+            hayErrores = true;
+        }
+
+        if (empleadosSeleccionados.length === 0) {
+            mostrarError('empleado-error', 'Seleccione al menos un empleado');
+            hayErrores = true;
+        }
+
+        if (hayErrores) return;
+
+        // Verificar si el servicio ya fue agregado
+        const serviciosExistentes = document.querySelectorAll('[data-servicio-id]');
+        for (let item of serviciosExistentes) {
+            if (item.getAttribute('data-servicio-id') === servicioId) {
+                mostrarError('servicio-error', 'Este servicio ya fue agregado a la orden');
+                return;
+            }
+        }
+
+        // AGREGAR EL SERVICIO VISUALMENTE PRIMERO
+        const subtotalServicio = cantidad * parseFloat(servicioPrecio);
+
+        // Crear HTML del servicio con empleados
+        const servicioItem = document.createElement('div');
+        servicioItem.className = 'card servicio-item mb-2';
+        servicioItem.setAttribute('data-servicio-id', servicioId);
+        servicioItem.setAttribute('data-precio', servicioPrecio);
+        servicioItem.setAttribute('data-cantidad', cantidad);
+        servicioItem.setAttribute('data-tiempo', servicioTiempo);
+        
+        let empleadosHTML = '';
+        empleadosSeleccionados.forEach(emp => {
+        empleadosHTML += `<div class="fw-semibold"> •${emp.nombre}</div>`;
+        });
+
+        servicioItem.innerHTML = `
+        <div class="card-body py-2">
+            <div class="row align-items-center">
+                <div class="col-md-5"> 
+                    <div class="small fw-semibold text-start">${servicioNombre}</div>
+                    <div class="text-muted small text-start">${servicioCategoria} •  ${minutosToHHMM(servicioTiempo)} c/u</div>
+                </div>
+                <div class="col-md-2">
+                    <div class="small">Cantidad: <strong>${cantidad}</strong></div>
+                </div>
+                <div class="col-md-3">
+                    <div class="small mb-1">Empleados:</div>
+                    <div class="empleados-list">${empleadosHTML}</div>
+                </div>
+                <div class="col-md-2 text-end">
+                    <div class="small">Subtotal: <strong class="js-gs" data-precio="${subtotalServicio}"></strong></div>
+                    <button type="button" class="btn btn-outline-danger eliminar-servicio mt-1" style="font-size: 0.7rem; padding: 0.15rem 0.4rem;">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        `;
+
+        // Crear campos hidden para el servicio y empleados
+        const servicioIndex = servicioCounter;
+        
+        // Campo para servicio
+        const servicioField = document.createElement('input');
+        servicioField.type = 'hidden';
+        servicioField.name = `servicios[${servicioIndex}][servicio_id]`;
+        servicioField.value = servicioId;
+        
+        // Campo para cantidad
+        const cantidadField = document.createElement('input');
+        cantidadField.type = 'hidden';
+        cantidadField.name = `servicios[${servicioIndex}][cantidad]`;
+        cantidadField.value = cantidad;
+
+        // Campos para cada empleado asignado
+        empleadosSeleccionados.forEach((emp, empIndex) => {
+            const empleadoField = document.createElement('input');
+            empleadoField.type = 'hidden';
+            empleadoField.name = `servicios[${servicioIndex}][empleados][${empIndex}][empleado_id]`;
+            empleadoField.value = emp.id;
+            hiddenFieldsContainer.appendChild(empleadoField);
+        });
+
+        serviciosContainer.appendChild(servicioItem);
+        hiddenFieldsContainer.appendChild(servicioField);
+        hiddenFieldsContainer.appendChild(cantidadField);
+
+        // Formatear precio
+        servicioItem.querySelector('.js-gs').textContent = formatearGs(subtotalServicio);
+
+        // Evento para eliminar servicio
+        servicioItem.querySelector('.eliminar-servicio').addEventListener('click', function() {
+            servicioItem.remove();
+            servicioField.remove();
+            cantidadField.remove();
+            // También eliminar campos hidden de empleados de este servicio
+            document.querySelectorAll(`input[name^="servicios[${servicioIndex}][empleados]"]`).forEach(field => field.remove());
+            actualizarTotalesVisuales();
+            actualizarContadorServicios();
+        });
+
+        // Resetear formulario de agregar
+        cantidadInput.value = '1';
+        servicioSelect.value = '';
+        $('#empleado-select').val(null).trigger('change');
+        servicioCounter++;
+        actualizarTotalesVisuales();
+        actualizarContadorServicios();
+
+        // ===== VERIFICAR STOCK CON SWEETALERT2 (IGUAL QUE EN PRESUPUESTO) =====
+        console.log('Verificando stock para servicio ID:', servicioId, 'cantidad:', cantidad);
+
+        fetch(`/verificar-stock-servicio/${servicioId}/?cantidad=${cantidad}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Error HTTP: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Datos recibidos:', data);
+                if (data.insumos_faltantes && data.insumos_faltantes.length > 0) {
+                    // Construir mensaje HTML compacto
+                    let htmlContent = `
+                        <div style="text-align: left; font-size: 0.8rem;">
+                            <p style="margin: 0 0 10px 0;"><strong>${servicioNombre}</strong> [x${cantidad}]</p>
+                    `;
+                    
+                    data.insumos_faltantes.forEach(insumo => {
+                        htmlContent += `
+                            <div style="margin-bottom: 8px; padding: 6px; background: #f8f9fa; border-radius: 4px;">
+                                <div style="font-weight: 500;">• ${insumo.nombre}</div>
+                                <div style="color: #000000;">❌ Necesitas: ${insumo.necesario} ${insumo.unidad}</div>
+                                <div style="color: #036320;">📦 Disponible: ${insumo.disponible} ${insumo.unidad}</div>
+                                <div style="color: #dc3545; font-weight: 500;">⚠️ Faltan: ${insumo.faltante} ${insumo.unidad}</div>
+                            </div>
+                        `;
+                    });
+                    
+                    htmlContent += `<p style="margin: 4px 0 0 0; color: #6c757d; font-size: 0.8rem;">Obs: El servicio se agregó igualmente.</p></div>`;
+                    
+                    // Mostrar SweetAlert2 compacto
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'STOCK INSUFICIENTE',
+                        text: '————————————————————',
+                        html: htmlContent,
+                        confirmButtonText: 'Entendido',
+                        confirmButtonColor: '#004280',
+                        width: '400px',
+                    });
+                } else {
+                    // Stock suficiente - mensaje pequeño opcional
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'STOCK OK',
+                        timer: 1500,
+                        showConfirmButton: false,
+                        toast: true,
+                        position: 'top-end'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error verificando stock:', error);
+            });
+    }
+
+    // Event listeners
+    agregarBtn.addEventListener('click', agregarServicio);
+
+    document.getElementById('servicio-cantidad').addEventListener('input', function() {
+        limpiarErrores();
+    });
+
+    document.getElementById('servicio-select').addEventListener('change', function() {
+        limpiarErrores();
+    });
+
+    document.getElementById('empleado-select').addEventListener('change', function() {
+        limpiarErrores();
+    });
+
+    // Permitir agregar servicio con Enter en cantidad
+    document.getElementById('servicio-cantidad').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            agregarServicio();
+        }
+    });
+
+    // ========== PRECARGAR DATOS DESDE PRESUPUESTO ==========
+    {% if presupuesto_origen %}
+    $(document).ready(function() {
+        // Precargar cliente
+        const clienteId = '{{ presupuesto_origen.cliente.id }}';
+        const clienteTexto = '{{ presupuesto_origen.cliente.nombre|escapejs }} - {{ presupuesto_origen.cliente.numero_documento|escapejs }}';
+        
+        if (clienteId) {
+            const clienteOption = new Option(clienteTexto, clienteId, true, true);
+            $('#cliente-search').append(clienteOption).trigger('change');
+        }
+        
+        // Precargar vehículo
+        const vehiculoId = '{{ presupuesto_origen.vehiculo.id }}';
+        const vehiculoTexto = '{{ presupuesto_origen.vehiculo.marca|escapejs }} {{ presupuesto_origen.vehiculo.modelo|escapejs }} - {{ presupuesto_origen.vehiculo.nro_chapa|escapejs }} - {{ presupuesto_origen.vehiculo.nro_chasis|escapejs }}';
+        
+        if (vehiculoId) {
+            const vehiculoOption = new Option(vehiculoTexto, vehiculoId, true, true);
+            $('#vehiculo-search').append(vehiculoOption).trigger('change');
+        }
+        
+        // Precargar servicios - VERSIÓN MEJORADA (DIRECTA)
+        setTimeout(function() {
+            const servicios = [
+                {% for servicio_data in servicios_iniciales %}
+                {
+                    id: '{{ servicio_data.servicio.id }}',
+                    cantidad: '{{ servicio_data.cantidad }}',
+                    nombre: '{{ servicio_data.servicio.nombre|escapejs }}',
+                    precio: '{{ servicio_data.servicio.precio_base }}',
+                    tiempo: '{{ servicio_data.servicio.tiempo_min_estimado }}',
+                    categoria: '{{ servicio_data.servicio.categoria|default:"Sin categoría"|escapejs }}'
+                }{% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ];
+            
+            console.log('Precargando servicios desde presupuesto:', servicios.length, 'servicios');
+            
+            // Precargar servicios directamente sin usar el botón
+            servicios.forEach((servicio, index) => {
+                setTimeout(() => {
+                    console.log(`Precargando servicio ${index + 1}/${servicios.length}:`, servicio.nombre);
+                    agregarServicioDirectamente(servicio);
+                }, index * 300); // 300ms entre cada servicio
+            });
+            
+        }, 1000);
+    });
+
+    // Función para agregar servicio directamente sin usar el formulario
+    function agregarServicioDirectamente(servicio) {
+        const servicioId = servicio.id;
+        const cantidad = parseFloat(servicio.cantidad);
+        const servicioNombre = servicio.nombre;
+        const servicioPrecio = parseFloat(servicio.precio);
+        const servicioTiempo = parseInt(servicio.tiempo) || 0;
+        const servicioCategoria = servicio.categoria;
+        
+        // Verificar si el servicio ya fue agregado
+        const serviciosExistentes = document.querySelectorAll('[data-servicio-id]');
+        for (let item of serviciosExistentes) {
+            if (item.getAttribute('data-servicio-id') === servicioId) {
+                console.log('⚠️ Servicio ya agregado:', servicioNombre);
+                return;
+            }
+        }
+
+        const subtotalServicio = cantidad * servicioPrecio;
+
+        // Crear HTML del servicio con SELECT de empleados dinámico
+        const servicioItem = document.createElement('div');
+        servicioItem.className = 'card servicio-item mb-2';
+        servicioItem.setAttribute('data-servicio-id', servicioId);
+        servicioItem.setAttribute('data-precio', servicioPrecio);
+        servicioItem.setAttribute('data-cantidad', cantidad);
+        servicioItem.setAttribute('data-tiempo', servicioTiempo);
+        
+    // Crear select de empleados dinámico
+    const empleadosSelectId = `empleados-select-${servicioId}`;
+    const empleadosHTML = `
+        <select id="${empleadosSelectId}" class="form-select form-select-sm" multiple style="height: 100px; font-size: 0.75rem;">
+            {% for empleado in empleados_disponibles %}
+            <option value="{{ empleado.pk }}">{{ empleado.nombre }}</option>
+            {% endfor %}
+        </select>
+        <div class="empleados-asignados mt-1" id="empleados-asignados-${servicioId}">
+            <small class="text-muted text-small">Sin empleados asignados</small>
+        </div>
+    `;
+
+    servicioItem.innerHTML = `
+    <div class="card-body py-2">
+        <div class="row align-items-center">
+            <div class="col-md-4"> 
+                <div class="small fw-semibold text-start">${servicioNombre}</div>
+                <div class="text-muted small text-start">${servicioCategoria} • ${minutosToHHMM(servicioTiempo)} c/u</div>
+            </div>
+            <div class="col-md-2">
+                <div class="small">Cantidad: <strong>${cantidad}</strong></div>
+            </div>
+            <div class="col-md-4">
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <div class="small">Empleados:</div>
+                    <button type="button" class="btn btn-success btn-sm guardar-empleados-btn" 
+                            data-servicio-id="${servicioId}" 
+                            data-servicio-index="${servicioCounter}"
+                            style="font-size: 0.6rem; padding: 0.10rem 0.3rem; min-width: 20px;"
+                            title="Guardar empleados seleccionados">
+                        <i class="bi bi-check">Guardar</i>
+                    </button>
+                </div>
+                <div class="empleados-list">
+                    ${empleadosHTML}
+                </div>
+            </div>
+            <div class="col-md-2 text-end">
+                <div class="small">Subtotal: <strong class="js-gs" data-precio="${subtotalServicio}"></strong></div>
+                <button type="button" class="btn btn-outline-danger eliminar-servicio mt-1" style="font-size: 0.7rem; padding: 0.15rem 0.4rem;">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    `;
+
+        // Crear campos hidden para el servicio (sin empleados por ahora)
+        const servicioIndex = servicioCounter;
+        
+        // Campo para servicio
+        const servicioField = document.createElement('input');
+        servicioField.type = 'hidden';
+        servicioField.name = `servicios[${servicioIndex}][servicio_id]`;
+        servicioField.value = servicioId;
+        
+        // Campo para cantidad
+        const cantidadField = document.createElement('input');
+        cantidadField.type = 'hidden';
+        cantidadField.name = `servicios[${servicioIndex}][cantidad]`;
+        cantidadField.value = cantidad;
+
+        // Agregar al DOM
+        serviciosContainer.appendChild(servicioItem);
+        hiddenFieldsContainer.appendChild(servicioField);
+        hiddenFieldsContainer.appendChild(cantidadField);
+
+        // Formatear precio
+        servicioItem.querySelector('.js-gs').textContent = formatearGs(subtotalServicio);
+
+        // Inicializar Select2 para el select de empleados de este servicio
+        setTimeout(() => {
+            $(`#${empleadosSelectId}`).select2({
+                placeholder: 'Seleccionar empleado(s)...',
+                width: '100%',
+                closeOnSelect: false
+            });
+        }, 100);
+
+        // Evento para el botón "Guardar Empleados"
+        servicioItem.querySelector('.guardar-empleados-btn').addEventListener('click', function() {
+            const servicioId = this.getAttribute('data-servicio-id');
+            const servicioIndex = this.getAttribute('data-servicio-index');
+            guardarEmpleadosServicio(servicioId, servicioIndex);
+        });
+
+        // Evento para eliminar servicio
+        servicioItem.querySelector('.eliminar-servicio').addEventListener('click', function() {
+            servicioItem.remove();
+            servicioField.remove();
+            cantidadField.remove();
+            // También eliminar campos hidden de empleados de este servicio
+            document.querySelectorAll(`input[name^="servicios[${servicioIndex}][empleados]"]`).forEach(field => field.remove());
+            actualizarTotalesVisuales();
+            actualizarContadorServicios();
+        });
+
+        servicioCounter++;
+        actualizarTotalesVisuales();
+        actualizarContadorServicios();
+        
+        console.log('Servicio precargado:', servicioNombre);
+    }
+
+    // Función para guardar empleados de un servicio específico
+    function guardarEmpleadosServicio(servicioId, servicioIndex) {
+        const selectEmpleados = document.getElementById(`empleados-select-${servicioId}`);
+        const empleadosSeleccionados = Array.from(selectEmpleados.selectedOptions);
+        
+        if (empleadosSeleccionados.length === 0) {
+            // Mostrar error sin alert (más suave)
+            const btnGuardar = document.querySelector(`.guardar-empleados-btn[data-servicio-id="${servicioId}"]`);
+            btnGuardar.innerHTML = '<i class="bi bi-exclamation-triangle"></i> Selecciona empleados';
+            btnGuardar.classList.remove('btn-success');
+            btnGuardar.classList.add('btn-warning');
+            
+            setTimeout(() => {
+                btnGuardar.innerHTML = '<i class="bi bi-check"></i> Guardar';
+                btnGuardar.classList.remove('btn-warning');
+                btnGuardar.classList.add('btn-success');
+            }, 2000);
+            return;
+        }
+        
+        // Limpiar empleados anteriores de este servicio
+        document.querySelectorAll(`input[name^="servicios[${servicioIndex}][empleados]"]`).forEach(field => field.remove());
+        
+        // Actualizar interfaz - mostrar empleados asignados
+        const contenedorAsignados = document.getElementById(`empleados-asignados-${servicioId}`);
+        let empleadosHTML = '';
+        
+        empleadosSeleccionados.forEach((emp, empIndex) => {
+            const empleadoId = emp.value;
+            const empleadoNombre = emp.text;
+            
+            empleadosHTML += `<div class="fw-semibold small">• ${empleadoNombre}</div>`;
+            
+            // Crear campo hidden para el empleado
+            const empleadoField = document.createElement('input');
+            empleadoField.type = 'hidden';
+            empleadoField.name = `servicios[${servicioIndex}][empleados][${empIndex}][empleado_id]`;
+            empleadoField.value = empleadoId;
+            hiddenFieldsContainer.appendChild(empleadoField);
+        });
+        
+        contenedorAsignados.innerHTML = empleadosHTML;
+        
+        // Mostrar mensaje de éxito
+        console.log('Empleados guardados para servicio:', servicioId);
+        
+        // Feedback visual
+        const btnGuardar = document.querySelector(`.guardar-empleados-btn[data-servicio-id="${servicioId}"]`);
+        btnGuardar.innerHTML = '<i class="bi bi-check-all"></i> Guardado';
+        btnGuardar.classList.remove('btn-success');
+        btnGuardar.classList.add('btn-outline-success');
+        
+        setTimeout(() => {
+            btnGuardar.innerHTML = '<i class="bi bi-check"></i> Guardar';
+            btnGuardar.classList.remove('btn-outline-success');
+            btnGuardar.classList.add('btn-success');
+        }, 2000);
+    }
+
+    // ========== PROTEGER SERVICIOS PRECARGADOS AL ENVIAR FORMULARIO ==========
+    // Guardar la función original de submit
+    const originalSubmitHandler = document.getElementById('orden-form').onsubmit;
+
+    // Reemplazar con nueva función que protege los servicios precargados
+    document.getElementById('orden-form').onsubmit = function(e) {
+        // Verificar que todos los servicios tengan empleados asignados
+        const serviciosItems = document.querySelectorAll('[data-servicio-id]');
+        let serviciosSinEmpleados = [];
+        
+        serviciosItems.forEach(item => {
+            const servicioId = item.getAttribute('data-servicio-id');
+            const servicioNombre = item.querySelector('.fw-semibold').textContent;
+            const empleadosFields = document.querySelectorAll(`input[name^="servicios"][name*="empleados"][value]`);
+            let tieneEmpleados = false;
+            
+            // Verificar si este servicio específico tiene empleados
+            empleadosFields.forEach(field => {
+                const fieldName = field.getAttribute('name');
+                if (fieldName.includes(`servicios[`) && fieldName.includes(`][empleados]`)) {
+                    // Extraer el índice del servicio del nombre del campo
+                    const match = fieldName.match(/servicios\[(\d+)\]/);
+                    if (match && match[1]) {
+                        const fieldServicioIndex = parseInt(match[1]);
+                        // Verificar si este campo pertenece al servicio actual
+                        const servicioField = document.querySelector(`input[name="servicios[${fieldServicioIndex}][servicio_id]"]`);
+                        if (servicioField && servicioField.value === servicioId) {
+                            tieneEmpleados = true;
+                        }
+                    }
+                }
+            });
+            
+            if (!tieneEmpleados) {
+                serviciosSinEmpleados.push(servicioNombre);
+            }
+        });
+        
+        if (serviciosSinEmpleados.length > 0) {
+            e.preventDefault();
+            
+            // Mostrar error específico sin borrar los servicios
+            const errorMessage = `Los siguientes servicios no tienen empleados asignados:\n\n• ${serviciosSinEmpleados.join('\n• ')}\n\nPor favor, asigna empleados a todos los servicios antes de crear la orden.`;
+            
+            // Crear alerta de error bonita
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+            alertDiv.innerHTML = `
+                <strong><i class="bi bi-exclamation-triangle"></i> Error de validación</strong>
+                <br>Los siguientes servicios no tienen empleados asignados:
+                <ul class="mb-1">
+                    ${serviciosSinEmpleados.map(nombre => `<li>${nombre}</li>`).join('')}
+                </ul>
+                <small>Asigna empleados a todos los servicios antes de crear la orden.</small>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            // Insertar al inicio del formulario
+            const form = document.getElementById('orden-form');
+            form.insertBefore(alertDiv, form.firstChild);
+            
+            // Hacer scroll al error
+            alertDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            return false;
+        }
+        
+        // Si todo está bien, ejecutar el handler original
+        if (originalSubmitHandler) {
+            return originalSubmitHandler.call(this, e);
+        }
+    };
+    {% endif %}
+
+    // ========== VALIDACIÓN CON ENTER ==========
+    const form = document.getElementById('orden-form');
+    
+    // Prevenir el envío del formulario con Enter
+    form.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA' && e.target.type !== 'submit') {
+            e.preventDefault();
+            
+            // Si es el campo de servicio, agregar servicio en lugar de validar
+            if (e.target.id === 'servicio-select' || e.target.id === 'servicio-cantidad') {
+                return; // Deja que el evento normal continúe para agregar servicio
+            }
+            
+            // Simular el envío del formulario para mostrar errores de Django
+            const submitBtn = document.getElementById('submit-btn');
+            if (submitBtn) {
+                submitBtn.click();
+            }
+        }
+    });
+
+    // ========== VALIDACIÓN ANTES DE ENVIAR ==========
+    document.getElementById('orden-form').addEventListener('submit', function(e) {
+        const serviciosCount = document.querySelectorAll('[data-servicio-id]').length;
+        let empleadosCount = 0;
+        
+        // Contar empleados asignados
+        document.querySelectorAll('[data-servicio-id]').forEach(servicio => {
+            const servicioId = servicio.getAttribute('data-servicio-id');
+            const empleadosFields = document.querySelectorAll(`input[name*="servicios"][name*="empleados"][value]`);
+            empleadosCount += empleadosFields.length;
+        });
+        
+        if (serviciosCount === 0) {
+            e.preventDefault();
+            alert('Debe agregar al menos un servicio.');
+            return false;
+        }
+        
+        if (empleadosCount === 0) {
+            e.preventDefault();
+            alert('Debe asignar al menos un empleado a los servicios.');
+            return false;
+        }
+    });
+   
+    // Inicializar totales visuales y contador
+    actualizarTotalesVisuales();
+    actualizarContadorServicios();
+});
+</script>
+
+{% endblock %}

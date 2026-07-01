@@ -1,0 +1,320 @@
+{% extends 'seguridad/base.html' %}
+
+{% block content %}
+<div class="container-fluid py-0">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-8">
+
+      <!-- HEADER -->
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <h2 class="h4 mb-1">DETALLES DEL VEHÍCULO</h2>
+        <div class="d-flex gap-2">
+          <button type="button" onclick="window.history.back()" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i>Volver
+          </button>
+          {% if perms.seguridad.editar_vehiculos %}
+          <a href="{% url 'vehiculo_editar' vehiculo.pk %}" class="btn btn-primary btn-sm">
+            <i class="bi bi-pencil"></i>Editar
+          </a>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- CARD -->
+      <div class="card">
+        <div class="card-body">
+
+          <div class="row">
+            <div class="col-12">
+              <h6 class="mb-2 border-bottom pb-2 small fw-semibold text-muted">INFORMACIÓN BÁSICA</h6>
+          </div>
+
+          <!-- COLUMNA IZQUIERDA -->
+          <div class="col-md-6">
+            <div class="mb-2">
+              <label class="form-label small text-muted">Marca / Modelo</label>
+              <p class="mb-0 fw-semibold">{{ vehiculo.marca }} {{ vehiculo.modelo }}</p>
+            </div>
+
+            <div class="mb-2">
+              <label class="form-label small text-muted">Año</label>
+              <p class="mb-0 fw-semibold">{{ vehiculo.anio }}</p>
+            </div>
+
+            <div class="mb-2">
+              <label class="form-label small text-muted">Color</label>
+              <p class="mb-0">{{ vehiculo.color|default:"—" }}</p>
+            </div>
+          </div>
+
+          <!-- COLUMNA DERECHA -->
+          <div class="col-md-6">
+            <!--<h6 class="mb-2 border-bottom pb-2 small fw-semibold text-muted">PROPIETARIOS</h6>
+
+            <div class="mb-2">
+              <label class="form-label small text-muted">Propietario</label>
+              <p class="mb-0 fw-semibold">
+                {% if vehiculo.propietario %}
+                  <a href="{% url 'cliente_ver' vehiculo.propietario.id %}"
+                    class="btn btn-outline fw-semibold">
+                    <i class="bi bi-person"></i> {{ vehiculo.propietario.nombre }}
+                  </a>
+                {% else %}
+                  <span class="form-label">
+                    <i class="bi bi-person-x"></i> No asignado 
+                  </span>
+                {% endif %}
+              </p>
+            </div>
+            
+            <div class="mb-2">
+              <label class="form-label small text-muted">Poseedor/Responsable</label>
+              <p class="mb-0 fw-semibold">
+                {% if vehiculo.poseedor %}
+                  <a href="{% url 'cliente_ver' vehiculo.poseedor.id %}"
+                    class="btn btn-outline fw-semibold">
+                    <i class="bi bi-person"></i> {{ vehiculo.poseedor.nombre }}
+                  </a>
+                {% else %}
+                  <span class="form-label">
+                    <i class="bi bi-person-x"></i> No asignado 
+                  </span>
+                {% endif %}
+              </p>
+            </div> -->
+
+            <div class="mb-2">
+              <label class="form-label small text-muted">N° de Chapa</label>
+              {% if vehiculo.nro_chapa %}
+                  <p class="mb-0 fw-semibold">{{ vehiculo.nro_chapa }}</p>
+              {% else %}
+                  <p class="mb-0">Sin chapa</p>
+              {% endif %}
+            </div>
+
+            <div class="mb-2">
+              <label class="form-label small text-muted">N° de Chasis</label>
+              <p class="mb-0"><code class="text-primary small">{{ vehiculo.nro_chasis }}</code></p>
+            </div>
+          </div>
+        </div>
+
+          <!-- ESPECIFICACIONES TÉCNICAS -->
+          <div class="row mt-3">
+            <div class="col-12">
+              <h6 class="mb-2 border-bottom pb-2 small fw-semibold text-muted">ESPECIFICACIONES TÉCNICAS</h6>
+              <div class="row">
+                <div class="col-md-4">
+                  <div class="mb-2">
+                    <label class="form-label small text-muted">Combustible</label>
+                    <p class="mb-0">{{ vehiculo.get_tipo_combustible_display|default:vehiculo.tipo_combustible }}</p>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="mb-2">
+                    <label class="form-label small text-muted">Transmisión</label>
+                    <p class="mb-0">{{ vehiculo.get_tipo_transmision_display|default:vehiculo.tipo_transmision }}</p>
+                  </div>
+                </div>
+                <div class="col-md-2">
+                  <div class="mb-2">
+                    <label class="form-label small text-muted">Puertas</label>
+                    <p class="mb-0">{{ vehiculo.cantidad_puerta|default:"—" }}</p>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="mb-2">
+                    <label class="form-label small text-muted">Cilindrada</label>
+                    <p class="mb-0">
+                      {% if vehiculo.motor_cilindrada %}
+                        {{ vehiculo.motor_cilindrada }} cc
+                      {% else %}—{% endif %}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ORIGEN Y USO -->
+          <div class="row mt-3">
+            <div class="col-12">
+              <h6 class="mb-2 border-bottom pb-2 small fw-semibold text-muted">ORIGEN Y USO</h6>
+              <div class="row">
+                <div class="col-md-4">
+                  <div class="mb-2">
+                    <label class="form-label small text-muted">Uso</label>
+                    <p class="mb-0">{{ vehiculo.get_uso_display|default:vehiculo.uso }}</p>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="mb-2">
+                    <label class="form-label small text-muted">Importación</label>
+                    <p class="mb-0">{{ vehiculo.get_via_importacion_display|default:vehiculo.via_importacion }}</p>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="mb-2">
+                    <label class="form-label small text-muted">Procedencia</label>
+                    <p class="mb-0">{{ vehiculo.get_procedencia_display|default:vehiculo.procedencia }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- DOCUMENTACIÓN Y SEGURIDAD -->
+          <div class="row mt-3">
+            <div class="col-12">
+              <h6 class="mb-2 border-bottom pb-2 small fw-semibold text-muted">DOCUMENTACIÓN Y SEGURIDAD</h6>
+              <div class="row">
+                <div class="col-md-3">
+                  <div class="mb-2">
+                    <label class="form-label small text-muted">Cédula Verde</label>
+                    <p class="mb-0">
+                      {% if vehiculo.cedula_verde %}
+                        <span class="text">Sí</span>
+                      {% else %}
+                        <span class="text">No</span>
+                      {% endif %}
+                    </p>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="mb-2">
+                    <label class="form-label small text-muted">Alarma</label>
+                    <p class="mb-0">
+                      {% if vehiculo.alarma %}
+                        <span class="text">Sí</span>
+                      {% else %}
+                        <span class="text">No</span>
+                      {% endif %}
+                    </p>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="mb-2">
+                    <label class="form-label small text-muted">GPS</label>
+                    <p class="mb-0">
+                      {% if vehiculo.gps %}
+                        <span class="text">Sí</span>
+                      {% else %}
+                        <span class="text">No</span>
+                      {% endif %}
+                    </p>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="mb-2">
+                    <label class="form-label small text-muted">Estado</label>
+                    <p class="mb-0">
+                      {% if vehiculo.estado %}
+                        <span class="badge bg-success">Activo</span>
+                      {% else %}
+                        <span class="badge bg-secondary">Inactivo</span>
+                      {% endif %}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- SECCIÓN DE VÍNCULOS DEL VEHÍCULO -->
+          <div class="row mt-2">
+            <div class="col-12">
+              <h6 class="mb-3 border-bottom pb-2 small fw-semibold text-muted">VÍNCULOS DEL VEHÍCULO</h6>
+              <!-- USUARIO -->
+              <div class="row center g-2"> 
+                <div class="col-6 col-md-3">
+                  <a href="{% url 'vehiculo_propietarios' vehiculo.pk %}" class="btn btn-outline-primary w-100">
+                    <div class="d-flex flex-column align-items-center text-center">
+                      <i class="bi bi-person-check fs-5 mb-1"></i>
+                      <div class="fw-semibold small">Propietarios</div>
+                      <small class="text-muted">Asignados</small>
+                    </div>
+                  </a>
+                </div>
+                <!-- PRESUPUESTOS -->
+                <div class="col-6 col-md-3">
+                  <a href="{% url 'vehiculo_presupuestos' vehiculo.pk %}" class="btn btn-outline-success w-100">
+                    <div class="d-flex flex-column align-items-center text-center">
+                      <i class="bi bi-receipt fs-5 mb-1"></i>
+                      <div class="fw-semibold small">Presupuestos</div>
+                      <small class="text-muted">Asociados</small>
+                    </div>
+                  </a>
+                </div>
+                <!-- ÓRDENES DE TRABAJO -->
+                <div class="col-6 col-md-3">
+                  <a href="{% url 'vehiculo_ver' vehiculo.pk %}" class="btn btn-outline-warning w-100">
+                    <div class="d-flex flex-column align-items-center text-center">
+                      <i class="bi bi-clipboard-check fs-5 mb-1"></i>
+                      <div class="fw-semibold small">Órdenes</div>
+                      <small class="text-muted">Trabajo</small>
+                    </div>
+                  </a>
+                </div>
+                <!-- HISTORIAL -->
+                <div class="col-6 col-md-3">
+                  <a href="{% url 'vehiculo_ver' vehiculo.pk %}" class="btn btn-outline-info w-100">
+                    <div class="d-flex flex-column align-items-center text-center">
+                      <i class="bi bi-activity fs-5 mb-1"></i>
+                      <div class="fw-semibold small">Historial</div>
+                      <small class="text-muted">Ingreso</small>
+                    </div>
+                  </a>
+                </div>
+              </div>  
+            </div>
+          </div>
+
+          <!-- INFORMACIÓN DEL SISTEMA -->
+          <div class="row mt-3">
+            <div class="col-12">
+              <h6 class="mb-2 border-bottom pb-2 small fw-semibold text-muted">INFORMACIÓN DEL SISTEMA</h6>
+              <div class="row">
+                <div class="col-md-6">
+                  <label class="form-label small text-muted">Registrado</label>
+                  <p class="mb-0 small">
+                    <i class="bi bi-calendar-plus text-muted"></i>
+                    {{ vehiculo.fecha_registro|date:"d/m/Y H:i" }}
+                  </p>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label small text-muted">Actualizado</label>
+                  <p class="mb-0 small">
+                    <i class="bi bi-clock-history text-muted"></i>
+                    {{ vehiculo.fecha_actualizacion|date:"d/m/Y H:i" }}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /card-body -->
+        
+        <!-- FOOTER DE LA TARJETA -->
+        <div class="card-footer bg-light py-1">
+          <div class="d-flex justify-content-between align-items-center">
+            <small class="text-muted">
+              <i class="bi bi-hash"></i>ID: {{ vehiculo.pk }}
+            </small>
+          </div>
+        </div>
+      </div><!-- /card -->
+
+    </div>
+  </div>
+</div>
+
+<style>
+  .container-fluid { max-width: 1000px; }
+  .btn-sm { padding: 0.25rem 0.5rem; font-size: 0.75rem; }
+  .small { font-size: 0.875rem; }
+/* Estilos para los botones de vínculos */
+.btn-outline-primary:hover { background-color: #0d6efd; color: black; }
+.btn-outline-success:hover { background-color: #198754; color: black; }
+.btn-outline-warning:hover { background-color: #ffc107; color: black; }
+.btn-outline-info:hover { background-color: #0dcaf0; color: black; }
+</style>
+{% endblock %}

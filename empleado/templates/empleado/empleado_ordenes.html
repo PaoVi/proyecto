@@ -1,0 +1,459 @@
+{% extends 'seguridad/base.html' %}
+{% load humanize %}
+{% load orden_filters %}
+
+{% block content %}
+<div class="container-fluid py-0">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-10">
+
+      <!-- HEADER -->
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <div>
+          <h2 class="h4 mb-1">ÓRDENES DE TRABAJO DEL EMPLEADO</h2>
+        </div>
+        <div class="d-flex gap-2">
+          <button type="button" onclick="window.history.back()" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i>Volver
+          </button>
+        </div>
+      </div>
+
+      <!-- RESUMEN DEL EMPLEADO -->
+      <div class="card mb-2">
+          <div class="card-body py-2">
+              <div class="row g-2 align-items-center">
+                  <div class="col-md-4">
+                      <small class="text-muted">Empleado:</small>
+                      <div class="fw-semibold">{{ empleado.nombre }}</div>
+                  </div>
+                  <div class="col-md-4">
+                      <div class="d-flex flex-column">
+                          <div class="d-flex align-items-center flex-wrap gap-2">
+                              <small class="text-muted d-block w-100">Horas Asignadas (HH:MM):</small>
+                              <div class="d-flex align-items-center gap-2 justify-content-end w-75">
+                                  <span class="fw-bold fs-5">{{ estado_carga.total_horas_formateadas }}</span>
+                                  <span class="badge d-flex align-items-center gap-1 py-1 
+                                      {% if estado_carga.nivel == 'peligro' %}bg-danger
+                                      {% elif estado_carga.nivel == 'advertencia' %}bg-warning text-dark
+                                      {% elif estado_carga.nivel == 'info' %}bg-info text-dark
+                                      {% else %}bg-success{% endif %}">
+                                      {% if estado_carga.nivel == 'peligro' %}
+                                          <i class="bi bi-exclamation-triangle"></i> Sobrecargado
+                                      {% elif estado_carga.nivel == 'advertencia' %}
+                                          <i class="bi bi-exclamation-circle"></i> Límite
+                                      {% elif estado_carga.nivel == 'info' %}
+                                          <i class="bi bi-info-circle"></i> Media
+                                      {% else %}
+                                          <i class="bi bi-check-circle"></i> Disponible
+                                      {% endif %}
+                                  </span>
+                              </div>
+                          </div>
+                          <div class="mt-1">
+                              <small class="text-muted">
+                                  Tiempo restante: <span class="fw-semibold">{{ estado_carga.minutos_restantes_formateados }}</span>
+                                  (Límite: {{ estado_carga.limite_horas }} horas)
+                              </small>
+                          </div>
+                      </div>
+                  </div>
+                  <!-- RESUMEN DE COMISIONES -->
+                  <div class="col-md-4">
+                      <div class="card bg-light border-0">
+                          <div class="card-body py-1 text-center">
+                              <div>
+                                  <small class="text-muted">Comisión Acumulada</small>
+                                  <div class="fw-bold fs-5 text-success">
+                                      ₲ {{ comision_acumulada|default:0|intcomma }}
+                                  </div>
+                              </div>
+                              <hr class="my-1">
+                              <div>
+                                  <small class="text-muted">Comisión por Cobrar</small>
+                                  <div class="fw-bold fs-5 text-primary">
+                                      ₲ {{ comision_por_cobrar|default:0|intcomma }}
+                                  </div>
+                              </div>
+                              {% if perms.seguridad.gestionar_empleados %}
+                              <button type="button" class="btn btn-sm btn-outline-dark mt-1" 
+                                      data-bs-toggle="modal" data-bs-target="#pagarComisionModal"
+                                      title="Pagar comisión semanal">
+                                  <i class="bi bi-cash-stack"></i> Cerrar Semana
+                              </button>
+                              {% endif %}
+                          </div>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      </div>
+
+      <!-- FILTROS -->
+      <div class="card mb-2">
+        <div class="card-body p-2">
+          <form method="get" class="row g-2 align-items-end">
+            <!-- BÚSQUEDA GENERAL -->
+            <div class="col-md-4">
+              <label class="form-label small">BUSCAR</label>
+              <input type="text" name="q" value="{{ request.GET.q }}" class="form-control form-control-sm" style="height: 33px;" placeholder="N° de orden, cliente, chapa, chasis...">
+            </div>
+
+            <!-- ESTADO -->
+            <div class="col-md-2">
+              <label class="form-label small">ESTADO</label>
+              <select name="estado" class="form-select form-select-sm">
+                <option value="">Todos</option>
+                {% for codigo, nombre in estados %}
+                <option value="{{ codigo }}" {% if request.GET.estado == codigo %}selected{% endif %}>{{ nombre }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <!-- FECHA DESDE -->
+            <div class="col-md-2">
+              <label class="form-label small">DESDE</label>
+              <input type="date" name="fecha_desde" value="{{ request.GET.fecha_desde }}" class="form-control form-control-sm" style="height: 33px;">
+            </div>
+
+            <!-- FECHA HASTA -->
+            <div class="col-md-2">
+              <label class="form-label small">HASTA</label>
+              <input type="date" name="fecha_hasta" value="{{ request.GET.fecha_hasta }}" class="form-control form-control-sm" style="height: 33px;">
+            </div>
+
+            <div class="col-md-1">
+              <label class="form-label small">&nbsp;</label>
+              <button type="submit" class="btn btn-outline-primary w-100 btn-sm" style="height: 33px;">
+                <i class="bi bi-search"></i>Buscar
+              </button>
+            </div>
+
+            <div class="col-md-1">
+              <label class="form-label small">&nbsp;</label>
+              <a href="{% url 'empleado_ordenes' empleado.id_empleado %}" class="btn btn-outline-secondary w-100 btn-sm" style="height: 33px;">
+                <i class="bi bi-arrow-clockwise"></i>Limpiar
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- LISTA DE ÓRDENES -->
+      <div class="card">
+        <div class="card-body p-0">
+          {% if ordenes %}
+            <div class="list-group list-group-flush">
+              {% for orden in ordenes %}
+              <div class="list-group-item {% if orden.estado == 'cancelado' %}bg-light{% endif %}">
+                <div class="row align-items-center g-2">
+                  
+                  <!-- INFORMACIÓN DE LA ORDEN - col-md-4 -->
+                  <div class="col-md-5">
+                    <div class="d-flex align-items-center">
+                      <i class="bi bi-clipboard-check text-muted me-2 fs-5"></i>
+                      <div class="flex-grow-1">
+                        <div class="fw-semibold text-start small">
+                          Orden #{{ orden.id }} • 
+                          <span>{{ orden.vehiculo.marca }} {{ orden.vehiculo.modelo }} ({{ orden.vehiculo.nro_chapa }})</span>
+                        </div>
+                        <div class="small text-muted text-start">
+                          {{ orden.fecha_creacion|date:"d/m/Y" }} • 
+                          Cliente: {{ orden.cliente.nombre|truncatechars:20 }}
+                          {% if orden.presupuesto_origen %}
+                            • <span class="text-info">Presupuesto #{{ orden.presupuesto_origen.id }}</span>
+                          {% endif %}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- ESTADO DE LA ORDEN -->
+                  <div class="col-md-2 text-center estado-col">
+                    <div class="small text-muted mb-1">Estado Orden</div>
+                    <div>
+                      {% if orden.estado == 'aprobado' %}
+                        <span class="badge bg-success d-inline-flex align-items-center gap-1" style="font-size: 0.7rem; padding: 0.35rem 0.65rem;">
+                          <i class="bi bi-check-circle-fill"></i> Aprobado
+                        </span>
+                      {% elif orden.estado == 'facturado' %}
+                        <span class="badge bg-dark d-inline-flex align-items-center gap-1" style="font-size: 0.7rem; padding: 0.35rem 0.65rem;">
+                          <i class="bi bi-check-circle-fill"></i> Facturado
+                        </span>
+                      {% elif orden.estado == 'en_revision' %}
+                        <span class="badge bg-warning text-dark d-inline-flex align-items-center gap-1" style="font-size: 0.7rem; padding: 0.35rem 0.65rem;">
+                          <i class="bi bi-arrow-repeat"></i> En Revisión
+                        </span>
+                      {% elif orden.estado == 'completado' %}
+                        <span class="badge bg-success d-inline-flex align-items-center gap-1" style="font-size: 0.7rem; padding: 0.35rem 0.65rem;">
+                          </i> Completado
+                        </span>
+                      {% elif orden.estado == 'en_proceso' %}
+                        <span class="badge bg-primary d-inline-flex align-items-center gap-1" style="font-size: 0.7rem; padding: 0.35rem 0.65rem;">
+                          En Proceso
+                        </span>
+                      {% elif orden.estado == 'espera_repuestos' %}
+                        <span class="badge bg-info d-inline-flex align-items-center gap-1" style="font-size: 0.7rem; padding: 0.35rem 0.65rem;">
+                          Espera Repuestos
+                        </span>
+                      {% elif orden.estado == 'pausado' %}
+                        <span class="badge bg-warning text-dark d-inline-flex align-items-center gap-1" style="font-size: 0.7rem; padding: 0.35rem 0.65rem;">
+                          Pausado
+                        </span>
+                      {% elif orden.estado == 'cancelado' %}
+                        <span class="badge bg-danger d-inline-flex align-items-center gap-1" style="font-size: 0.7rem; padding: 0.35rem 0.65rem;">
+                          Cancelado
+                        </span>
+                      {% else %}
+                        <span class="badge bg-secondary d-inline-flex align-items-center gap-1" style="font-size: 0.7rem; padding: 0.35rem 0.65rem;">
+                          {{ orden.get_estado_display|default:orden.estado }}
+                        </span>
+                      {% endif %}
+                    </div>
+                    <div style="height: 20px;"></div>
+                  </div>
+
+                  <!-- ESTADO DEL EMPLEADO (INDIVIDUAL) -->
+                  <div class="col-md-2 text-center">
+                    <div class="small text-muted mb-1">Mi Estado</div>
+                    {% if orden.estado_empleado == 'en_curso' %}
+                      <span class="badge bg-primary d-inline-flex align-items-center gap-1" style="font-size: 0.7rem;">
+                        <i class="bi bi-play-circle-fill"></i> Trabajando
+                      </span>
+                      <small class="d-block text-muted mt-1" style="font-size: 0.65rem;">{{ orden.tiempo_trabajado|default:"0h" }}</small>
+                    {% elif orden.estado_empleado == 'pausado' %}
+                      <span class="badge bg-warning text-dark d-inline-flex align-items-center gap-1" style="font-size: 0.7rem;">
+                        <i class="bi bi-pause-circle-fill"></i> Pausado
+                      </span>
+                      <small class="d-block text-muted mt-1" style="font-size: 0.65rem;">{{ orden.tiempo_trabajado|default:"0h" }}</small>
+                    {% elif orden.estado_empleado == 'finalizado' %}
+                      <span class="badge bg-success d-inline-flex align-items-center gap-1" style="font-size: 0.7rem;">
+                        <i class="bi bi-check-all"></i> Completado
+                      </span>
+                      <small class="d-block text-muted mt-1" style="font-size: 0.65rem;">{{ orden.tiempo_trabajado|default:"0h" }}</small>
+                    {% elif orden.estado_empleado == 'no_iniciado' %}
+                      <span class="badge bg-secondary d-inline-flex align-items-center gap-1" style="font-size: 0.7rem;">
+                        <i class="bi bi-hourglass-split"></i> No iniciado
+                      </span>
+                      <div style="height: 20px;"></div>
+                    {% else %}
+                      <span class="badge bg-secondary d-inline-flex align-items-center gap-1" style="font-size: 0.7rem;">
+                        <i class="bi bi-person-x"></i> Sin asignación
+                      </span>
+                      <div style="height: 20px;"></div>
+                    {% endif %}
+                  </div>
+
+                  <!-- COMISIÓN -->
+                  <div class="col-md-2 text-center">
+                    <div class="small text-muted mb-1">
+                      Mi Comisión
+                      {% if orden.compartido %}
+                        ({{ orden.cantidad_empleados }})
+                        <i class="bi bi-people-fill text-muted" 
+                          data-bs-toggle="tooltip" 
+                          data-bs-placement="top" 
+                          title="Comisión compartida con {{ orden.cantidad_empleados }} empleado(s) en este servicio"></i> 
+                      {% endif %}
+                    </div>
+                    <div class="fw-semibold {% if orden.comision_empleado > 0 %}text-success{% else %}text-muted{% endif %}" style="font-size: 0.85rem;">
+                      {% if orden.comision_empleado > 0 %}
+                        ₲ {{ orden.comision_empleado|intcomma }}
+                      {% else %}
+                        —
+                      {% endif %}
+                    </div>
+                    {% if orden.comision_empleado > 0 %}
+                      <small class="text-muted" style="font-size: 0.6rem;">
+                        ({{ orden.porcentaje_comision }}%)
+                      </small>
+                    {% endif %}
+                  </div>
+
+                  <!-- ACCIONES -->
+                  <div class="col-md-1 text-end">
+                    <div class="btn-group btn-group-sm">
+                      {% if perms.seguridad.ver_ordenes_trabajo %}
+                      <a class="btn btn-outline-info" title="Ver" href="{% url 'orden_trabajo_ver' orden.pk %}">
+                        <i class="bi bi-eye"></i>
+                      </a>
+                      {% endif %}
+                      
+                      {% if perms.seguridad.imprimir_ordenes_trabajo %}
+                      <a class="btn btn-outline-secondary" title="Imprimir" href="{% url 'orden_trabajo_imprimir' orden.pk %}" target="_blank">
+                        <i class="bi bi-printer"></i>
+                      </a>
+                      {% endif %}
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+            
+            <!-- PAGINACIÓN -->
+            {% if ordenes.has_other_pages %}
+            <div class="card-footer bg-light py-2">
+              <div class="d-flex justify-content-between align-items-center">
+                <small class="text-muted">
+                  Mostrando {{ ordenes.start_index }}–{{ ordenes.end_index }} de {{ ordenes.paginator.count }}
+                </small>
+                <ul class="pagination pagination-sm mb-0">
+                  {% if ordenes.has_previous %}
+                    <li class="page-item">
+                      <a class="page-link" href="?page=1{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">«</a>
+                    </li>
+                    <li class="page-item">
+                      <a class="page-link" href="?page={{ ordenes.previous_page_number }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">‹</a>
+                    </li>
+                  {% else %}
+                    <li class="page-item disabled"><span class="page-link">«</span></li>
+                    <li class="page-item disabled"><span class="page-link">‹</span></li>
+                  {% endif %}
+
+                  {% for i in ordenes.paginator.page_range %}
+                    {% if i == ordenes.number %}
+                      <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+                    {% elif i >= ordenes.number|add:'-2' and i <= ordenes.number|add:'2' %}
+                      <li class="page-item">
+                        <a class="page-link" href="?page={{ i }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">{{ i }}</a>
+                      </li>
+                    {% endif %}
+                  {% endfor %}
+
+                  {% if ordenes.has_next %}
+                    <li class="page-item">
+                      <a class="page-link" href="?page={{ ordenes.next_page_number }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">›</a>
+                    </li>
+                    <li class="page-item">
+                      <a class="page-link" href="?page={{ ordenes.paginator.num_pages }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">»</a>
+                    </li>
+                  {% else %}
+                    <li class="page-item disabled"><span class="page-link">›</span></li>
+                    <li class="page-item disabled"><span class="page-link">»</span></li>
+                  {% endif %}
+                </ul>
+              </div>
+            </div>
+            {% endif %}
+
+          {% else %}
+            <div class="text-center py-5">
+              <i class="bi bi-clipboard-x display-1 text-muted mb-3"></i>
+              <h5 class="text-muted">No hay órdenes de trabajo</h5>
+              <p class="text-muted mb-3">Este empleado no tiene órdenes de trabajo asociadas.</p>
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- PIE DE PÁGINA CON ESTADÍSTICAS (solo si hay órdenes) -->
+        {% if ordenes %}
+        <div class="card-footer bg-light py-2">
+          <div class="row text-center">
+            <div class="col-3">
+              <small class="text-muted">Pendientes/Proceso</small>
+              <div class="fw-semibold">{{ ordenes_pendientes }}</div>
+            </div>
+            <div class="col-3">
+              <small class="text-muted">Completadas</small>
+              <div class="fw-semibold">{{ ordenes_completadas }}</div>
+            </div>
+            <div class="col-3">
+              <small class="text-muted">Canceladas</small>
+              <div class="fw-semibold">{{ ordenes_canceladas|default:"0" }}</div>
+            </div>
+            <div class="col-3">
+              <small class="text-muted">Total</small>
+              <div class="fw-semibold">{{ total_ordenes }}</div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PAGAR COMISIÓN -->
+<div class="modal fade" id="pagarComisionModal" tabindex="-1" aria-labelledby="pagarComisionModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title" id="pagarComisionModalLabel">Cerrar Semana - Pagar Comisiones</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body text-center">
+        <div class="mb-3">
+          <i class="bi bi-cash-stack text-success display-6"></i>
+        </div>
+        <p>¿Desea pagar las comisiones?</p>
+        <p class="small text-muted">
+          <i class="bi bi-info-circle"></i>
+          Esta acción registrará el pago y reiniciará la comisión por cobrar a 0.
+        </p>
+      </div>
+      <div class="modal-footer justify-content-center">
+        <form method="post" action="{% url 'pagar_comision_empleado' empleado.id_empleado %}">
+          {% csrf_token %}
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-success btn-sm">
+            <i class="bi bi-check-circle"></i> Pagar ₲ {{ comision_por_cobrar|default:0|intcomma }}
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.container-fluid { max-width: 1200px; }
+.list-group-item { padding: 1rem 1.25rem; border-bottom: 1px solid #e9ecef; }
+.list-group-item:last-child { border-bottom: none; }
+.btn-sm { padding: 0.25rem 0.5rem; font-size: 0.75rem; }
+.badge {
+  font-size: 0.7rem;
+  font-weight: 500;
+  padding: 0.35em 0.65em;
+}
+
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Efecto hover suave en los items
+  const listItems = document.querySelectorAll('.list-group-item');
+  listItems.forEach(item => {
+    item.addEventListener('mouseenter', function() {
+      this.style.backgroundColor = '#f8f9fa';
+      this.style.transition = 'background-color 0.2s ease';
+    });
+    item.addEventListener('mouseleave', function() {
+      if (!this.classList.contains('bg-light')) {
+        this.style.backgroundColor = '';
+      }
+    });
+  });
+
+  // Función para formatear precios en guaraníes
+  function formatGsEntero(n) {
+    if (n === null || isNaN(n)) return '—';
+    return '₲ ' + n.toLocaleString('es-PY');
+  }
+
+  function aplicarFormatos() {
+    const elementosPrecio = document.querySelectorAll('[data-precio]');
+    elementosPrecio.forEach(el => {
+      const raw = el.getAttribute('data-precio');
+      const valor = raw ? parseInt(raw.replace(/[^\d]/g, '')) : null;
+      if (valor && !isNaN(valor)) {
+        el.textContent = formatGsEntero(valor);
+      }
+    });
+  }
+
+  aplicarFormatos();
+});
+</script>
+{% endblock %}

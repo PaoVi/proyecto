@@ -1,0 +1,25 @@
+{
+    "factura": {
+        "numero": "001-001-0000043",
+        "fecha": "2026-04-21",
+        "timbrado": "12345678",
+        "establecimiento": "001",
+        "punto_emision": "001",
+        "estado": "ACTIVA"
+    },
+    "cliente": {
+        "nombre": "Carlos Alberto Fernández",
+        "documento": "5678901"
+    },
+    "totales": {
+        "total": 15000.0
+    },
+    "items": [
+        {
+            "tipo": "insumo",
+            "descripcion": "INSV-0113 - Perfume Glade (Frutilla)",
+            "cantidad": 1.0,
+            "precio": 15000.0
+        }
+    ]
+}

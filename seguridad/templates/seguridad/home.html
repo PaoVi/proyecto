@@ -1,0 +1,33 @@
+{% extends 'seguridad/base.html' %}
+
+{% block content %}
+  <main class="d-flex flex-column p-5 justify-content-center align-items-center min-vh-10">
+
+    {% if user.is_authenticated %}
+
+      <h1 class="display-4 mb-8">¡Bienvenido a CarSys!</h1>
+      <p class="lead">Hola <strong>{{ user.username|upper }}</strong></p>
+      <p class="text-muted">Rol: <strong>{{ user.get_rol_display }}</strong></p>
+
+    {% else %}
+
+      <h1 class="display-4 mb-8">Bienvenido a CarSys</h1>
+      <p class="lead col-md-8 mx-auto">
+        Sistema integral diseñado para la gestión eficiente del taller mecánico Iam Car.
+      </p>
+      
+      <div class="mt-4">
+        <a href="{% url 'login' %}" class="btn btn-primary btn-sm me-3">Iniciar Sesión</a>
+        <small class="text-muted">Sistema de acceso restringido</small>
+      </div>
+
+    {% endif %}
+
+  </main>
+  <style>
+    .btn-sm {
+      padding: 0.50rem 1rem;
+      font-size: 1rem;
+    }
+  </style>
+{% endblock %}

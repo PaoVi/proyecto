@@ -1,0 +1,973 @@
+{% extends 'seguridad/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-0">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-8">
+
+      <!-- HEADER -->
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <h2 class="h4 mb-1">EDITAR SERVICIO</h2>
+        <button type="button" onclick="window.history.back()" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-arrow-left"></i>Volver
+        </button>
+      </div>
+
+      <!-- FORMULARIO -->
+      <div class="card">
+        <div class="card-body">
+          <form method="post" novalidate>
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger alert-sm mb-3">
+              <i class="bi bi-exclamation-circle"></i>
+              {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- CAMPOS PRINCIPALES -->
+            <div class="row g-3">
+              <!-- NOMBRE -->
+              <div class="col-12">
+                <label for="{{ form.nombre.id_for_label }}" class="form-label small fw-semibold text-muted">Nombre del Servicio</label>
+                {{ form.nombre }}
+                {% if form.nombre.errors %}
+                  <div class="invalid-feedback d-block">
+                    {% for error in form.nombre.errors %}{{ error }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- CATEGORÍA -->
+              <div class="col-md-6">
+                <label for="{{ form.categoria.id_for_label }}" class="form-label small fw-semibold text-muted">Categoría</label>
+                {{ form.categoria }}
+                {% if form.categoria.errors %}
+                  <div class="invalid-feedback d-block">
+                    {% for error in form.categoria.errors %}{{ error }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- TIEMPO MÍNIMO ESTIMADO -->
+              <div class="col-md-6">
+                  <label class="form-label small fw-semibold text-muted">Tiempo Mínimo Estimado</label>
+
+                  <input
+                      type="hidden"
+                      name="tiempo_min_estimado"
+                      id="id_tiempo_min_estimado"
+                      value="{{ form.tiempo_min_estimado.value|default_if_none:'' }}"
+                  >
+
+                  <div class="d-flex align-items-center gap-2">
+                      <div class="flex-grow-1">
+                          <input
+                              type="number"
+                              id="id_tiempo_horas"
+                              class="form-control"
+                              min="00"
+                              max="360"
+                              value=" "
+                              placeholder="Ej: 1, 10, 100"
+                          >
+                          <label for="id_tiempo_horas" class="form-label small text-muted">Horas</label>
+                      </div>
+                      <div class="flex-shrink-0" style="margin-top: -27px;">
+                          <span class="fw-bold" style="font-size: 1.2rem; line-height: 1;">:</span>
+                      </div>
+                      <div class="flex-grow-1">
+                          <input
+                              type="number"
+                              id="id_tiempo_minutos"
+                              class="form-control"
+                              min="00"
+                              max="59"
+                              value=" "
+                              placeholder="Ej: 25, 30, 45"
+                          >
+                          <label for="id_tiempo_minutos" class="form-label small text-muted">Minutos</label>
+                      </div>
+                  </div>
+
+                  {% if form.tiempo_min_estimado.errors %}
+                      <div class="invalid-feedback d-block">
+                          {% for error in form.tiempo_min_estimado.errors %}{{ error }}{% endfor %}
+                      </div>
+                  {% endif %}
+              </div>
+
+              <!-- PORCENTAJE DE COMISIÓN -->
+              <div class="col-md-6">
+                <label for="{{ form.comision_porcentaje.id_for_label }}" class="form-label small fw-semibold text-muted">Comisión (%)</label>
+                {{ form.comision_porcentaje }}
+                {% if form.comision_porcentaje.errors %}
+                  <div class="invalid-feedback d-block">
+                    {% for error in form.comision_porcentaje.errors %}{{ error }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- MANO DE OBRA -->
+              <div class="col-md-6">
+                <label class="form-label small fw-semibold text-muted">Costo Mano de Obra</label>
+
+                <!-- Campo Django (oculto pero presente) -->
+                {{ form.mano_obra }}
+
+                <!-- visible formateado -->
+                <input type="text"
+                       id="id_mano_obra_display"
+                       class="form-control"
+                       placeholder="Gs. 0">
+
+                {% if form.mano_obra.errors %}
+                  <div class="invalid-feedback d-block">
+                    {% for error in form.mano_obra.errors %}{{ error }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- DESCRIPCIÓN -->
+              <div class="col-12">
+                <label for="{{ form.descripcion.id_for_label }}" class="form-label small fw-semibold text-muted">Descripción</label>
+                {{ form.descripcion }}
+                {% if form.descripcion.errors %}
+                  <div class="invalid-feedback d-block">
+                    {% for error in form.descripcion.errors %}{{ error }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- ESTADO -->
+            <div class="row mt-1">
+              <div class="col-12">
+                <div class="mb-1">
+                  <label class="form-label small fw-semibold text-muted">Estado</label>
+                  <div class="form-check form-switch mt-1">
+                    {% if puede_desactivar_servicios %}
+                      {{ form.is_active }}
+                      <label class="form-check-label small fw-semibold text-muted" for="{{ form.is_active.id_for_label }}">
+                        Activo / Inactivo
+                      </label>
+                    {% else %}
+                      <input type="checkbox"
+                             id="{{ form.is_active.id_for_label }}"
+                             class="form-check-input"
+                             {% if form.is_active.value %}checked{% endif %}
+                             disabled
+                             title="No tienes permisos para cambiar el estado de servicios">
+                      <label class="form-check-label small fw-semibold text-muted" for="{{ form.is_active.id_for_label }}">
+                        Activo / Inactivo
+                      </label>
+                      <input type="hidden" name="{{ form.is_active.name }}" value="{% if form.is_active.value %}True{% else %}False{% endif %}">
+                    {% endif %}
+                  </div>
+                  {% if not puede_desactivar_servicios %}
+                    <div class="form-text small text-muted mt-1">
+                      <i class="bi bi-info-circle"></i>
+                      No tienes permisos para cambiar el estado de servicios.
+                    </div>
+                  {% endif %}
+                  {% if form.is_active.errors %}
+                    <div class="invalid-feedback d-block">
+                      {% for error in form.is_active.errors %}{{ error }}{% endfor %}
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <!-- SECCIÓN INSUMOS -->
+            <div class="row mt-4">
+              <div class="col-12">
+                <label class="form-label small fw-semibold text-muted">Insumos del Servicio</label>
+                
+                <!-- INSUMOS AGREGADOS -->
+                <div id="insumos-container" class="mb-2">
+                  {% for si in insumos_servicio %}
+                  <div class="card insumo-item mb-1" data-insumo-id="{{ si.insumo.id }}">
+                    <div class="card-body py-1">
+                      <div class="row align-items-center">
+                        <div class="col-md-7">
+                          <div class="small fw-semibold">{{ si.insumo.nombre }}</div>
+                          <div class="text-muted small">{{ si.insumo.unidad }} • ₲ {{ si.insumo.costo_unitario|floatformat:0 }}</div>
+                        </div>
+                        <div class="col-md-3">
+                          <div class="d-flex flex-column align-items-center">
+                            <label class="small text-muted mb-1">Cantidad</label>
+                            <input type="number" 
+                                  class="form-control form-control-sm cantidad-editable text-center" 
+                                  value="{{ si.cantidad|stringformat:'.2f' }}"
+                                  step="0.01" 
+                                  min="0.01"
+                                  data-insumo-id="{{ si.insumo.id }}"
+                                  style="width: 85px; height: 28px;">
+                          </div>
+                        </div>
+                        <div class="col-md-2 text-end">
+                          <button type="button" class="btn btn-sm btn-outline-danger eliminar-insumo">
+                            <i class="bi bi-trash"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {% endfor %}
+                </div>
+
+                <!-- FORMULARIO PARA AGREGAR INSUMO -->
+                <div class="card border">
+                  <div class="card-body py-2">
+                    <div class="row g-2 align-items-center">
+                      <div class="col-md-2">
+                        <label class="form-label small">Cantidad</label>
+                        <input type="number" id="insumo-cantidad" class="form-control form-control-sm" 
+                              value="0" step="0.01" min="0" placeholder="-"
+                              onkeydown="return event.keyCode !== 38 && event.keyCode !== 40">
+                        <div id="cantidad-error" class="invalid-feedback d-block small" style="display: none;"></div>
+                      </div>
+                      
+                      <div class="col-md-9">
+                        <label class="form-label small">Insumo</label>
+                        <select id="insumo-select" class="form-select form-select-sm">
+                          <option value="">Seleccionar insumo...</option>
+                          {% for insumo in insumos_disponibles %}
+                          <option value="{{ insumo.id }}" 
+                                  data-precio="{{ insumo.costo_unitario }}" 
+                                  data-unidad="{{ insumo.unidad }}"
+                                  data-codigo="{{ insumo.codigo_completo }}">
+                            <span class="insumo-option">
+                              <strong>[{{ insumo.codigo_completo }}]</strong> {{ insumo.nombre }} • ₲ {{ insumo.costo_unitario|floatformat:0 }} ({{ insumo.unidad }})
+                            </span>
+                          </option>
+                          {% endfor %}
+                        </select>
+                        <div id="insumo-error" class="invalid-feedback d-block small" style="display: none;"></div>
+                      </div>
+                      
+                      <div class="col-md-1 d-flex align-items-center justify-content-center">
+                        <button 
+                          type="button" 
+                          id="agregar-insumo-btn" 
+                          class="btn btn-success btn-sm w-100" 
+                          style="padding: 0.35rem 0.8rem; margin-top: 1.25rem;">
+                          <i class="bi bi-plus-circle" style="font-size: 0.9rem;"></i>
+                        </button>
+                      </div> 
+                    </div>
+                  </div>
+                </div>
+
+                <!-- INSUMOS OCULTOS PARA ENVÍO -->
+                <div id="insumos-hidden-fields">
+                    {% for si in insumos_servicio %}
+                    <input type="hidden" 
+                          name="insumos_existentes[{{ forloop.counter0 }}][cantidad]" 
+                          value="{{ si.cantidad }}"
+                          data-insumo-id="{{ si.insumo.id }}"
+                          class="hidden-cantidad">
+                    <input type="hidden" 
+                          name="insumos_existentes[{{ forloop.counter0 }}][insumo_id]" 
+                          value="{{ si.insumo.id }}"
+                          data-insumo-id="{{ si.insumo.id }}">
+                    {% endfor %}
+                </div>
+              </div>
+            </div>
+
+            <!-- BOTONES -->
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-center pt-2 border-top gap-2">
+              <a href="{% url 'servicio_lista' %}" class="btn btn-outline-secondary btn-sm w-100 w-md-auto order-2 order-md-1">
+                <i class="bi bi-x-circle"></i>Cancelar
+              </a>
+              <button type="submit" class="btn btn-primary btn-sm w-100 w-md-auto order-1 order-md-2">
+                <i class="bi bi-check-circle"></i>Guardar Cambios
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<style>
+  .container-fluid { max-width: 1000px; }
+  .form-control, .form-select {
+    border-radius: 0.375rem;
+    border: 1px solid #ced4da;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+  }
+  .form-control:focus, .form-select:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.2rem rgba(13,110,253,.25);
+  }
+  .btn-sm { padding: .375rem .75rem; font-size: .875rem; min-width: 100px; }
+  .form-switch .form-check-input { width: 2.5em; margin-right: .5rem; }
+  
+  /* OCULTAR FLECHITAS DEL INPUT NUMBER */
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+  
+  /* Botón agregar insumo */
+  #agregar-insumo-btn {
+    padding: 0.25rem 0.5rem !important;
+    min-width: 40px !important;
+    height: 32px;
+  }
+  #agregar-insumo-btn i {
+    font-size: 0.8rem;
+  }
+  /* Botón eliminar insumo */
+  .eliminar-insumo {
+    padding: 0.25rem 0.5rem !important;
+    min-width: 40px !important;
+    height: 32px;
+  }
+  .eliminar-insumo i {
+    font-size: 0.9rem;
+    line-height: 1 !important;
+  }
+  /* Ocultar los campos originales del formulario Django */
+  #id_tiempo_min_estimado, #id_mano_obra {
+    display: none;
+  }
+  /* Estilos para campos de cantidad editables */
+  .cantidad-editable {
+    width: 90px;
+    text-align: center;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+  }
+
+  .insumo-item { border-left: 3px solid #0d6efd; }
+  .insumo-item .form-control-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+    height: 30px;
+  }
+  .insumo-item .col-md-7 {
+      text-align: left !important;
+      justify-content: flex-start !important;
+  }
+
+  /* Estilo para el código en el select */
+  .insumo-option strong {
+    color: #000000;
+    font-weight: 600;
+  }
+
+  /* ========== SELECT2 ESTILOS GENERALES ========== */
+  .select2-container--default .select2-selection--single {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    height: 38px;
+    background-color: #fff;
+  }
+
+  .select2-container--default .select2-selection--single .select2-selection__rendered {
+    color: #212529;
+    line-height: 1.5;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+  }
+
+  .select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 30px;
+    right: 8px;
+  }
+
+  .select2-container--default .select2-dropdown {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    background: white;
+    box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+  }
+
+  .select2-container--default .select2-results__option {
+    padding: 0.5rem 0.75rem;
+    background: white;
+    color: #212529;
+    font-size: 0.875rem;
+  }
+
+  /* RESALTADO AL PASAR MOUSE */
+  .select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background-color: #e9ecef !important;
+    color: #212529 !important;
+  }
+
+  .select2-container--default .select2-results__option[aria-selected=true] {
+    background-color: #f8f9fa;
+    color: #212529;
+  }
+
+  .select2-container--default .select2-search--dropdown .select2-search__field {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    height: 38px;
+    background-color: #fff;
+  }
+
+  /* SELECT DE INSUMO */
+  #insumo-select + .select2-container--default .select2-selection--single {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    height: 38px;
+    background-color: #fff;
+  }
+
+  #insumo-select + .select2-container--default .select2-selection--single .select2-selection__rendered {
+    color: #212529;
+    line-height: 1.5;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.8rem;
+  }
+
+  #insumo-select + .select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 30px;
+    right: 8px;
+  }
+
+  /* Estilo para las opciones en el dropdown de insumos */
+  .select2-container--default .select2-results__option--insumo {
+    font-size: 0.8rem;
+    padding: 0.4rem 0.75rem;
+  }
+
+  /* Contenedor principal del insumo en el dropdown */
+  .select2-container--default .select2-results__option .insumo-item {
+    line-height: 1;
+  }
+
+  /* Código del insumo en negrita y color azul */
+  .select2-container--default .select2-results__option .insumo-codigo {
+    font-weight: 600;
+    color: #003668;
+    font-family: monospace;
+  }
+
+  /* Nombre del insumo */
+  .select2-container--default .select2-results__option .insumo-nombre {
+    font-weight: 600;
+    color: #212529;
+    margin-left: 2px;
+  }
+
+  /* Detalles (precio y unidad) más pequeños en nueva línea */
+  .select2-container--default .select2-results__option .insumo-detalle {
+    font-size: 0.75rem;
+    color: #6c757d;
+    display: block;
+    margin-top: 2px;
+    margin-left: 0;
+  }
+</style>
+
+<!-- Incluir Select2 CSS y JS -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const form = document.querySelector('form');
+  if (!form) return;
+
+  // ========== INICIALIZAR SELECT2 PARA EL SELECT DE INSUMOS ==========
+  $('#insumo-select').select2({
+    placeholder: 'Buscar insumo por código, nombre o descripción...',
+    allowClear: false,
+    width: '100%',
+    language: {
+      noResults: function() {
+        return "No se encontraron insumos";
+      },
+      searching: function() {
+        return "Buscando...";
+      },
+      inputTooShort: function() {
+        return "Ingrese al menos 1 carácter";
+      }
+    },
+    matcher: function(params, data) {
+      if ($.trim(params.term) === '') {
+        return data;
+      }
+      const term = params.term.toLowerCase();
+      const text = data.text.toLowerCase();
+      
+      // Buscar por código (formato [CODIGO-0001])
+      const codigoMatch = text.match(/\[([^\]]+)\]/);
+      const codigo = codigoMatch ? codigoMatch[1].toLowerCase() : '';
+      
+      // Buscar por nombre (después del código)
+      const nombre = text.replace(/\[[^\]]+\]\s*/, '').split(' • ')[0].toLowerCase();
+      
+      // Si el término coincide con el código o nombre
+      if (codigo.includes(term) || nombre.includes(term) || text.includes(term)) {
+        return data;
+      }
+      return null;
+    },
+    templateResult: function(data) {
+      if (data.loading || !data.id) {
+        return data.text;
+      }
+      
+      // Extraer código, nombre y detalles del texto
+      const texto = data.text;
+      const codigoMatch = texto.match(/\[([^\]]+)\]/);
+      const codigo = codigoMatch ? codigoMatch[1] : '';
+      const nombre = texto.replace(/\[[^\]]+\]\s*/, '').split(' • ')[0];
+      const detalles = texto.split(' • ')[1] || '';
+      
+      const $container = $(
+        '<div class="select2-results__option--insumo">' +
+          '<div class="insumo-item">' +
+            '<span class="insumo-codigo">[' + codigo + ']</span> ' +
+            '<span class="insumo-nombre">' + nombre + '</span>' +
+            '<span class="insumo-detalle">' + detalles + '</span>' +
+          '</div>' +
+        '</div>'
+      );
+      
+      return $container;
+    },
+    templateSelection: function(data) {
+      if (!data.id) {
+        return data.text;
+      }
+      
+      // Extraer solo código y nombre para la selección
+      const texto = data.text;
+      const codigoMatch = texto.match(/\[([^\]]+)\]/);
+      const codigo = codigoMatch ? codigoMatch[1] : '';
+      const nombre = texto.replace(/\[[^\]]+\]\s*/, '').split(' • ')[0];
+      
+      return '[' + codigo + '] ' + nombre;
+    }
+  });
+
+  // Enfocar automáticamente el campo de búsqueda al abrir
+  $('#insumo-select').on('select2:open', function() {
+    setTimeout(function() {
+      const $search = $('.select2-container--open .select2-search__field');
+      if ($search.length) {
+        $search.focus();
+        $search.trigger('select');
+      }
+    }, 100);
+  });
+
+  // ========== INSUMOS ==========
+  let nuevoInsumoCounter = 0;
+  const insumosContainer = document.getElementById('insumos-container');
+  const hiddenFieldsContainer = document.getElementById('insumos-hidden-fields');
+  const agregarBtn = document.getElementById('agregar-insumo-btn');
+
+  // Función para mostrar errores
+  function mostrarError(campoId, mensaje) {
+    const errorDiv = document.getElementById(campoId);
+    errorDiv.textContent = mensaje;
+    errorDiv.style.display = 'block';
+    
+    const campo = campoId === 'cantidad-error' ? document.getElementById('insumo-cantidad') : document.getElementById('insumo-select');
+    campo.classList.add('is-invalid');
+  }
+
+  // Función para limpiar errores
+  function limpiarErrores() {
+    const errores = ['cantidad-error', 'insumo-error'];
+    errores.forEach(errorId => {
+      const errorDiv = document.getElementById(errorId);
+      errorDiv.style.display = 'none';
+      errorDiv.textContent = '';
+      
+      const campo = errorId === 'cantidad-error' ? document.getElementById('insumo-cantidad') : document.getElementById('insumo-select');
+      campo.classList.remove('is-invalid');
+    });
+  }
+
+  // Función para agregar insumo
+  function agregarInsumo() {
+    limpiarErrores();
+    
+    const cantidadInput = document.getElementById('insumo-cantidad');
+    const select = document.getElementById('insumo-select');
+    const selectedOption = select.options[select.selectedIndex];
+    
+    const cantidad = parseFloat(cantidadInput.value);
+    const insumoId = select.value;
+    const insumoCodigo = selectedOption.getAttribute('data-codigo') || '';
+    const insumoNombre = selectedOption.text.split(' • ')[0].replace(/\[[^\]]+\]\s*/, '') || selectedOption.text;
+    const insumoPrecio = selectedOption.getAttribute('data-precio');
+    const insumoUnidad = selectedOption.getAttribute('data-unidad');
+
+    let hayErrores = false;
+
+    if (!insumoId) {
+      mostrarError('insumo-error', 'Seleccione un insumo');
+      hayErrores = true;
+    }
+
+    if (!cantidad || cantidad <= 0 || isNaN(cantidad)) {
+      mostrarError('cantidad-error', 'Cantidad debe ser mayor a 0.00');
+      hayErrores = true;
+    }
+
+    if (hayErrores) {
+      return;
+    }
+
+    // Verificar si el insumo ya fue agregado (tanto existente como nuevo)
+    const insumosExistentes = document.querySelectorAll('[data-insumo-id]');
+    for (let item of insumosExistentes) {
+      if (item.getAttribute('data-insumo-id') === insumoId) {
+        mostrarError('insumo-error', 'Este insumo ya fue agregado al servicio');
+        return;
+      }
+    }
+
+    // Crear elemento visual
+    const insumoItem = document.createElement('div');
+    insumoItem.className = 'card insumo-item mb-2';
+    insumoItem.setAttribute('data-insumo-id', insumoId);
+    insumoItem.setAttribute('data-nuevo', 'true');
+    insumoItem.innerHTML = `
+      <div class="card-body py-1">
+        <div class="row">
+          <div class="col-md-7 d-flex flex-column justify-content-center text-start">
+            <div class="small fw-semibold text-start">${insumoNombre}</div>
+            <div class="text-muted small text-start">${insumoUnidad} • ₲ ${parseInt(insumoPrecio).toLocaleString('es-PY')}</div>
+          </div>
+          <div class="col-md-3">
+            <div class="d-flex flex-column align-items-center">
+              <label class="small text-muted mb-1">Cantidad</label>
+              <input type="number" 
+              class="form-control form-control-sm cantidad-editable text-center" 
+              value="${cantidad}" 
+              step="0.01" 
+              min="0.01"
+              data-insumo-id="${insumoId}"
+              style="width: 85px; height: 28px;">
+            </div>
+          </div>
+          <div class="col-md-2 text-end">
+            <button type="button" class="btn btn-sm btn-outline-danger eliminar-insumo">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Crear campos hidden para el NUEVO insumo
+    const cantidadField = document.createElement('input');
+    cantidadField.type = 'hidden';
+    cantidadField.name = `insumos_nuevos[${nuevoInsumoCounter}][cantidad]`;
+    cantidadField.value = cantidad;
+    
+    const insumoField = document.createElement('input');
+    insumoField.type = 'hidden';
+    insumoField.name = `insumos_nuevos[${nuevoInsumoCounter}][insumo_id]`;
+    insumoField.value = insumoId;
+
+    // Agregar al DOM
+    insumosContainer.appendChild(insumoItem);
+    hiddenFieldsContainer.appendChild(cantidadField);
+    hiddenFieldsContainer.appendChild(insumoField);
+
+    // Event listener para eliminar
+    insumoItem.querySelector('.eliminar-insumo').addEventListener('click', function() {
+      insumoItem.remove();
+      cantidadField.remove();
+      insumoField.remove();
+    });
+
+    // Incrementar contador para el próximo insumo nuevo
+    nuevoInsumoCounter++;
+
+    // Limpiar formulario
+    cantidadInput.value = '0';
+    $('#insumo-select').val(null).trigger('change');
+  }
+
+  // Event listener para el botón agregar
+  agregarBtn.addEventListener('click', agregarInsumo);
+
+  // Función para actualizar campos hidden cuando se edita una cantidad
+  function actualizarCantidadInsumo(insumoId, nuevaCantidad) {
+    const hiddenField = document.querySelector(`.hidden-cantidad[data-insumo-id="${insumoId}"]`);
+    if (hiddenField) {
+      hiddenField.value = nuevaCantidad;
+    }
+  }
+
+  // Configurar event listeners para campos de cantidad editables
+  document.addEventListener('input', function(e) {
+    if (e.target.classList.contains('cantidad-editable')) {
+      const insumoId = e.target.getAttribute('data-insumo-id');
+      const nuevaCantidad = parseFloat(e.target.value);
+      
+      if (nuevaCantidad > 0 && !isNaN(nuevaCantidad)) {
+        actualizarCantidadInsumo(insumoId, nuevaCantidad);
+        e.target.classList.remove('is-invalid');
+      } else {
+        e.target.classList.add('is-invalid');
+      }
+    }
+  });
+
+  // Validación al perder el foco
+  document.addEventListener('blur', function(e) {
+    if (e.target.classList.contains('cantidad-editable')) {
+      const cantidad = parseFloat(e.target.value);
+      if (!cantidad || cantidad <= 0 || isNaN(cantidad)) {
+        const insumoId = e.target.getAttribute('data-insumo-id');
+        const hiddenField = document.querySelector(`.hidden-cantidad[data-insumo-id="${insumoId}"]`);
+        if (hiddenField && hiddenField.value) {
+          e.target.value = hiddenField.value;
+        } else {
+          e.target.value = '0.01';
+          actualizarCantidadInsumo(insumoId, 0.01);
+        }
+        e.target.classList.remove('is-invalid');
+      }
+    }
+  }, true);
+
+  // En el event listener para eliminar insumos existentes
+  document.querySelectorAll('.eliminar-insumo').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const insumoItem = this.closest('.insumo-item');
+      const insumoId = insumoItem.getAttribute('data-insumo-id');
+      
+      if (!insumoItem.hasAttribute('data-nuevo')) {
+        const deleteField = document.createElement('input');
+        deleteField.type = 'hidden';
+        deleteField.name = `insumos_eliminados[]`;
+        deleteField.value = insumoId;
+        hiddenFieldsContainer.appendChild(deleteField);
+      }
+      
+      insumoItem.remove();
+    });
+  });
+
+  // Marcar los insumos existentes al cargar la página
+  document.querySelectorAll('.insumo-item[data-insumo-id]').forEach(item => {
+    if (!item.hasAttribute('data-nuevo')) {
+      item.setAttribute('data-existente', 'true');
+    }
+  });
+
+  // Event listeners para limpiar errores
+  document.getElementById('insumo-cantidad').addEventListener('input', limpiarErrores);
+  $('#insumo-select').on('change', limpiarErrores);
+
+  // Permitir agregar con Enter
+  document.getElementById('insumo-cantidad').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      agregarInsumo();
+    }
+  });
+
+  $('#insumo-select').on('select2:select', function() {
+    document.getElementById('insumo-cantidad').focus();
+  });
+
+  // ====== PRECIO (PYG) ======
+  function limpiarNumeroPositivo(v) {
+    if (v === null || v === undefined) return '';
+    let s = String(v).trim();
+    if (s === '' || s.toLowerCase() === 'none') return '';
+    s = s.replace(/[^\d.,]/g, '');
+    const m = s.match(/([.,])(\d{1,2})$/);
+    if (m) s = s.slice(0, -m[0].length);
+    const digits = s.replace(/\D/g, '');
+    return digits;
+  }
+  function formatearGs(val) {
+    const raw = limpiarNumeroPositivo(val);
+    if (!raw) return '';
+    const n = parseInt(raw, 10);
+    if (isNaN(n)) return '';
+    return 'Gs. ' + n.toLocaleString('es-PY');
+  }
+  function desformatearGs(txt) {
+    if (txt === null || txt === undefined) return '';
+    return String(txt).replace(/^Gs\.?\s*/i,'').replace(/\D/g,'').trim();
+  }
+
+  // ====== MANO DE OBRA ======
+  const djangoPrecioField = document.querySelector('[name="mano_obra"]');
+  const visiblePrecio = document.getElementById('id_mano_obra_display');
+
+  if (djangoPrecioField && visiblePrecio) {
+    if (djangoPrecioField.value) {
+      visiblePrecio.value = formatearGs(djangoPrecioField.value);
+    }
+    
+    visiblePrecio.addEventListener('input', () => {
+      const raw = desformatearGs(visiblePrecio.value);
+      djangoPrecioField.value = raw;
+      visiblePrecio.value = formatearGs(raw);
+    });
+  }
+
+  // ====== TIEMPO MÍNIMO ======
+  const hiddenMin = document.getElementById('id_tiempo_min_estimado');
+  const horasInput = document.getElementById('id_tiempo_horas');
+  const minutosInput = document.getElementById('id_tiempo_minutos');
+
+  let horasOriginal = 0;
+  let minutosOriginal = 0;
+
+  function actualizarTiempoHidden() {
+    const horas = parseInt(horasInput.value) || 0;
+    const minutos = parseInt(minutosInput.value) || 0;
+    const totalMinutos = (horas * 60) + minutos;
+    hiddenMin.value = totalMinutos;
+  }
+
+  function inicializarTiempoDesdeMinutos() {
+    if (hiddenMin && hiddenMin.value) {
+      const totalMinutos = parseInt(hiddenMin.value);
+      if (!isNaN(totalMinutos)) {
+        const horas = Math.floor(totalMinutos / 60);
+        const minutos = totalMinutos % 60;
+        horasInput.value = horas;
+        minutosInput.value = minutos;
+        horasOriginal = horas;
+        minutosOriginal = minutos;
+      } else {
+        horasInput.value = 0;
+        minutosInput.value = 0;
+        hiddenMin.value = 0;
+      }
+    } else {
+      horasInput.value = 0;
+      minutosInput.value = 0;
+      hiddenMin.value = 0;
+    }
+  }
+
+  function soloNumeros(event) {
+    const tecla = event.key;
+    const esNumero = /[0-9]/.test(tecla);
+    const esControl = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(tecla);
+    if (!esNumero && !esControl) {
+      event.preventDefault();
+      return false;
+    }
+    return true;
+  }
+
+  function validarYCorregirTiempo() {
+    let horas = parseInt(horasInput.value) || 0;
+    let minutos = parseInt(minutosInput.value) || 0;
+    if (horas < 0) horas = 0;
+    if (horas > 360) horas = 360;
+    if (minutos < 0) minutos = 0;
+    if (minutos > 59) minutos = 59;
+    horasInput.value = horas;
+    minutosInput.value = minutos;
+    actualizarTiempoHidden();
+  }
+
+  if (hiddenMin && horasInput && minutosInput) {
+    inicializarTiempoDesdeMinutos();
+    horasInput.addEventListener('keydown', soloNumeros);
+    minutosInput.addEventListener('keydown', soloNumeros);
+    horasInput.addEventListener('input', actualizarTiempoHidden);
+    minutosInput.addEventListener('input', actualizarTiempoHidden);
+    horasInput.addEventListener('blur', validarYCorregirTiempo);
+    minutosInput.addEventListener('blur', validarYCorregirTiempo);
+    
+    horasInput.addEventListener('blur', function() {
+      if (this.value === '') {
+        this.value = horasOriginal;
+        actualizarTiempoHidden();
+      }
+    });
+    
+    minutosInput.addEventListener('blur', function() {
+      if (this.value === '') {
+        this.value = minutosOriginal;
+        actualizarTiempoHidden();
+      }
+    });
+  }
+
+  // ====== REPONER OBLIGATORIOS ======
+  const hasErrors = {{ form.errors|yesno:"true,false" }};
+  if (hasErrors) {
+    const initial = {
+      nombre: "{{ form.instance.nombre|default_if_none:''|escapejs }}",
+      categoria: "{{ form.instance.categoria|default_if_none:''|escapejs }}",
+      descripcion: "{{ form.instance.descripcion|default_if_none:''|escapejs }}",
+      mano_obra: "{{ form.instance.mano_obra|default:form.initial.mano_obra|default:servicio.mano_obra|default:'' }}",
+      tiempo_min_estimado: "{{ form.instance.tiempo_min_estimado|default:form.initial.tiempo_min_estimado|default:servicio.tiempo_min_estimado|default:'' }}",
+      comision_porcentaje: "{{ form.instance.comision_porcentaje|default_if_none:''|escapejs }}"
+    };
+
+    const required = ['nombre', 'categoria'];
+
+    required.forEach(name => {
+      const el = form.elements[name];
+      if (!el) return;
+      if (!(el.value || '').trim()) {
+        let val = initial[name] || '';
+        if (el.tagName === 'SELECT') {
+          const opt = [...el.options].find(o => (o.value == val || o.text == val));
+          if (opt) el.value = opt.value;
+        } else {
+          el.value = val;
+        }
+      }
+    });
+
+    if (visiblePrecio && !desformatearGs(visiblePrecio.value) && initial.mano_obra) {
+      const raw = limpiarNumeroPositivo(initial.mano_obra);
+      visiblePrecio.value = formatearGs(raw);
+      if (djangoPrecioField) djangoPrecioField.value = raw;
+    }
+
+    if ((!horasInput.value && !minutosInput.value) && initial.tiempo_min_estimado) {
+      const totalMinutos = parseInt(initial.tiempo_min_estimado);
+      if (!isNaN(totalMinutos) && totalMinutos > 0) {
+        const horas = Math.floor(totalMinutos / 60);
+        const minutos = totalMinutos % 60;
+        horasInput.value = horas;
+        minutosInput.value = minutos;
+        hiddenMin.value = totalMinutos;
+        horasOriginal = horas;
+        minutosOriginal = minutos;
+      }
+    }
+
+    const firstErr = document.querySelector('.invalid-feedback.d-block');
+    if (firstErr) {
+      const field = firstErr.previousElementSibling?.querySelector('[name]') ||
+                    firstErr.parentElement.querySelector('[name]');
+      if (field) field.focus();
+    }
+  }
+});
+</script>
+
+{% endblock %}

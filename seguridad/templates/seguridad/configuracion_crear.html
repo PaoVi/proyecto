@@ -1,0 +1,226 @@
+{% extends 'seguridad/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-0">
+    <div class="row justify-content-center">
+        <div class="col-12 col-xl-8">
+            
+            <!-- HEADER -->
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <div>
+                    <h2 class="h4 mb-1">CREAR CONFIGURACIÓN</h2>
+                </div>
+                <button type="button" onclick="window.history.back()" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left"></i>Volver
+                </button>
+            </div>
+
+            <!-- FORMULARIO -->
+            <div class="card">
+                <div class="card-body">
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger alert-sm mb-2">
+                            <i class="bi bi-exclamation-circle"></i>
+                            {% for error in form.non_field_errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        
+                        <div class="row">
+                            <!-- COLUMNA IZQUIERDA -->
+                            <div class="col-md-6">
+                                <div class="mb-2">
+                                    <label for="{{ form.clave.id_for_label }}" class="form-label small fw-semibold text-muted">Clave</label>
+                                    {{ form.clave }}
+                                    {% if form.clave.errors %}
+                                    <div class="invalid-feedback d-block small">
+                                        {% for error in form.clave.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                    <div class="form-text small text-muted">
+                                        Nombre único para identificación
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-2">
+                                    <label for="{{ form.grupoConfig.id_for_label }}" class="form-label small fw-semibold text-muted">Grupo</label>
+                                    {{ form.grupoConfig }}
+                                    {% if form.grupoConfig.errors %}
+                                    <div class="invalid-feedback d-block small">
+                                        {% for error in form.grupoConfig.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                    <div class="form-text small text-muted">
+                                        Categoría a la que pertenece
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-2">
+                                    <label for="{{ form.tipo.id_for_label }}" class="form-label small fw-semibold text-muted">Tipo</label>
+                                    {{ form.tipo }}
+                                    {% if form.tipo.errors %}
+                                    <div class="invalid-feedback d-block small">
+                                        {% for error in form.tipo.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                    <div class="form-text small text-muted">
+                                        Tipo de dato a almacenar
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- COLUMNA DERECHA-->
+                            <div class="col-md-6">
+                                <div class="mb-2">
+                                    <label for="{{ form.valor.id_for_label }}" class="form-label small fw-semibold text-muted">Valor</label>
+                                    {{ form.valor }}
+                                    {% if form.valor.errors %}
+                                    <div class="invalid-feedback d-block small">
+                                        {% for error in form.valor.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                    <div class="form-text small text-muted">
+                                        Valor de la configuración según el tipo seleccionado
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-2">
+                                    <div class="form-check form-switch">
+                                        {{ form.editable }}
+                                        <label class="form-check-label small fw-semibold text-muted" for="{{ form.editable.id_for_label }}">
+                                            Configuración editable
+                                        </label>
+                                    </div>
+                                    {% if form.editable.errors %}
+                                    <div class="invalid-feedback d-block small">
+                                        {% for error in form.editable.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                    <div class="form-text small text-muted">
+                                        Si está desactivado, la configuración será de solo lectura
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- DESCRIPCIÓN -->
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="mb-2">
+                                    <label for="{{ form.descripcion.id_for_label }}" class="form-label small fw-semibold text-muted">Descripción</label>
+                                    {{ form.descripcion }}
+                                    {% if form.descripcion.errors %}
+                                    <div class="invalid-feedback d-block small">
+                                        {% for error in form.descripcion.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                    <div class="form-text small text-muted">
+                                        Explicación detallada del uso de esta configuración
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- BOTONES -->
+                        <div class="d-flex justify-content-between pt-2 border-top">
+                            <a href="{% url 'configuracion_lista' %}" class="btn btn-outline-secondary btn-sm">
+                                <i class="bi bi-x-circle"></i>Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary btn-sm">
+                                <i class="bi bi-check-circle"></i>Crear Configuración
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- INFORMACIÓN DE AYUDA -->
+            <div class="card">
+                <div class="card-body py-2">
+                    <div class="row">
+                        <div class="col-12">
+                            <small class="text-muted">
+                                <i class="bi bi-info-circle"></i>
+                                La clave y el grupo deben contener solo letras minúsculas, números y guiones bajos. Ejemplo: "nombre_taller"
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<style>
+.container-fluid {
+    max-width: 1000px;
+}
+.btn-sm {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.875rem;
+}
+.form-control, .form-select {
+    border-radius: 0.375rem;
+    border: 1px solid #ced4da;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+}
+.form-control:focus, .form-select:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+.form-check-input:checked {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+</style>
+
+<script>
+// Validación básica del formulario
+document.addEventListener('DOMContentLoaded', function() {
+    const forms = document.querySelectorAll('.needs-validation');
+    
+    Array.from(forms).forEach(form => {
+        form.addEventListener('submit', event => {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            
+            form.classList.add('was-validated');
+        }, false);
+    });
+    
+    // Validación personalizada para la clave
+    const claveInput = document.getElementById('{{ form.clave.id_for_label }}');
+    if (claveInput) {
+        claveInput.addEventListener('input', function() {
+            const regex = /^[a-z][a-z0-9_]*$/;
+            if (!regex.test(this.value)) {
+                this.setCustomValidity('La clave debe contener solo letras minúsculas, números y guiones bajos');
+            } else {
+                this.setCustomValidity('');
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,31 @@
+{
+    "factura": {
+        "numero": "001-001-0000263",
+        "fecha": "2026-06-17",
+        "timbrado": "87654321",
+        "establecimiento": "001",
+        "punto_emision": "001",
+        "estado": "ACTIVA"
+    },
+    "cliente": {
+        "nombre": "Inversiones Capital S.A.",
+        "documento": "80067890-6"
+    },
+    "totales": {
+        "total": 1800000.0
+    },
+    "items": [
+        {
+            "tipo": "servicio",
+            "descripcion": "Cambio de aceite diferencial",
+            "cantidad": 1.0,
+            "precio": 250000.0
+        },
+        {
+            "tipo": "servicio",
+            "descripcion": "Arreglo motor",
+            "cantidad": 1.0,
+            "precio": 1550000.0
+        }
+    ]
+}

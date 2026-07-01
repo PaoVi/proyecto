@@ -1,0 +1,388 @@
+{% extends 'seguridad/base.html' %}
+
+{% block content %}
+<div class="container-fluid py-0">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-8">
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <h2 class="h4 mb-1">VINCULAR VEHÍCULO</h2>
+        <button type="button" onclick="window.history.back()" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-arrow-left"></i>Volver
+        </button>
+      </div>
+
+      <div class="card">
+        <div class="card-body p-2">
+          <!-- RESUMEN DEL CLIENTE -->
+          <div class="mb-3">
+            <div class="small text-muted">Cliente</div>
+            <div class="fw-semibold">{{ cliente.nombre }}</div>
+            <div class="text-muted small">Documento: {{ cliente.numero_documento }}</div>
+          </div>
+
+          <form method="post" novalidate>
+            {% csrf_token %}
+
+            <!-- VEHÍCULO CON AUTOCOMPLETADO -->
+            <div class="mb-3">
+              <label for="vehiculo-search" class="form-label small">Seleccionar Vehículo</label>
+              <select id="vehiculo-search" class="form-control {% if form.vehiculo.errors %}is-invalid{% endif %}" name="vehiculo">
+                {% if form.vehiculo.value %}
+                  <option value="{{ form.vehiculo.value }}" selected>
+                    {% if form.instance.vehiculo %}
+                      {{ form.instance.vehiculo.nro_chapa }} - {{ form.instance.vehiculo.marca }} {{ form.instance.vehiculo.modelo }} - {{ form.instance.vehiculo.nro_chasis}}
+                    {% else %}
+                      Cargando vehículo...
+                    {% endif %}
+                  </option>
+                {% endif %}
+              </select>
+              {% if form.vehiculo.errors %}
+                <div class="invalid-feedback d-block small">
+                  {% for e in form.vehiculo.errors %}{{ e }}{% endfor %}
+                </div>
+              {% endif %}
+              <div class="form-text small text-muted">
+                Solo se listan vehículos <strong>activos</strong>.
+              </div>
+            </div>
+
+            <!-- BOTONES DE VINCULACIÓN -->
+            <div class="d-flex flex-column gap-2">
+              <div class="d-flex gap-2">
+                <button type="submit" name="tipo_vinculacion" value="propietario" class="btn btn-primary btn-sm flex-grow-1">
+                  <i class="bi bi-person-check"></i>Vincular como Propietario
+                </button>
+                <button type="submit" name="tipo_vinculacion" value="poseedor" class="btn btn-info btn-sm flex-grow-1">
+                  <i class="bi bi-person-check"></i>Vincular como Poseedor
+                </button>
+              </div>
+              <button type="submit" name="tipo_vinculacion" value="ambos" class="btn btn-success btn-sm">
+                <i class="bi bi-people-fill"></i>Vincular como Propietario y Poseedor
+              </button>
+              <a href="{% url 'cliente_vehiculos' cliente.pk %}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-x-circle"></i>Cancelar
+              </a>
+            </div>
+          </form> 
+        </div>
+      </div>
+
+      <!-- INFORMACIÓN SOBRE LOS TIPOS DE VINCULACIÓN -->
+      <div class="card mt-1">
+        <div class="card-body py-2">
+          <h6 class="fw-semibold mb-1">¿Qué tipo de vinculación necesitas?</h6>
+          <div class="small text-muted text-start">
+            <div class="mb-1">
+              <strong>Propietario:</strong> El cliente es el dueño legal del vehículo.
+            </div>
+            <div class="mb-1">
+              <strong>Poseedor:</strong> El cliente tiene el vehículo en su poder pero no es el dueño.
+            </div>
+            <div>
+              <strong>Ambos:</strong> El cliente es tanto el dueño como quien posee el vehículo.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mt-1">
+        <div class="card-body py-2">
+          <small class="text-muted">
+            ¿No encuentras el vehículo? 
+            <a href="{% url 'vehiculo_crear' %}?cliente={{ cliente.pk }}" class="fw-semibold">Créalo</a> y vuelve para vincularlo.
+          </small>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Incluir Select2 CSS y JS -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+<style>
+.container-fluid { max-width: 1000px; }
+.form-control, .form-select { 
+  border-radius: 0.375rem; 
+  border: 1px solid #ced4da; 
+  padding: 0.375rem 0.75rem; 
+  font-size: 0.875rem; 
+}
+.form-control:focus, .form-select:focus {
+  border-color: #86b7fe;
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+.btn-sm { padding: 0.375rem 0.75rem; font-size: 0.875rem; min-width: 100px; }
+
+/* ESTILOS SIMPLIFICADOS PARA SELECT2 */
+.select2-container--default .select2-selection--single {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    height: 38px;
+    background-color: #fff;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    color: #212529;
+    line-height: 1.5;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 30px;
+    right: 8px;
+}
+
+/* DROPDOWN SIMPLIFICADO - FONDO BLANCO */
+.select2-container--default .select2-dropdown {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    background: white;
+    box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+}
+
+/* RESULTADOS SIMPLES - FONDO BLANCO, TEXTO OSCURO */
+.select2-container--default .select2-results__option {
+    padding: 0.5rem 0.75rem;
+    background: white;
+    color: #212529;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+.select2-container--default .select2-results__option:last-child {
+    border-bottom: none;
+}
+
+/* RESALTADO AL PASAR MOUSE */
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background-color: #e9ecef;
+    color: #00264dff;
+}
+
+/* ELEMENTO SELECCIONADO */
+.select2-container--default .select2-results__option[aria-selected=true] {
+    background-color: #f8f9fa;
+    color: #212529;
+}
+
+/* CAMPO DE BÚSQUEDA */
+.select2-container--default .select2-search--dropdown .select2-search__field {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+    background: white;
+    color: #212529;
+}
+
+/* ESTILOS PERSONALIZADOS PARA LOS RESULTADOS */
+.select2-result-item {
+    padding: 0.15rem 0;
+}
+
+.select2-result-vehiculo .marca-modelo {
+    font-size: 0.875rem;
+    color: #212529;
+    font-weight: 500;
+    display: block;
+}
+
+.select2-result-vehiculo .chapa {
+    font-size: 0.75rem;
+    color: #097241ff;
+    display: block;
+}
+
+/* ESTILOS PARA MENSAJES "NO SE ENCONTRARON..." */
+.select2-container--default .select2-results__option--disabled {
+    font-size: 0.1rem !important;
+    color: #6c757d !important;
+    background-color: transparent !important;
+    padding: 0.375rem 0.75rem;
+    text-align: center;
+}
+
+/* OCULTAR MENSAJES DE CARÁCTER MÍNIMO */
+.select2-container--default .select2-results__option--load-more,
+.select2-container--default .select2-results__option--loading {
+    display: none !important;
+}
+
+/* BÚSQUEDA INMEDIATA - SIN MENSAJES */
+.select2-container--default .select2-search--dropdown {
+    padding: 0.5rem;
+}
+</style>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Inicializar Select2 para Vehículos - BÚSQUEDA INMEDIATA
+    $('#vehiculo-search').select2({
+        placeholder: 'Buscar por N° de chapa o N° de chasis',
+        allowClear: false,
+        width: '100%',
+        language: {
+            noResults: function() {
+                return "No se encontraron vehículos disponibles";
+            },
+            searching: function() {
+                return "Buscando...";
+            },
+            inputTooShort: function() {
+                return "Ingrese al menos 1 carácter";
+            },
+            errorLoading: function() {
+                return "Error al cargar resultados";
+            }
+        },
+        ajax: {
+            url: '{% url "buscar_vehiculos_vincular" %}',
+            dataType: 'json',
+            delay: 300,
+            data: function (params) {
+                return {
+                    q: params.term || '',
+                    contexto: 'vinculacion'
+                };
+            },
+            processResults: function (data) {
+                if (!Array.isArray(data)) {
+                    return { results: [] };
+                }
+                return {
+                    results: $.map(data, function (item) {
+                        return {
+                            id: item.id,
+                            text: item.text || 'Sin identificar',
+                            chapa: item.chapa || '',
+                            chasis: item.chasis || '',
+                            marca: item.marca || '',
+                            modelo: item.modelo || ''
+                        };
+                    })
+                };
+            },
+            error: function(xhr, status, error) {
+                console.error('Error loading vehiculos:', error);
+                return { results: [] };
+            }
+        },
+        minimumInputLength: 0,
+        templateResult: formatVehiculo,
+        templateSelection: formatVehiculoSelection
+    });
+
+    // Formatear cómo se muestran los resultados de Vehículos
+    function formatVehiculo(vehiculo) {
+        if (vehiculo.loading) {
+            return vehiculo.text;
+        }
+        
+        if (!vehiculo.id) {
+            return vehiculo.text;
+        }
+        
+        var $container = $(
+            '<div class="select2-result-item select2-result-vehiculo">' +
+                '<span class="marca-modelo">' + (vehiculo.marca || '') + ' ' + (vehiculo.modelo || '') + '</span>' +
+                '<span class="chapa text-success small">Chapa: ' + (vehiculo.chapa || 'Sin chapa') + '</span>' +
+                '<span class="chasis text-primary small">Chasis: ' + (vehiculo.chasis || 'Sin chasis') + '</span>' +
+            '</div>'
+        );
+        
+        return $container;
+    }
+
+    // Formatear cómo se muestra la selección de Vehículos
+    function formatVehiculoSelection(vehiculo) {
+        if (!vehiculo.id) {
+            return 'Buscar por N° de chapa o N° de chasis';
+        }
+        
+        if (vehiculo.marca && vehiculo.modelo && vehiculo.chapa && vehiculo.chasis) {
+            return vehiculo.marca + ' ' + vehiculo.modelo + ' - ' + vehiculo.chapa + ' - ' + vehiculo.chasis;
+        }
+        
+        return vehiculo.text || 'Vehículo seleccionado';
+    }
+
+    // CORRECCIÓN: Enfocar automáticamente el campo de búsqueda al abrir
+    $('#vehiculo-search').on('select2:open', function() {
+        setTimeout(function() {
+            // Buscar el campo de búsqueda dentro del dropdown
+            const $search = $('.select2-container--open .select2-search__field');
+            if ($search.length) {
+                // Enfocar y seleccionar todo el texto
+                $search.focus();
+                $search.trigger('select');
+                
+                // También disparar input para cargar resultados iniciales
+                if (!$search.val()) {
+                    $search.trigger('input');
+                }
+            }
+        }, 100);
+    });
+
+    // MEJORA ADICIONAL: Enfocar también al hacer click en el contenedor del select
+    $(document).on('click', '.select2-container', function(e) {
+        setTimeout(function() {
+            const $search = $('.select2-container--open .select2-search__field');
+            if ($search.length) {
+                $search.focus();
+                $search.trigger('select');
+            }
+        }, 150);
+    });
+
+    // Cargar el vehículo seleccionado cuando hay un valor inicial
+    const vehiculoSelect = document.getElementById('vehiculo-search');
+    if (vehiculoSelect && vehiculoSelect.value) { 
+        // Si hay un vehículo seleccionado, cargar sus datos
+        const vehiculoId = vehiculoSelect.value;
+        
+        // Hacer una petición para obtener los datos del vehículo específico
+        $.ajax({
+            url: '{% url "buscar_vehiculos_vincular" %}',
+            data: { 
+                q: '', // Búsqueda vacía para obtener todos
+                id_especifico: vehiculoId // Podrías agregar este parámetro a tu vista
+            },
+            dataType: 'json',
+            success: function(data) {
+                if (Array.isArray(data) && data.length > 0) {
+                    // Buscar el vehículo específico en los resultados
+                    const vehiculoEncontrado = data.find(item => item.id == vehiculoId);
+                    if (vehiculoEncontrado) {
+                        // Crear una opción y seleccionarla
+                        const option = new Option(
+                            vehiculoEncontrado.marca + ' ' + vehiculoEncontrado.modelo + ' - ' + vehiculoEncontrado.chapa + ' - ' + vehiculoEncontrado.chasis,
+                            vehiculoEncontrado.id,
+                            true,
+                            true
+                        );
+                        $('#vehiculo-search').append(option).trigger('change');
+                    }
+                }
+            }
+        });
+    }
+
+    // Validar que se haya seleccionado un vehículo antes de enviar
+    $('form').on('submit', function(e) {
+        const vehiculoSelect = $('#vehiculo-search');
+        if (!vehiculoSelect.val()) {
+            e.preventDefault();
+            alert('Por favor, selecciona un vehículo antes de vincular.');
+            $('#vehiculo-search').select2('open');
+        }
+    });
+});
+</script>
+
+{% endblock %}

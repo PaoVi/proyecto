@@ -1,0 +1,288 @@
+{% extends 'seguridad/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-0">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-9">
+
+      <!-- HEADER -->
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <h2 class="h4 mb-1">DETALLES DEL SERVICIO</h2>
+        <div class="d-flex gap-2">
+          <button type="button" onclick="window.history.back()" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i>Volver
+          </button>
+          {% if perms.seguridad.editar_servicios %}
+          <a href="{% url 'servicio_editar' servicio.pk %}" class="btn btn-primary btn-sm">
+            <i class="bi bi-pencil"></i>Editar
+          </a>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- CARD -->
+      <div class="card">
+        <div class="card-body">
+
+          <div class="row g-3">
+            <!-- GENERAL -->
+            <div class="col-md-6">
+              <h6 class="mb-2 border-bottom pb-2 small fw-semibold text-muted">INFORMACIÓN</h6>
+
+              <div class="mb-2">
+                <label class="form-label small text-muted">Nombre</label>
+                <p class="mb-0 fw-semibold">{{ servicio.nombre }}</p>
+              </div>
+
+              <div class="mb-2">
+                <label class="form-label small text-muted">Categoría</label>
+                <p class="mb-0">
+                  {{ servicio.get_categoria_display|default:servicio.categoria|default:"—" }}
+                </p>
+              </div>
+
+              <div class="mb-2">
+                <label class="form-label small text-muted">Estado</label>
+                <p class="mb-0">
+                  {% if servicio.is_active %}
+                    <span class="badge bg-success">Activo</span>
+                  {% else %}
+                    <span class="badge bg-secondary">Inactivo</span>
+                  {% endif %}
+                </p>
+              </div>
+            </div>
+
+            <!-- ECONÓMICO / TIEMPO -->
+            <div class="col-md-6">
+              <h6 class="mb-2 border-bottom pb-2 small fw-semibold text-muted">TIEMPO / PRECIO</h6>
+
+              <div class="mb-2">
+                <label class="form-label small text-muted">Tiempo Mínimo (hh:mm)</label>
+                <p class="mb-0 js-hhmm" id="tiempoMin" data-minutos="{{ servicio.tiempo_min_estimado|default_if_none:'' }}">—</p>
+              </div>
+
+              <div class="mb-2">
+                <label class="form-label small text-muted">Comisión (%)</label>
+                <p class="mb-0" id="comisionPorcentaje">
+                  {% if servicio.comision_porcentaje %}
+                    {{ servicio.comision_porcentaje }}%
+                  {% else %}
+                    —
+                  {% endif %}
+                </p>
+              </div>  
+
+              <div class="mb-2">
+                <label class="form-label small text-muted">Mano de Obra</label>
+                <p class="mb-0" id="manoObra" class="js-gs" data-precio="{{ servicio.mano_obra|default_if_none:'' }}">—</p>
+              </div>
+
+              <div class="mb-2">
+                  <label class="form-label small text-muted">Precio Base</label>
+                  <p class="mb-0 js-gs" id="precioBase" data-precio="{{ servicio.precio_base|default_if_none:'' }}">—</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- DESCRIPCIÓN -->
+          <div class="row mt-2">
+            <div class="col-12">
+              <h6 class="mb-2 border-bottom pb-2 small fw-semibold text-muted">DESCRIPCIÓN</h6>
+              <p class="mb-0">{{ servicio.descripcion|default:"—" }}</p>
+            </div>
+          </div>
+
+          <!-- INSUMOS DEL SERVICIO -->
+          <div class="row mt-4">
+            <div class="col-12">
+              <h6 class="mb-3 border-bottom pb-2 small fw-semibold text-muted">INSUMOS REQUERIDOS</h6>
+              
+              {% if insumos_servicio %}
+                <div class="table-responsive">
+                  <table class="table table-sm table-hover">
+                    <thead class="table-light">
+                       <tr class="text-center">
+                        <th style="width: 15%">Código</th>
+                        <th style="width: 38%">Insumo</th>
+                        <th style="width: 15%">Cantidad</th>
+                        <th style="width: 17%">Costo Unitario</th>
+                        <th style="width: 18%">Sub-Total</th>
+                       </tr>
+                    </thead>
+                    <tbody>
+                      {% for si in insumos_servicio %}
+                      <tr class="text-center">
+                        <td class="text-center">
+                          <code class="fw-semibold" style="color: #003363; font-size: 0.8rem;">{{ si.insumo.codigo_completo }}</code>
+                        </td>
+                        <td class="text-start">
+                          <div class="fw-semibold">{{ si.insumo.nombre }}</div>
+                          <small class="text-muted">{{ si.insumo.categoria|default:"Sin categoría" }} • {{ si.insumo.unidad }}</small>
+                        </td>
+                        <td class="text-center">
+                          <span class="fw-semibold">{{ si.cantidad|floatformat:2 }}</span>
+                        </td>
+                        <td class="text-center" data-precio="{{ si.insumo.costo_unitario|default_if_none:'' }}">—</td>
+                        <td class="text-center" data-precio="{{ si.subtotal|default_if_none:'' }}">—</td>
+                      </tr>
+                      {% endfor %}
+                    </tbody>
+                    <tfoot class="table-primary">
+                      <tr class="text-center">
+                        <td colspan="4" class="text-end fw-semibold">Costo Total de Insumos:</td>
+                        <td class="text-center fw-bold" id="costoTotalInsumos" data-precio="{{ servicio.costo_insumos|default_if_none:'' }}">—</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              {% else %}
+                <div class="text-center py-1 text-muted">
+                  <i class="bi bi-inbox display-6 d-block mb-1"></i>
+                  <p>No hay insumos asignados a este servicio.</p>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- OTROS / FECHAS -->
+          <div class="row mt-4">
+            <div class="col-12">
+                <h6 class="mb-2 border-bottom pb-2 small fw-semibold text-muted">INFORMACIÓN DEL SISTEMA</h6>
+                <div class="row">
+                <div class="col-md-6">
+                    <label class="form-label small text-muted">Registrado</label>
+                    <p class="mb-0 small">
+                    <i class="bi bi-calendar-plus text-muted"></i>
+                    {{ servicio.fecha_registro|date:"d/m/Y H:i" }}
+                    </p>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small text-muted">Actualizado</label>
+                    <p class="mb-0 small">
+                    <i class="bi bi-clock-history text-muted"></i>
+                    {{ servicio.fecha_actualizacion|date:"d/m/Y H:i" }}
+                    </p>
+                </div>
+                </div>
+            </div>
+          </div>
+        </div><!-- /card-body -->
+
+        <!-- FOOTER -->
+        <div class="card-footer bg-light py-1">
+          <div class="d-flex justify-content-between align-items-center">
+            <small class="text-muted">
+              <i class="bi bi-hash"></i>ID: {{ servicio.pk }}
+            </small>
+          </div>
+        </div>
+      </div><!-- /card -->
+    </div>
+  </div>
+</div>
+
+<style>
+  .container-fluid { max-width: 1000px; }
+  .btn-sm { padding: 0.25rem 0.5rem; font-size: 0.75rem; }
+  .small { font-size: 0.875rem; }
+  .table th { font-size: 0.8rem; font-weight: 600; }
+  .table td { font-size: 0.85rem; vertical-align: middle; }
+  code {
+    background-color: #f8f9fa;
+    padding: 0.2rem 0.4rem;
+    border-radius: 0.25rem;
+    font-size: 0.8rem;
+    font-family: monospace;
+  }
+  .table-responsive {
+    overflow-x: auto;
+  }
+</style> 
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // ===== Mano de obra: mostrar con miles (₲ 150.000) =====
+    function parseGsAttr(v) {
+        if (v === null || v === undefined) return null;
+        const raw = String(v).trim();
+        if (!raw) return null;
+
+        let clean = raw.replace(/[^0-9.,]/g, '');
+
+        if (/^\d{1,3}(\.\d{3})*(,\d+)$/.test(clean) || /^\d+(,\d+)$/.test(clean)) {
+            clean = clean.split(',')[0];
+        }
+        if (/^\d+(\.\d{2})$/.test(clean)) {
+            clean = clean.split('.')[0];
+        }
+
+        clean = clean.replace(/\./g, '').replace(/,/g, '');
+        if (!clean) return null;
+
+        const n = parseInt(clean, 10);
+        return isNaN(n) ? null : n;
+    }
+
+    function formatGsEntero(n) {
+        if (n === null || isNaN(n)) return '—';
+        return 'Gs. ' + n.toLocaleString('es-PY');
+    }
+
+    // Aplicar formato a mano de obra
+    const precioEl = document.getElementById('manoObra');
+    if (precioEl) {
+        const raw = precioEl.getAttribute('data-precio');
+        const valor = parseGsAttr(raw);
+        precioEl.textContent = formatGsEntero(valor);
+    }
+
+    // Aplicar formato al precio base
+    const precioBaseEl = document.getElementById('precioBase');
+    if (precioBaseEl) {
+        const raw = precioBaseEl.getAttribute('data-precio');
+        const valor = parseGsAttr(raw);
+        precioBaseEl.textContent = formatGsEntero(valor);
+    }
+
+    // ===== Aplicar formato a todos los precios de la tabla de insumos =====
+    function aplicarFormatoPreciosInsumos() {
+        // Aplicar a costos unitarios
+        const costosUnitarios = document.querySelectorAll('td[data-precio]');
+        costosUnitarios.forEach(td => {
+            const raw = td.getAttribute('data-precio');
+            const valor = parseGsAttr(raw);
+            td.textContent = formatGsEntero(valor);
+        });
+
+        // Aplicar al costo total de insumos
+        const costoTotalEl = document.getElementById('costoTotalInsumos');
+        if (costoTotalEl) {
+            const raw = costoTotalEl.getAttribute('data-precio');
+            const valor = parseGsAttr(raw);
+            costoTotalEl.textContent = formatGsEntero(valor);
+        }
+    }
+
+    // ===== Tiempo mínimo: minutos -> HH:MM =====
+    function minToHHMM(m) {
+        const num = parseInt(m, 10);
+        if (isNaN(num) || num < 0) return '—';
+        const hh = Math.floor(num / 60);
+        const mm = num % 60;
+        return String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0');
+    }
+
+    const tEl = document.getElementById('tiempoMin');
+    if (tEl) {
+        const mins = tEl.getAttribute('data-minutos');
+        tEl.textContent = minToHHMM(mins);
+    }
+
+    // Ejecutar después de que la página cargue
+    setTimeout(aplicarFormatoPreciosInsumos, 100);
+});
+</script>
+
+{% endblock %}

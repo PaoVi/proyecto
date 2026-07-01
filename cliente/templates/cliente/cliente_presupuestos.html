@@ -1,0 +1,266 @@
+{% extends 'seguridad/base.html' %}
+
+{% block content %}
+<div class="container-fluid py-0">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-10">
+
+      <!-- HEADER -->
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <div>
+          <h2 class="h4 mb-1">PRESUPUESTOS DEL CLIENTE</h2>
+        </div>
+        <div class="d-flex gap-2">
+          <button type="button" onclick="window.history.back()" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i>Volver
+          </button>
+          <!--{% if perms.seguridad.agregar_presupuestos %}
+            {% if presupuestos %}
+            <a href="{% url 'presupuesto_crear' %}?cliente={{ cliente.id }}" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-circle"></i>Crear presupuesto
+            </a>
+            {% endif %}
+          {% endif %}-->
+        </div>
+      </div>
+
+      <!-- RESUMEN DEL CLIENTE -->
+      <div class="card">
+        <div class="card-body py-1">
+          <div class="row">
+            <div class="col-md-8">
+              <small class="text-muted">Cliente:</small>
+              <div class="fw-semibold">{{ cliente.nombre }}</div>
+            </div>
+            <div class="col-md-4">
+              <small class="text-muted">Documento:</small>
+              <div class="documento-cell">{{ cliente.numero_documento }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LISTA SIMPLE DE PRESUPUESTOS -->
+      <div class="card">
+        <div class="card-body p-0">
+          {% if presupuestos %}
+            <div class="list-group list-group-flush">
+              {% for p in presupuestos %}
+              <div class="list-group-item {% if p.estado == 'rechazado' %}bg-light{% endif %}">
+                <div class="row align-items-center">
+                  <!-- INFORMACIÓN DEL PRESUPUESTO -->
+                  <div class="col-md-8">
+                    <div class="d-flex align-items-center">
+                      <i class="bi bi-file-earmark-text text-muted me-3 fs-5"></i>
+                      <div class="flex-grow-1">
+                        <div class="fw-semibold text-start">
+                          Presupuesto #{{ p.numero|default:p.id }} • 
+                          <span class="fw-semibold">
+                            {{ p.vehiculo.marca }} {{ p.vehiculo.modelo }} ({{ p.vehiculo.nro_chapa }})
+                          </span>
+                        </div>
+                        <div class="small text-muted text-start">
+                          {{ p.fecha_creacion|date:"d/m/Y" }} • 
+                          Total: <span class="total-presupuesto" data-precio="{{ p.total|default:0 }}">₲ {{ p.total|floatformat:0|default:"0" }}</span>
+                          {% if p.validez %}
+                            • Válido hasta: {{ p.validez|date:"d/m/Y" }}
+                          {% endif %}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- ESTADO Y ACCIONES -->
+                  <div class="col-md-2">
+                    <div class="align-items-center">
+                        <div class="me-3">
+                            <span class="badge
+                            {% if p.estado == 'aprobado' %}bg-success
+                            {% elif p.estado == 'pendiente' %}bg-secondary
+                            {% elif p.estado == 'rechazado' %}bg-danger
+                            {% else %}bg-secondary{% endif %}">
+                            {{ p.get_estado_display|default:p.estado }}
+                            </span>
+                        </div>
+                    </div>
+                  </div>
+                  <div class="col-md-2">
+                    <div class="align-items-center">                           
+                      <div class="btn-group btn-group-sm">
+                        {% if perms.seguridad.ver_presupuestos %}
+                        <a class="btn btn-outline-info" title="Ver" href="{% url 'presupuesto_ver' p.pk %}">
+                          <i class="bi bi-eye"></i>
+                        </a>
+                        {% endif %}
+                        {% if perms.seguridad.editar_presupuestos %}
+                            {% if p.es_editable %}
+                            <a class="btn btn-outline-primary" title="Editar" href="{% url 'presupuesto_editar' p.pk %}">
+                            <i class="bi bi-pencil"></i>
+                            </a>
+                            {% endif %}
+                        {% endif %}
+                        {% if perms.seguridad.ver_presupuestos %}
+                        <a class="btn btn-outline-secondary" title="Imprimir" href="{% url 'presupuesto_imprimir' p.pk %}">
+                          <i class="bi bi-printer"></i>
+                        </a>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
+                  
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <!-- ESTADO VACÍO -->
+            <div class="text-center py-5">
+              <i class="bi bi-file-earmark-text display-1 text-muted mb-3"></i>
+              <h5 class="text-muted">No hay presupuestos</h5>
+              <p class="text-muted mb-3">Este cliente no tiene presupuestos asociados.</p>
+              
+              <!--{% if perms.seguridad.agregar_presupuestos %}
+              <a href="{% url 'presupuesto_crear' %}?cliente={{ cliente.id }}" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-circle"></i>Crear primer presupuesto
+              </a>
+              {% endif %}-->
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- PIE DE PÁGINA CON ESTADÍSTICAS -->
+        {% if presupuestos %}
+        <div class="card-footer bg-light py-2">
+          <div class="row text-center">
+            <div class="col-3">
+              <small class="text-muted">Pendientes</small>
+              <div class="fw-semibold">{{ presupuestos_pendientes }}</div>
+            </div>
+            <div class="col-3">
+              <small class="text-muted">Aprobados</small>
+              <div class="fw-semibold">{{ presupuestos_aprobados }}</div>
+            </div>
+            <div class="col-3">
+              <small class="text-muted">Rechazados</small>
+              <div class="fw-semibold">{{ presupuestos_rechazados }}</div>
+            </div>
+            <div class="col-3">
+              <small class="text-muted">Total</small>
+              <div class="fw-semibold">{{ total_presupuestos }}</div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<style>
+.container-fluid { max-width: 1000px; }
+.list-group-item { padding: 1rem 1.25rem; border-bottom: 1px solid #e9ecef; }
+.list-group-item:last-child { border-bottom: none; }
+.btn-sm { padding: 0.25rem 0.5rem; font-size: 0.75rem; }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Efecto hover suave en los items
+  const listItems = document.querySelectorAll('.list-group-item');
+  listItems.forEach(item => {
+    item.addEventListener('mouseenter', function() {
+      this.style.backgroundColor = '#f8f9fa';
+      this.style.transition = 'background-color 0.2s ease';
+    });
+    item.addEventListener('mouseleave', function() {
+      if (!this.classList.contains('bg-light')) {
+        this.style.backgroundColor = '';
+      }
+    });
+  });
+
+  // Formatear números con separadores de miles
+  const totalElements = document.querySelectorAll('.total-presupuesto');
+  totalElements.forEach(element => {
+    const value = element.textContent.trim();
+    if (value && !isNaN(value.replace(/[^\d]/g, ''))) {
+      const number = parseInt(value.replace(/[^\d]/g, ''));
+      element.textContent = '₲ ' + number.toLocaleString('es-PY');
+    }
+  });
+
+    // Función para formatear documento (cédula/RUC) con puntos
+    function formatDocumento(documento) {
+      if (!documento || documento === 'Sin documento') return documento;
+      
+      // Limpiar el documento
+      const docLimpio = documento.toString().trim();
+      
+      // Si tiene guion (RUC)
+      if (docLimpio.includes('-')) {
+        const partes = docLimpio.split('-');
+        const partePrincipal = partes[0];
+        const digitoVerificador = partes[1];
+        
+        // Formatear la parte principal con puntos
+        const parteFormateada = partePrincipal.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        
+        return `${parteFormateada}-${digitoVerificador}`;
+      } else {
+        // Formatear documento simple con puntos
+        return docLimpio.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+      }
+    }
+
+    // ===== Formatear precios en guaraníes =====
+    function parseGsAttr(v) {
+        if (v === null || v === undefined) return null;
+        const raw = String(v).trim();
+        if (!raw) return null;
+
+        let clean = raw.replace(/[^0-9.,]/g, '');
+
+        if (/^\d{1,3}(\.\d{3})*(,\d+)$/.test(clean) || /^\d+(,\d+)$/.test(clean)) {
+            clean = clean.split(',')[0];
+        }
+        if (/^\d+(\.\d{2})$/.test(clean)) {
+            clean = clean.split('.')[0];
+        }
+
+        clean = clean.replace(/\./g, '').replace(/,/g, '');
+        if (!clean) return null;
+
+        const n = parseInt(clean, 10);
+        return isNaN(n) ? null : n;
+    }
+
+    function formatGsEntero(n) {
+        if (n === null || isNaN(n)) return '—';
+        return 'Gs. ' + n.toLocaleString('es-PY');
+    }
+
+    // Aplicar formato a documentos 
+    function aplicarFormatos() {
+      // Formatear documentos
+      const documentoElements = document.querySelectorAll('.documento-cell');
+      documentoElements.forEach(element => {
+        const originalText = element.textContent.trim();
+        if (originalText && originalText !== '—' && originalText !== 'Sin documento') {
+          element.textContent = formatDocumento(originalText);
+        }
+      });
+
+      const elementosPrecio = document.querySelectorAll('[data-precio]');
+      elementosPrecio.forEach(el => {
+          const raw = el.getAttribute('data-precio');
+          const valor = parseGsAttr(raw);
+          el.textContent = formatGsEntero(valor);
+      });
+    }
+
+    aplicarFormatos();
+});
+</script>
+
+{% endblock %}

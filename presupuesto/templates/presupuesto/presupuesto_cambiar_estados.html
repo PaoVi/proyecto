@@ -1,0 +1,359 @@
+{% extends 'seguridad/base.html' %}
+
+{% block content %}
+<div class="container-fluid py-0">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-12">
+
+      <!-- HEADER -->
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <div>
+          <h2 class="h4 mb-1">CAMBIAR ESTADOS DE PRESUPUESTOS</h2>
+        </div>
+        <div class="d-flex gap-2">
+        <button type="button" onclick="window.history.back()" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-arrow-left"></i>Volver
+        </button>
+        </div>
+      </div>
+
+      <!-- FILTROS -->
+      <div class="card mb-2">
+        <div class="card-body p-2">
+          <form method="get" class="row g-2 align-items-end">
+            <!-- BÚSQUEDA -->
+            <div class="col-md-8">
+              <label class="form-label small">BUSCAR PRESUPUESTO / CLIENTE / VEHÍCULO</label>
+              <input type="text" name="q" value="{{ request.GET.q }}" class="form-control form-control-sm" style="height: 33px;"
+                     placeholder="Ej.: 120, Juan, Toyota, ABC123">
+            </div>
+
+            <!-- BOTONES FILTRO -->
+            <div class="col-md-2">
+              <label class="form-label small">&nbsp;</label>
+              <button type="submit" class="btn btn-outline-primary w-100 btn-sm" style="height: 33px;">
+                <i class="bi bi-search"></i>Buscar
+              </button>
+            </div>
+
+            <div class="col-md-2">
+              <label class="form-label small">&nbsp;</label>
+              <a href="{% url 'presupuesto_cambiar_estados' %}" class="btn btn-outline-secondary w-100 btn-sm" style="height: 33px;">
+                <i class="bi bi-arrow-clockwise"></i> Limpiar
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- LISTA DE PRESUPUESTOS PENDIENTES -->
+      <div class="card">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th style="width: 11%">#Presupuesto</th>
+                <th style="width: 24%">Cliente</th>
+                <th style="width: 15%">Vehículo</th>
+                <th style="width: 10%">Creación</th>
+                <th style="width: 10%">Vencimiento</th>
+                <th style="width: 10%">Días Restantes</th>
+                <th style="width: 12%">Total</th>
+                <th style="width: 9%" class="text-center">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for presupuesto in presupuestos %}
+              <tr class="{% if presupuesto.dias_restantes == 0 %}table-danger{% endif %}">
+                <!-- ID -->
+                <td class="fw-semibold">
+                  {{ presupuesto.id }}
+                </td>
+
+                <!-- CLIENTE -->
+                <td>
+                  <div class="fw-semibold text-start">
+                    {{ presupuesto.cliente.nombre }}
+                  </div>
+                  {% if presupuesto.cliente.telefono %}
+                    <div class="text-muted small text-start">
+                      {{ presupuesto.cliente.telefono }}
+                    </div>
+                  {% endif %}
+                </td>
+
+                <!-- VEHÍCULO -->
+                <td>
+                  <div class="fw-semibold text-start">
+                    {{ presupuesto.vehiculo.marca }} {{ presupuesto.vehiculo.modelo }}
+                  </div>
+                  <div class="text-muted small text-start">
+                    Chapa: {{ presupuesto.vehiculo.nro_chapa }}
+                  </div>
+                </td>
+
+                <!-- FECHA CREACIÓN -->
+                <td class="text-truncate">
+                  {{ presupuesto.fecha_creacion|date:"d/m/Y" }}
+                </td>
+
+                <!-- FECHA VENCIMIENTO -->
+                <td class="text-truncate">
+                  {{ presupuesto.fecha_vencimiento|date:"d/m/Y" }}
+                </td>
+
+                <!-- DÍAS RESTANTES -->
+                <td>
+                  {% if presupuesto.dias_restantes > 0 %}
+                    <span class="fw-semibold {% if presupuesto.dias_restantes <= 3 %}text-danger{% else %}text-success{% endif %}">
+                      {{ presupuesto.dias_restantes }} día{{ presupuesto.dias_restantes|pluralize }}
+                    </span>
+                  {% endif %}
+                </td>
+
+                <!-- TOTAL -->
+                <td class="text-truncate fw-semibold">
+                  ₲ <span class="total-valor">{{ presupuesto.total|floatformat:0 }}</span>
+                </td>
+
+                <!-- ACCIONES - BOTONES APROBAR/RECHAZAR -->
+                <td class="text-center">
+                  <div class="btn-group btn-group-sm" role="group">
+                    <!-- BOTÓN VER -->
+                    <a href="{% url 'presupuesto_ver' presupuesto.id %}" class="btn btn-outline-info btn-sm" title="Ver Detalles">
+                      <i class="bi bi-eye"></i>
+                    </a>
+                    
+                    <!-- BOTÓN APROBAR CON MODAL -->
+                    <button type="button" class="btn btn-outline-success btn-sm"
+                            data-bs-toggle="modal" data-bs-target="#aprobarPresupuestoModal"
+                            data-presupuesto-id="{{ presupuesto.id }}"
+                            data-presupuesto-info="Presupuesto #{{ presupuesto.id }} - {{ presupuesto.cliente.nombre }} - {{ presupuesto.vehiculo.marca }} {{ presupuesto.vehiculo.modelo }}"
+                            title="Aprobar Presupuesto">
+                      <i class="bi bi-check-lg"></i>
+                    </button>
+                    
+                    <!-- BOTÓN RECHAZAR CON MODAL -->
+                    <button type="button" class="btn btn-outline-danger btn-sm"
+                            data-bs-toggle="modal" data-bs-target="#rechazarPresupuestoModal"
+                            data-presupuesto-id="{{ presupuesto.id }}"
+                            data-presupuesto-info="Presupuesto #{{ presupuesto.id }} - {{ presupuesto.cliente.nombre }} - {{ presupuesto.vehiculo.marca }} {{ presupuesto.vehiculo.modelo }}"
+                            title="Rechazar Presupuesto">
+                      <i class="bi bi-x-lg"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="9" class="text-center py-4 text-muted">
+                  <i class="bi bi-inbox display-4 d-block mb-2"></i>
+                  No hay presupuestos pendientes para gestionar
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- PAGINACIÓN -->
+        {% if presupuestos.has_other_pages %}
+        <div class="card-body pt-2">
+          <div class="d-flex justify-content-between align-items-center">
+            <small class="text-muted">
+              Mostrando {{ presupuestos.start_index }}–{{ presupuestos.end_index }} de {{ presupuestos.paginator.count }} presupuestos pendientes
+            </small>
+            <ul class="pagination pagination-sm mb-0">
+              {% if presupuestos.has_previous %}
+                <li class="page-item">
+                  <a class="page-link" href="?page=1{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">«</a>
+                </li>
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ presupuestos.previous_page_number }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">‹</a>
+                </li>
+              {% else %}
+                <li class="page-item disabled"><span class="page-link">«</span></li>
+                <li class="page-item disabled"><span class="page-link">‹</span></li>
+              {% endif %}
+
+              {% for i in presupuestos.paginator.page_range %}
+                {% if i == presupuestos.number %}
+                  <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+                {% elif i >= presupuestos.number|add:'-2' and i <= presupuestos.number|add:'2' %}
+                  <li class="page-item">
+                    <a class="page-link" href="?page={{ i }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">{{ i }}</a>
+                  </li>
+                {% endif %}
+              {% endfor %}
+
+              {% if presupuestos.has_next %}
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ presupuestos.next_page_number }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">›</a>
+                </li>
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ presupuestos.paginator.num_pages }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">»</a>
+                </li>
+              {% else %}
+                <li class="page-item disabled"><span class="page-link">›</span></li>
+                <li class="page-item disabled"><span class="page-link">»</span></li>
+              {% endif %}
+            </ul>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PARA APROBAR PRESUPUESTO -->
+<div class="modal fade" id="aprobarPresupuestoModal" tabindex="-1" aria-labelledby="aprobarPresupuestoModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title" id="aprobarPresupuestoModalLabel">Aprobar Presupuesto</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body text-center">
+        <div class="mb-3">
+          <i class="bi bi-check-circle text-success display-6"></i>
+        </div>
+        <p>¿Desea <strong class="text-success">APROBAR</strong> el presupuesto?</p>
+        <p class="small text-muted mt-1" id="presupuestoInfoAprobar"></p>
+      </div>
+      <div class="modal-footer justify-content-center">
+        <form method="post" action="" id="aprobarPresupuestoForm">
+          {% csrf_token %}
+          <input type="hidden" name="estado" value="aprobado">
+          <input type="hidden" name="origen" value="lista">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-success btn-sm">Aprobar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PARA RECHAZAR PRESUPUESTO -->
+<div class="modal fade" id="rechazarPresupuestoModal" tabindex="-1" aria-labelledby="rechazarPresupuestoModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title" id="rechazarPresupuestoModalLabel">Rechazar Presupuesto</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body text-center">
+        <div class="mb-3">
+          <i class="bi bi-x-circle text-danger display-6"></i>
+        </div>
+        <p>¿Desea <strong class="text-danger">RECHAZAR</strong> el presupuesto?</p>
+        <p class="small text-muted mt-1" id="presupuestoInfoRechazar"></p>
+      </div>
+      <div class="modal-footer justify-content-center">
+        <form method="post" action="" id="rechazarPresupuestoForm">
+          {% csrf_token %}
+          <input type="hidden" name="estado" value="rechazado">
+          <input type="hidden" name="origen" value="lista">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-danger btn-sm">Rechazar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.table td, .table th {
+  padding: 0.5rem 0.75rem;
+  vertical-align: middle;
+}
+
+/* Estilos para los modales */
+#aprobarPresupuestoModal .modal-dialog,
+#rechazarPresupuestoModal .modal-dialog {
+  max-width: 350px;
+  width: 50%;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  min-height: calc(100% - 2rem);
+}
+#aprobarPresupuestoModal .modal-content,
+#rechazarPresupuestoModal .modal-content {
+  min-height: 50px;
+}
+#aprobarPresupuestoModal .modal-title,
+#rechazarPresupuestoModal .modal-title,
+#aprobarPresupuestoModal .modal-body,
+#rechazarPresupuestoModal .modal-body {
+  text-align: center;
+}
+#aprobarPresupuestoModal .modal-footer,
+#rechazarPresupuestoModal .modal-footer {
+  justify-content: center;
+  gap: .4rem;
+}
+#aprobarPresupuestoModal .modal-footer .btn,
+#rechazarPresupuestoModal .modal-footer .btn {
+  padding: 0.45rem 0.9rem;
+  font-size: 0.75rem;
+  min-width: 120px;
+  line-height: 1.15;
+  border-radius: 8px;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Modal para Aprobar Presupuesto
+  const aprobarModal = document.getElementById('aprobarPresupuestoModal');
+  aprobarModal.addEventListener('show.bs.modal', function(event) {
+    const button = event.relatedTarget;
+    
+    // Obtener datos del botón
+    const presupuestoId = button.getAttribute('data-presupuesto-id');
+    const presupuestoInfo = button.getAttribute('data-presupuesto-info');
+    
+    // Actualizar información en el modal
+    document.getElementById('presupuestoInfoAprobar').textContent = presupuestoInfo;
+    
+    // Configurar la acción del formulario
+    const actionUrl = `/presupuesto/${presupuestoId}/cambiar-estado/`;
+    document.getElementById('aprobarPresupuestoForm').action = actionUrl;
+  });
+
+  // Modal para Rechazar Presupuesto
+  const rechazarModal = document.getElementById('rechazarPresupuestoModal');
+  rechazarModal.addEventListener('show.bs.modal', function(event) {
+    const button = event.relatedTarget;
+    
+    // Obtener datos del botón
+    const presupuestoId = button.getAttribute('data-presupuesto-id');
+    const presupuestoInfo = button.getAttribute('data-presupuesto-info');
+    
+    // Actualizar información en el modal
+    document.getElementById('presupuestoInfoRechazar').textContent = presupuestoInfo;
+    
+    // Configurar la acción del formulario
+    const actionUrl = `/presupuesto/${presupuestoId}/cambiar-estado/`;
+    document.getElementById('rechazarPresupuestoForm').action = actionUrl;
+  });
+
+  // FUNCIÓN PARA FORMATEAR NÚMEROS CON SEPARADOR DE MILES
+  function formatearNumero(numero) {
+    return numero.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  }
+
+  // APLICAR FORMATEO A LOS TOTALES
+  const totales = document.querySelectorAll('.total-valor');
+  totales.forEach(function(total) {
+    const valor = total.textContent.trim();
+    if (valor && !isNaN(valor.replace(/\./g, ''))) {
+      total.textContent = formatearNumero(valor);
+    }
+  });
+});
+</script>
+
+{% endblock %}

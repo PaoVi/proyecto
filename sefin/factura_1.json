@@ -1,0 +1,25 @@
+{
+    "factura": {
+        "numero": "001-001-0000003",
+        "fecha": "2026-04-21",
+        "timbrado": "12345678",
+        "establecimiento": "001",
+        "punto_emision": "001",
+        "estado": "ACTIVA"
+    },
+    "cliente": {
+        "nombre": "Importadora del Paraguay S.R.L.",
+        "documento": "8023456-2"
+    },
+    "totales": {
+        "total": 120000.0
+    },
+    "items": [
+        {
+            "tipo": "insumo",
+            "descripcion": "Alineación y balanceo",
+            "cantidad": 1.0,
+            "precio": 120000.0
+        }
+    ]
+}

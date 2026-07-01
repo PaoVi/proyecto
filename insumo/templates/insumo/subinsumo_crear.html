@@ -1,0 +1,120 @@
+{% extends 'seguridad/base.html' %}
+
+{% block content %}
+<div class="container-fluid py-0">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-6">
+
+      <!-- HEADER -->
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <h2 class="h4 mb-1">CREAR SUB-INSUMOS</h2>
+        <button type="button" onclick="window.history.back()" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-arrow-left"></i>Volver
+        </button>
+      </div>
+
+      <div class="card">
+        <div class="card-body">
+          <!-- INFORMACIÓN DEL STOCK -->
+          <div class="row g-3">
+              <div class="col-12">
+                <div class="fw-semibold">Insumo </div> {{ insumo.nombre }}
+              </div>
+              <div class="col-6">
+                <div class="fw-semibold">Código </div> {{ insumo.id }}
+              </div>
+              <div class="col-6">
+                <div class="fw-semibold">Unidad de Medida</div> {{ insumo.get_unidad_display }}
+              </div>
+              <div class="col-md-6">
+                <div class="fw-semibold">Stock Total en Sub-Insumos</div> {{ stock_en_subinsumos }}
+              </div>
+              <div class="col-md-6">
+                <div class="fw-semibold">Stock Total Actual</div> {{ stock_fisico }}
+              </div>
+              <div class="col-md-12 mt-3 py-2">
+                <strong class="text-primary">Stock disponible para nuevos sub-insumos:</strong> 
+                <span class="fw-semibold text-dark">{{ stock_libre }}</span>
+              </div>
+          </div>
+          
+          <form method="post">
+            {% csrf_token %}
+            
+            <div class="row g-3 py-1">
+              <div class="col-md-6">
+                <label for="cantidad" class="form-label">Cantidad de sub-insumos a crear:</label>
+                <input type="number" class="form-control" id="cantidad" name="cantidad" 
+                       min="1" 
+                       value="{{ cantidad_value }}" 
+                       required
+                       oninput="actualizarTotal()">
+              </div>
+              
+              <div class="col-md-6">
+                <label for="cantidad_por_subinsumo" class="form-label">Cantidad por sub-insumo ({{ insumo.get_unidad_display }}):</label>
+                <input type="number" class="form-control" id="cantidad_por_subinsumo" name="cantidad_por_subinsumo" 
+                       min="0.01" step="0.01"
+                       value="{{ cantidad_por_subinsumo_value }}" 
+                       required
+                       oninput="actualizarTotal()">
+              </div>
+            </div>
+
+            <div class="d-flex gap-2 py-2">
+              <a href="{% url 'insumo_lista' %}" class="btn btn-outline-secondary btn-sm w-100 w-md-auto order-2 order-md-1">
+                <i class="bi bi-x-circle"></i>Cancelar
+              </a>
+              <button type="submit" class="btn btn-primary btn-sm w-100 w-md-auto order-1 order-md-2">
+                <i class="bi bi-check-circle"></i>Crear Sub-Insumos
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.container-fluid { max-width: 1000px; }
+.btn-sm { padding: 0.375rem 0.75rem; font-size: 0.875rem; min-width: 100px; }
+</style>
+
+<script>
+function actualizarTotal() {
+    const cantidad = parseInt(document.getElementById('cantidad').value) || 0;
+    const tamano = parseFloat(document.getElementById('cantidad_por_subinsumo').value) || 0;
+    const stockLibre = parseFloat({{ stock_libre }});
+    
+    const totalNecesario = cantidad * tamano;
+    
+    // Actualizar resumen
+    document.getElementById('cantidad-resumen').textContent = cantidad;
+    document.getElementById('tamano-resumen').textContent = tamano.toFixed(2);
+    document.getElementById('total-necesario').textContent = totalNecesario.toFixed(2);
+    
+    // Validar y ajustar si excede
+    if (totalNecesario > stockLibre) {
+        document.getElementById('resumen').className = 'alert alert-danger mt-3';
+        
+        // Ajustar automáticamente la cantidad máxima posible
+        const cantidadMaxima = Math.floor(stockLibre / tamano);
+        if (cantidadMaxima > 0) {
+            document.getElementById('cantidad').value = cantidadMaxima;
+            document.getElementById('cantidad').setAttribute('max', cantidadMaxima);
+            actualizarTotal(); // Recursivo para actualizar con nuevo valor
+        }
+    } else {
+        document.getElementById('resumen').className = 'alert alert-info mt-3';
+        const maxCantidad = Math.floor(stockLibre / tamano);
+        document.getElementById('cantidad').setAttribute('max', maxCantidad > 0 ? maxCantidad : 1);
+    }
+}
+
+// Inicializar
+document.addEventListener('DOMContentLoaded', function() {
+    actualizarTotal();
+});
+</script>
+{% endblock %}

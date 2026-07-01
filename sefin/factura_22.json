@@ -1,0 +1,49 @@
+{
+    "factura": {
+        "numero": "001-001-0000253",
+        "fecha": "2026-06-16",
+        "timbrado": "87654321",
+        "establecimiento": "001",
+        "punto_emision": "001",
+        "estado": "ACTIVA"
+    },
+    "cliente": {
+        "nombre": "Inversiones Capital S.A.",
+        "documento": "80067890-6"
+    },
+    "totales": {
+        "total": 2416000.0
+    },
+    "items": [
+        {
+            "tipo": "servicio",
+            "descripcion": "Cambio de filtro de aire",
+            "cantidad": 1.0,
+            "precio": 86000.0
+        },
+        {
+            "tipo": "servicio",
+            "descripcion": "Cambio de batería",
+            "cantidad": 1.0,
+            "precio": 370000.0
+        },
+        {
+            "tipo": "servicio",
+            "descripcion": "Arreglo motor",
+            "cantidad": 1.0,
+            "precio": 1550000.0
+        },
+        {
+            "tipo": "servicio",
+            "descripcion": "Mantenimiento",
+            "cantidad": 1.0,
+            "precio": 360000.0
+        },
+        {
+            "tipo": "insumo",
+            "descripcion": "INSV-0096 - Lámpara H4 halógena",
+            "cantidad": 2.0,
+            "precio": 25000.0
+        }
+    ]
+}

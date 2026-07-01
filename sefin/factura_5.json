@@ -1,0 +1,25 @@
+{
+    "factura": {
+        "numero": "001-001-0000175",
+        "fecha": "2026-05-19",
+        "timbrado": "87654321",
+        "establecimiento": "001",
+        "punto_emision": "001",
+        "estado": "ACTIVA"
+    },
+    "cliente": {
+        "nombre": "Agropecuaria Productiva S.R.L.",
+        "documento": "80045678-4"
+    },
+    "totales": {
+        "total": 25000.0
+    },
+    "items": [
+        {
+            "tipo": "insumo",
+            "descripcion": "INSV-0096 - Lámpara H4 halógena",
+            "cantidad": 1.0,
+            "precio": 25000.0
+        }
+    ]
+}

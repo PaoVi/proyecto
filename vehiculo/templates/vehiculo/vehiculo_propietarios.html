@@ -1,0 +1,395 @@
+{% extends 'seguridad/base.html' %}
+
+{% block content %}
+<div class="container-fluid py-0">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-10">
+
+      <!-- HEADER -->
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <div>
+          <h2 class="h4 mb-1">PROPIETARIOS DEL VEHÍCULO</h2>
+        </div>
+        <div class="d-flex gap-2">
+        <button type="button" onclick="window.history.back()" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-arrow-left"></i>Volver
+        </button>
+        </div>
+      </div>
+
+      <!-- RESUMEN DEL VEHÍCULO -->
+      <div class="card">
+        <div class="card-body py-1">
+          <div class="row">
+            <div class="col-md-8">
+              <small class="text-muted">Vehículo:</small>
+              <div class="fw-semibold">{{ vehiculo.marca }} {{ vehiculo.modelo }}</div>
+            </div>
+            <div class="col-md-4">
+              <small class="text-muted">Chapa:</small>
+              <div class="fw-semibold"> {% if vehiculo.nro_chapa %} {{ vehiculo.nro_chapa }} {% else %} <span class="text small">Sin chapa </span>{% endif %}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- INFORMACIÓN DE PROPIETARIOS -->
+      <div class="card">
+        <div class="card-body p-0">
+          <div class="list-group list-group-flush">
+            <div class="list-group-item">
+              <div class="row g-3">
+                <!-- TÍTULO QUE ABARCA TODO EL ANCHO -->
+                <div class="col-md-12">
+                  <h6 class="mb-2 border-bottom pb-2 small fw-semibold text-muted">INFORMACIÓN DE PROPIETARIOS</h6>
+                </div>
+
+                <!-- COLUMNA IZQUIERDA - PROPIETARIO -->
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label class="form-label small text-muted">Propietario</label>
+                    {% if vehiculo.propietario %}
+                      <div class="d-flex align-items-start">
+                        <div class="flex-grow-1">
+                          <!-- NOMBRE DEL PROPIETARIO -->
+                          <div class="fw-semibold text-start mb-1">
+                            <i class="bi bi-person text-muted"></i>
+                            {{ vehiculo.propietario.nombre }}
+                          </div>
+                          <!-- DOCUMENTO -->
+                          <div class="small text-muted text-start mb-1">
+                            <i class="bi bi-card-text"></i>
+                            <span class="documento-cell">{{ vehiculo.propietario.numero_documento|default:"Sin documento" }}</span>
+                          </div>
+                          <!-- TELÉFONO -->
+                          <div class="small text-muted text-start mb-1">
+                            <i class="bi bi-telephone"></i>
+                            <span class="telefono-cell">{{ vehiculo.propietario.telefono|default:"Sin teléfono" }}</span>
+                          </div>
+                          <!-- ESTADO -->
+                          <div class="small text-muted text-start">
+                            {% if vehiculo.propietario.is_active %}
+                                <span class="badge bg-success">Activo</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Inactivo</span>
+                            {% endif %}
+                          </div>
+                        </div>
+                        <!-- BOTONES DE ACCIÓN PARA PROPIETARIO -->
+                        <div class="btn-group btn-group-sm ms-2">
+                          {% if perms.seguridad.ver_clientes %}
+                            <a class="btn btn-outline-info btn-sm" title="Ver cliente" href="{% url 'cliente_ver' vehiculo.propietario.pk %}">
+                              <i class="bi bi-eye"></i>
+                            </a>
+                          {% endif %}
+                          {% if perms.seguridad.editar_clientes %}
+                            <a class="btn btn-outline-primary btn-sm" title="Editar cliente" href="{% url 'cliente_editar' vehiculo.propietario.pk %}">
+                              <i class="bi bi-pencil"></i>
+                            </a>
+                          {% endif %}
+                        </div>
+                      </div>
+                    {% else %}
+                      <div class="text-center py-3">
+                        <i class="bi bi-person-x display-6 text-muted mb-2 d-block"></i>
+                        <p class="text-muted mb-0">No hay propietario asignado</p>
+                      </div>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <!-- COLUMNA DERECHA - POSEEDOR -->
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label class="form-label small text-muted">Poseedor/Responsable</label>
+                    {% if vehiculo.poseedor %}
+                      <div class="d-flex align-items-start">
+                        <div class="flex-grow-1">
+                          <!-- NOMBRE DEL POSEEDOR -->
+                          <div class="fw-semibold text-start mb-1">
+                            <i class="bi bi-person text-muted"></i>
+                            {{ vehiculo.poseedor.nombre }}
+                          </div>
+                          <!-- DOCUMENTO -->
+                          <div class="small text-muted text-start mb-1">
+                            <i class="bi bi-card-text"></i>
+                            <span class="documento-cell">{{ vehiculo.poseedor.numero_documento|default:"Sin documento" }}</span>
+                          </div>
+                          <!-- TELÉFONO -->
+                          <div class="small text-muted text-start mb-1">
+                            <i class="bi bi-telephone"></i>
+                            <span class="telefono-cell">{{ vehiculo.poseedor.telefono|default:"Sin teléfono" }}</span>
+                          </div>
+                          <!-- ESTADO -->
+                          <div class="small text-muted text-start">
+                            {% if vehiculo.poseedor.is_active %}
+                                <span class="badge bg-success">Activo</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Inactivo</span>
+                            {% endif %}
+                          </div>
+                        </div>
+                        <!-- BOTONES DE ACCIÓN PARA POSEEDOR -->
+                        <div class="btn-group btn-group-sm ms-2">
+                          {% if perms.seguridad.ver_clientes %}
+                            <a class="btn btn-outline-info btn-sm" title="Ver cliente" href="{% url 'cliente_ver' vehiculo.poseedor.pk %}">
+                              <i class="bi bi-eye"></i>
+                            </a>
+                          {% endif %}
+                          {% if perms.seguridad.editar_clientes %}
+                            <a class="btn btn-outline-primary btn-sm" title="Editar cliente" href="{% url 'cliente_editar' vehiculo.poseedor.pk %}">
+                              <i class="bi bi-pencil"></i>
+                            </a>
+                          {% endif %}
+                        </div>
+                      </div>
+                    {% else %}
+                      <div class="text-center py-3">
+                        <i class="bi bi-person-x display-6 text-muted mb-2 d-block"></i>
+                        <p class="text-muted mb-0">No hay poseedor asignado</p>
+                      </div>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ACCIONES -->
+        <div class="card-footer bg-light py-2">
+          <div class="row align-items-center">
+            <div class="col-md-4 text-start">
+              {% if perms.seguridad.editar_vehiculos %}
+                {% if vehiculo.propietario %}
+                  <button type="button" class="btn btn-outline-danger btn-sm" 
+                          data-bs-toggle="modal" data-bs-target="#eliminarClienteModal"
+                          data-tipo-vinculacion="propietario"
+                          data-cliente-info="{{ vehiculo.propietario.nombre }}"
+                          data-vehiculo-info="{{ vehiculo.marca }} {{ vehiculo.modelo }} ({{ vehiculo.nro_chapa }})"
+                          title="Quitar Propietario">
+                    <i class="bi bi-person-x "></i>Quitar Propietario
+                  </button>
+                {% else %}
+                  <a href="{% url 'vehiculo_vincular_cliente' vehiculo.pk %}" class="btn btn-success btn-sm">
+                    <i class="bi bi-person-plus"></i>Asignar Propietario
+                  </a>
+                {% endif %}
+              {% endif %}
+            </div>
+            
+            <!-- BOTÓN CENTRAL PARA QUITAR AMBOS -->
+            <div class="col-md-4 text-center">
+              {% if perms.seguridad.editar_vehiculos %}
+                {% if vehiculo.propietario and vehiculo.poseedor and vehiculo.propietario.id == vehiculo.poseedor.id %}
+                  <button type="button" class="btn btn-outline-danger btn-sm" 
+                          data-bs-toggle="modal" data-bs-target="#eliminarClienteModal"
+                          data-tipo-vinculacion="ambos"
+                          data-cliente-info="{{ vehiculo.propietario.nombre }}"
+                          data-vehiculo-info="{{ vehiculo.marca }} {{ vehiculo.modelo }} ({{ vehiculo.nro_chapa }})"
+                          title="Quitar Ambos Roles">
+                    <i class="bi bi-people-fill"></i>Quitar Ambos
+                  </button>
+                {% endif %}
+              {% endif %}
+            </div>
+            
+            <div class="col-md-4 text-end">
+              {% if perms.seguridad.editar_vehiculos %}
+                {% if vehiculo.poseedor %}
+                  <button type="button" class="btn btn-outline-danger btn-sm" 
+                          data-bs-toggle="modal" data-bs-target="#eliminarClienteModal"
+                          data-tipo-vinculacion="poseedor"
+                          data-cliente-info="{{ vehiculo.poseedor.nombre }}"
+                          data-vehiculo-info="{{ vehiculo.marca }} {{ vehiculo.modelo }} ({{ vehiculo.nro_chapa }})"
+                          title="Quitar Poseedor">
+                    <i class="bi bi-person-x "></i>Quitar Poseedor
+                  </button>
+                {% else %}
+                  <a href="{% url 'vehiculo_vincular_cliente' vehiculo.pk %}" class="btn btn-success btn-sm">
+                    <i class="bi bi-person-plus"></i>Asignar Poseedor
+                  </a>
+                {% endif %}
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MODAL UNIFICADO PARA ELIMINAR CLIENTE -->
+<div class="modal fade" id="eliminarClienteModal" tabindex="-1" aria-labelledby="eliminarClienteModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title" id="eliminarClienteModalLabel">Quitar Cliente</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <p>¿Quitar <strong id="tipoVinculacionEliminar"></strong> <strong id="clienteInfoEliminar"></strong> del vehículo <strong id="vehiculoClienteInfoEliminar"></strong>?</p>
+        <p class="small text-muted mt-1" id="infoAdicionalEliminar"></p>
+        <p class="small text-muted">Esta acción no elimina al cliente, solo lo desvincula de este vehículo.</p>
+      </div>
+      <div class="modal-footer">
+        <form method="post" action="{% url 'vehiculo_eliminar_cliente' vehiculo.pk %}" id="eliminarClienteForm">
+          {% csrf_token %}
+          <input type="hidden" name="tipo_vinculacion" id="tipoVinculacionInput">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-danger btn-sm" id="botonEliminar">Quitar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.container-fluid { max-width: 1000px; }
+.list-group-item { padding: 1rem 1.25rem; border-bottom: 1px solid #e9ecef; }
+.list-group-item:last-child { border-bottom: none; }
+.btn-sm { padding: 0.25rem 0.5rem; font-size: 0.75rem; }
+
+/* Estilos para los botones de acción */
+.btn-group-sm > .btn {
+  padding: 0.2rem 0.4rem;
+  font-size: 0.7rem;
+}
+
+/* Estilos para el modal de eliminación */
+#eliminarClienteModal .modal-dialog {
+  max-width: 300px;
+  width: 90%;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  min-height: calc(100% - 2rem);
+}
+#eliminarClienteModal .modal-content {
+  min-height: 50px;
+}
+#eliminarClienteModal .modal-title,
+#eliminarClienteModal .modal-body {
+  text-align: center;
+}
+#eliminarClienteModal .modal-footer {
+  justify-content: center;
+  gap: .5rem;
+}
+#eliminarClienteModal .modal-footer .btn {
+  padding: 0.45rem 0.9rem;
+  font-size: 0.75rem;
+  min-width: 120px;
+  line-height: 1.15;
+  border-radius: 8px;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Modal unificado para eliminar cliente
+  const modalCliente = document.getElementById('eliminarClienteModal');
+  modalCliente.addEventListener('show.bs.modal', function(event) {
+    const button = event.relatedTarget;
+    
+    const tipoVinculacion = button.getAttribute('data-tipo-vinculacion');
+    const clienteInfo = button.getAttribute('data-cliente-info');
+    const vehiculoInfo = button.getAttribute('data-vehiculo-info');
+    
+    // Configurar textos según el tipo de vinculación
+    let tipoTexto = '';
+    let textoBoton = '';
+    let infoAdicional = '';
+    
+    if (tipoVinculacion === 'propietario') {
+      tipoTexto = 'PROPIETARIO';
+      textoBoton = 'Quitar Propietario';
+      infoAdicional = 'Se eliminará solo el rol de propietario.';
+    } else if (tipoVinculacion === 'poseedor') {
+      tipoTexto = 'POSEEDOR';
+      textoBoton = 'Quitar Poseedor';
+      infoAdicional = 'Se eliminará solo el rol de poseedor.';
+    } else if (tipoVinculacion === 'ambos') {
+      tipoTexto = 'PROPIETARIO Y POSEEDOR';
+      textoBoton = 'Quitar Ambos';
+      infoAdicional = 'Se eliminarán ambos roles del cliente.';
+    }
+    
+    document.getElementById('tipoVinculacionEliminar').textContent = tipoTexto;
+    document.getElementById('clienteInfoEliminar').textContent = clienteInfo;
+    document.getElementById('vehiculoClienteInfoEliminar').textContent = vehiculoInfo;
+    document.getElementById('infoAdicionalEliminar').textContent = infoAdicional;
+    document.getElementById('tipoVinculacionInput').value = tipoVinculacion;
+    document.getElementById('botonEliminar').textContent = textoBoton;
+  });
+
+  // Función para formatear documento (cédula/RUC) con puntos
+  function formatDocumento(documento) {
+    if (!documento || documento === 'Sin documento') return documento;
+    
+    const docLimpio = documento.toString().trim();
+    
+    if (docLimpio.includes('-')) {
+      const partes = docLimpio.split('-');
+      const partePrincipal = partes[0];
+      const digitoVerificador = partes[1];
+      const parteFormateada = partePrincipal.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+      return `${parteFormateada}-${digitoVerificador}`;
+    } else {
+      return docLimpio.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    }
+  }
+
+  // Función para formatear teléfono
+  function formatTelefono(telefono) {
+    if (!telefono || telefono === 'Sin teléfono') return telefono;
+    
+    const telefonoLimpio = telefono.toString().replace(/\D/g, '');
+    
+    if (!telefonoLimpio) return telefono;
+    
+    if (telefonoLimpio.startsWith('595') && telefonoLimpio.length === 12) {
+      return `+${telefonoLimpio.substring(0, 3)} ${telefonoLimpio.substring(3, 6)} ${telefonoLimpio.substring(6)}`;
+    }
+    else if (telefonoLimpio.startsWith('595') && telefonoLimpio.length === 11) {
+      return `+${telefonoLimpio.substring(0, 3)} ${telefonoLimpio.substring(3, 6)} ${telefonoLimpio.substring(6)}`;
+    }
+    else if (telefonoLimpio.startsWith('098') && telefonoLimpio.length === 10) {
+      return `(${telefonoLimpio.substring(0, 4)}) ${telefonoLimpio.substring(4, 7)}-${telefonoLimpio.substring(7)}`;
+    }
+    else if (telefonoLimpio.startsWith('098') && telefonoLimpio.length === 9) {
+      return `(${telefonoLimpio.substring(0, 3)}) ${telefonoLimpio.substring(3, 6)}-${telefonoLimpio.substring(6)}`;
+    }
+    else if (telefonoLimpio.length >= 7) {
+      return telefonoLimpio.replace(/(\d{3})(\d{3})(\d+)/, '$1 $2 $3');
+    }
+    
+    return telefono;
+  }
+
+  // Aplicar formato a documentos y teléfonos
+  function aplicarFormatos() {
+    const documentoElements = document.querySelectorAll('.documento-cell');
+    documentoElements.forEach(element => {
+      const originalText = element.textContent.trim();
+      if (originalText && originalText !== '—' && originalText !== 'Sin documento') {
+        element.textContent = formatDocumento(originalText);
+      }
+    });
+
+    const telefonoElements = document.querySelectorAll('.telefono-cell');
+    telefonoElements.forEach(element => {
+      const originalText = element.textContent.trim();
+      if (originalText && originalText !== '—' && originalText !== 'Sin teléfono') {
+        element.textContent = formatTelefono(originalText);
+      }
+    });
+  }
+
+  // Ejecutar cuando el DOM esté listo
+  aplicarFormatos();
+});
+</script>
+
+{% endblock %}

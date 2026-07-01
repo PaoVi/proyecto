@@ -1,0 +1,25 @@
+{
+    "factura": {
+        "numero": "001-001-0000170",
+        "fecha": "2026-05-19",
+        "timbrado": "87654321",
+        "establecimiento": "001",
+        "punto_emision": "001",
+        "estado": "ACTIVA"
+    },
+    "cliente": {
+        "nombre": "Importadora del Paraguay S.R.L.",
+        "documento": "80023456-2"
+    },
+    "totales": {
+        "total": 85000.0
+    },
+    "items": [
+        {
+            "tipo": "insumo",
+            "descripcion": "INSV-0121 - Lámpara LED H7 6000K",
+            "cantidad": 1.0,
+            "precio": 85000.0
+        }
+    ]
+}

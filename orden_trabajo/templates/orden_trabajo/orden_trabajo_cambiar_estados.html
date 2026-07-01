@@ -1,0 +1,890 @@
+{% extends 'seguridad/base.html' %}
+{% load orden_filters %}
+
+{% block content %}
+<div class="container-fluid py-0">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-12">
+
+      <!-- HEADER -->
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <div>
+          <h2 class="h4 mb-1">CAMBIAR ESTADOS DE ÓRDENES DE TRABAJO</h2>
+        </div>
+        <div class="d-flex gap-2">
+          <button type="button" onclick="window.history.back()" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i>Volver
+          </button>
+        </div>
+      </div>
+
+      <!-- FILTROS -->
+      <div class="card mb-2">
+        <div class="card-body p-2">
+          <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-8">
+              <label class="form-label small">BUSCAR ORDEN / CLIENTE / VEHÍCULO</label>
+              <input type="text" name="q" value="{{ request.GET.q }}" class="form-control form-control-sm" style="height: 33px" 
+                     placeholder="Ej.: 120, Juan, Toyota, ABC123">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label small">&nbsp;</label>
+              <button type="submit" class="btn btn-outline-primary w-100 btn-sm" style="height: 33px">
+                <i class="bi bi-search"></i>Buscar
+              </button>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label small">&nbsp;</label>
+              <a href="{% url 'orden_trabajo_cambiar_estados' %}" class="btn btn-outline-secondary w-100 btn-sm" style="height: 33px">
+                <i class="bi bi-arrow-clockwise"></i> Limpiar
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- LISTA DE ÓRDENES -->
+      <div class="card">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th style="width: 6%">#Orden</th>
+                    <th style="width: 12%">Cliente</th>
+                    <th style="width: 12%">Vehículo</th>
+                    <th style="width: 8%">Creación</th>
+                    <th style="width: 9%">Estado</th>
+                    <th style="width: 8%">Total</th>
+                    <th style="width: 40%" class="text-center">Servicios / Empleados</th>
+                    <th style="width: 10%" class="text-center">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+              {% for orden in ordenes %}
+              <tr class="
+                {% if orden.estado == 'en_revision' %}table-warning
+                {% elif orden.estado == 'rechazado' %}table-danger
+                {% elif orden.estado == 'aprobado' %}table-success
+                {% endif %}">
+                <td class="fw-semibold">{{ orden.id }}</td>
+                <td>
+                  <div class="fw-semibold text-start">{{ orden.cliente.nombre }}</div>
+                  {% if orden.cliente.telefono %}
+                    <div class="text-muted small text-start">{{ orden.cliente.telefono }}</div>
+                  {% endif %}
+                </td>
+                <td>
+                  <div class="fw-semibold text-start">{{ orden.vehiculo.marca }} {{ orden.vehiculo.modelo }}</div>
+                  <div class="text-muted small text-start">Chapa: {{ orden.vehiculo.nro_chapa }}</div>
+                </td>
+                <td>{{ orden.fecha_creacion|date:"d/m/Y" }}</td>
+                <td>
+                  <span class="fw-semibold
+                    {% if orden.estado == 'completado' %}text-success
+                    {% elif orden.estado == 'facturado' %}text-success
+                    {% elif orden.estado == 'cancelado' %}text-danger
+                    {% elif orden.estado == 'en_proceso' %}text-primary
+                    {% elif orden.estado == 'espera_repuestos' %}text-info
+                    {% elif orden.estado == 'pausado' %}text-warning
+                    {% elif orden.estado == 'en_revision' %}text-warning
+                    {% elif orden.estado == 'aprobado' %}text-success
+                    {% elif orden.estado == 'rechazado' %}text-danger
+                    {% else %}text-secondary{% endif %}">
+                    {{ orden.get_estado_display }}
+                  </span>
+                  {% if orden.estado == 'rechazado' %}
+                    <span class="badge bg-danger mt-1 d-block">Requiere corrección</span>
+                  {% endif %}
+                </td>
+                <td class="fw-semibold">₲ <span class="total-valor">{{ orden.total|floatformat:0 }}</span></td>
+                
+                <!-- COLUMNA DE SERVICIOS Y EMPLEADOS CON CONTROLES DE TIEMPO -->
+                <td class="p-2">
+                  {% if orden.estado == 'en_proceso' %}
+                    {% for servicio_orden in orden.ordenservicio_set.all %}
+                      <div class="border rounded mb-2 p-2 bg-light">
+                        <div class="fw-semibold small text-primary">
+                          {{ servicio_orden.servicio.nombre }}
+                          <span class="text-muted ms-1">[{{ servicio_orden.servicio.tiempo_min_estimado|minutos_to_hhmm }}]</span>
+                        </div>
+                        
+                        {% with asignaciones=servicio_orden.asignacionorden_set.all %}
+                          {% if asignaciones %}
+                            <div class="mt-1">
+                              {% for asignacion in asignaciones %}
+                                {% with registro=asignacion.registro_tiempo_real %}
+                                  <div class="d-flex justify-content-between align-items-center border-bottom pb-1 mt-1">
+                                    <div class="small fw-semibold" style="min-width: 100px;">
+                                      {{ asignacion.empleado.nombre }}
+                                    </div>
+                                    
+                                    {% if registro %}
+                                      {% if registro.estado == 'en_curso' %}
+                                        <div class="d-flex align-items-center gap-2">
+                                          <span class="badge bg-primary">Trabajando</span>
+                                          <i class="bi bi-play-circle-fill text-success"></i>{{ registro.fecha_inicio|date:"H:i" }}
+                                          <span class="fw-bold text-primary timer-display" data-inicio="{{ registro.fecha_inicio|date:"Y-m-d H:i:s" }}" id="timer-{{ registro.id }}">00:00</span>
+                                          <form method="post" action="{% url 'pausar_trabajo_empleado' registro.id %}" class="d-inline">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-outline-warning btn-sm py-0 px-1" title="Pausar">
+                                              <i class="bi bi-pause-fill"></i>
+                                            </button>
+                                          </form>
+                                          <form method="post" action="{% url 'finalizar_trabajo_empleado' registro.id %}" class="d-inline">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-outline-success btn-sm py-0 px-1" title="Finalizar">
+                                              <i class="bi bi-check-lg"></i>
+                                            </button>
+                                          </form>
+                                        </div>
+                                      {% elif registro.estado == 'pausado' %}
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="badge bg-warning text-dark">Pausado</span>
+                                            <i class="bi bi-play-circle-fill text-success"></i>{{ registro.fecha_inicio|date:"H:i" }}
+                                            <i class="bi bi-stop-circle-fill text-warning"></i> {{ registro.tiempo_formateado }}
+                                            <form method="post" action="{% url 'reanudar_trabajo_empleado' registro.id %}" class="d-inline">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-outline-primary btn-sm py-0 px-1" title="Reanudar">
+                                                    <i class="bi bi-play-fill"></i>
+                                                </button>
+                                            </form>
+                                            <!-- BOTÓN FINALIZAR DESHABILITADO PARA PAUSADO -->
+                                            <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-1" title="Debe reanudar primero" disabled>
+                                                <i class="bi bi-check-lg"></i>
+                                            </button>
+                                        </div>
+                                      {% elif registro.estado == 'finalizado' %}
+                                        <div class="d-flex align-items-center gap-2">
+                                          <span class="badge bg-success">Completado</span>
+                                          <i class="bi bi-play-circle-fill text-success"></i>{{ registro.fecha_inicio|date:"H:i" }}
+                                          <i class="bi bi-play-circle-fill text-danger"></i>{{ registro.fecha_fin|date:"H:i" }}
+                                          <span class="fw-semibold text-success">Total: {{ registro.tiempo_formateado }}</span>
+                                        </div>
+                                      {% endif %}
+                                    {% else %}
+                                      <div class="d-flex align-items-center gap-2">
+                                        <span class="badge bg-secondary">No iniciado</span>
+                                        <form method="post" action="{% url 'iniciar_trabajo_empleado' orden.id servicio_orden.id %}" class="d-inline">
+                                          {% csrf_token %}
+                                          <input type="hidden" name="empleado_id" value="{{ asignacion.empleado.id_empleado }}">
+                                          <button type="submit" class="btn btn-outline-success btn-sm py-0" title="Iniciar trabajo">
+                                            <i class="bi bi-play-fill"></i> Iniciar
+                                          </button>
+                                        </form>
+                                      </div>
+                                    {% endif %}
+                                  </div>
+                                {% endwith %}
+                              {% endfor %}
+                            </div>
+                          {% else %}
+                            <div class="text-muted small mt-1">Sin empleados asignados</div>
+                          {% endif %}
+                        {% endwith %}
+                      </div>
+                    {% endfor %}
+                  {% elif orden.estado == 'en_revision' %}
+                    <div class="text-center">
+                      <i class="bi bi-clipboard-check text-warning"></i>
+                      <span class="text-muted small">Orden en revisión de calidad</span>
+                    </div>
+                  {% elif orden.estado == 'rechazado' %}
+                    <div class="text-center">
+                      <i class="bi bi-x-circle text-danger"></i>
+                      <span class="text-muted small">Orden rechazada - Requiere corrección</span>
+                      {% if orden.servicios_rechazados %}
+                        <div class="small text-danger mt-1">
+                          Servicios rechazados: 
+                          {% for sr in orden.servicios_rechazados %}
+                            <span class="badge bg-danger">{{ sr }}</span>
+                          {% endfor %}
+                        </div>
+                      {% endif %}
+                    </div>
+                  {% elif orden.estado == 'aprobado' %}
+                    <div class="text-center">
+                      <i class="bi bi-check-circle text-success"></i>
+                      <span class="text-muted small">Orden aprobada - Lista para facturar</span>
+                    </div>
+                  {% else %}
+                    <div class="text-muted small text-center">
+                      {% if orden.estado == 'completado'%}
+                        <i class="bi bi-check-circle"></i> Orden completada - Pendiente de revisión
+                      {% else %}
+                        <i class="bi bi-info-circle"></i> NO ESTÁ EN PROCESO
+                      {% endif %}
+                    </div>
+                  {% endif %}
+                </td>
+
+                <!-- ACCIONES DE CAMBIO DE ESTADO (BOTONES ACTUALIZADOS) -->
+                <td class="text-center">
+                  <div class="btn-group btn-group-sm" role="group">
+                    <!-- VER (siempre disponible) -->
+                    <a href="{% url 'orden_trabajo_ver' orden.id %}" class="btn btn-outline-info btn-sm" title="Ver Detalles">
+                      <i class="bi bi-eye"></i>
+                    </a>
+
+                    <!-- ACCIONES SEGÚN ESTADO ACTUAL (NUEVO FLUJO) -->
+                    {% if orden.estado == 'pendiente' %}
+                      <button type="button" class="btn btn-outline-info btn-sm" data-bs-toggle="modal" data-bs-target="#esperaRepuestosModal" data-orden-id="{{ orden.id }}" data-orden-info="OT #{{ orden.id }} - {{ orden.cliente.nombre }} - {{ orden.vehiculo.marca }} {{ orden.vehiculo.modelo }}" data-action-url="{% url 'orden_trabajo_cambiar_estado' orden.id %}" title="Espera Repuestos">
+                        <i class="bi bi-clock"></i>
+                      </button>
+                      <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#iniciarOrdenModal" data-orden-id="{{ orden.id }}" data-orden-info="OT #{{ orden.id }} - {{ orden.cliente.nombre }} - {{ orden.vehiculo.marca }} {{ orden.vehiculo.modelo }}" data-action-url="{% url 'orden_trabajo_cambiar_estado' orden.id %}" title="Iniciar Orden">
+                        <i class="bi bi-play"></i>
+                      </button>
+                      <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#cancelarOrdenModal" data-orden-id="{{ orden.id }}" data-orden-info="OT #{{ orden.id }} - {{ orden.cliente.nombre }} - {{ orden.vehiculo.marca }} {{ orden.vehiculo.modelo }}" data-action-url="{% url 'orden_trabajo_cambiar_estado' orden.id %}" title="Cancelar Orden">
+                        <i class="bi bi-x-lg"></i>
+                      </button>
+
+                    {% elif orden.estado == 'espera_repuestos' %}
+                      <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#reanudarOrdenModal" data-orden-id="{{ orden.id }}" data-orden-info="OT #{{ orden.id }} - {{ orden.cliente.nombre }} - {{ orden.vehiculo.marca }} {{ orden.vehiculo.modelo }}" data-action-url="{% url 'orden_trabajo_cambiar_estado' orden.id %}" title="Reanudar (En Proceso)">
+                        <i class="bi bi-play"></i>
+                      </button>
+                      <button type="button" class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#pausarOrdenModal" data-orden-id="{{ orden.id }}" data-orden-info="OT #{{ orden.id }} - {{ orden.cliente.nombre }} - {{ orden.vehiculo.marca }} {{ orden.vehiculo.modelo }}" data-action-url="{% url 'orden_trabajo_cambiar_estado' orden.id %}" title="Pausar Orden">
+                        <i class="bi bi-pause"></i>
+                      </button>
+                      <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#cancelarOrdenModal" data-orden-id="{{ orden.id }}" data-orden-info="OT #{{ orden.id }} - {{ orden.cliente.nombre }} - {{ orden.vehiculo.marca }} {{ orden.vehiculo.modelo }}" data-action-url="{% url 'orden_trabajo_cambiar_estado' orden.id %}" title="Cancelar Orden">
+                        <i class="bi bi-x-lg"></i>
+                      </button>
+
+                    {% elif orden.estado == 'en_proceso' %}
+                      <button type="button" class="btn btn-outline-info btn-sm" data-bs-toggle="modal" data-bs-target="#esperaRepuestosModal" data-orden-id="{{ orden.id }}" data-orden-info="OT #{{ orden.id }} - {{ orden.cliente.nombre }} - {{ orden.vehiculo.marca }} {{ orden.vehiculo.modelo }}" data-action-url="{% url 'orden_trabajo_cambiar_estado' orden.id %}" title="Espera Repuestos">
+                        <i class="bi bi-clock"></i>
+                      </button>
+                      <button type="button" class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#pausarOrdenModal" data-orden-id="{{ orden.id }}" data-orden-info="OT #{{ orden.id }} - {{ orden.cliente.nombre }} - {{ orden.vehiculo.marca }} {{ orden.vehiculo.modelo }}" data-action-url="{% url 'orden_trabajo_cambiar_estado' orden.id %}" title="Pausar Orden">
+                        <i class="bi bi-pause"></i>
+                      </button>
+                      <button type="button" class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#completarOrdenModal" data-orden-id="{{ orden.id }}" data-orden-info="OT #{{ orden.id }} - {{ orden.cliente.nombre }} - {{ orden.vehiculo.marca }} {{ orden.vehiculo.modelo }}" data-action-url="{% url 'orden_trabajo_cambiar_estado' orden.id %}" title="Completar Orden">
+                        <i class="bi bi-check-lg"></i>
+                      </button>
+                      <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#cancelarOrdenModal" data-orden-id="{{ orden.id }}" data-orden-info="OT #{{ orden.id }} - {{ orden.cliente.nombre }} - {{ orden.vehiculo.marca }} {{ orden.vehiculo.modelo }}" data-action-url="{% url 'orden_trabajo_cambiar_estado' orden.id %}" title="Cancelar Orden">
+                        <i class="bi bi-x-lg"></i>
+                      </button>
+
+                    {% elif orden.estado == 'pausado' %}
+                      <button type="button" class="btn btn-outline-info btn-sm" data-bs-toggle="modal" data-bs-target="#esperaRepuestosModal" data-orden-id="{{ orden.id }}" data-orden-info="OT #{{ orden.id }} - {{ orden.cliente.nombre }} - {{ orden.vehiculo.marca }} {{ orden.vehiculo.modelo }}" data-action-url="{% url 'orden_trabajo_cambiar_estado' orden.id %}" title="Espera Repuestos">
+                        <i class="bi bi-clock"></i>
+                      </button>
+                      <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#reanudarOrdenModal" data-orden-id="{{ orden.id }}" data-orden-info="OT #{{ orden.id }} - {{ orden.cliente.nombre }} - {{ orden.vehiculo.marca }} {{ orden.vehiculo.modelo }}" data-action-url="{% url 'orden_trabajo_cambiar_estado' orden.id %}" title="Reanudar (En Proceso)">
+                        <i class="bi bi-play"></i>
+                      </button>
+                      <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#cancelarOrdenModal" data-orden-id="{{ orden.id }}" data-orden-info="OT #{{ orden.id }} - {{ orden.cliente.nombre }} - {{ orden.vehiculo.marca }} {{ orden.vehiculo.modelo }}" data-action-url="{% url 'orden_trabajo_cambiar_estado' orden.id %}" title="Cancelar Orden">
+                        <i class="bi bi-x-lg"></i>
+                      </button>
+
+                    {% elif orden.estado == 'completado' %}
+                      <!-- Enviar a Revisión CON MODAL -->
+                      <button type="button" 
+                              class="btn btn-outline-warning btn-sm" 
+                              title="Enviar a Revisión"
+                              data-bs-toggle="modal" 
+                              data-bs-target="#enviarRevisionModal"
+                              data-orden-id="{{ orden.id }}"
+                              data-orden-info="Orden #{{ orden.id }} - {{ orden.cliente.nombre }} - {{ orden.vehiculo.marca }} {{ orden.vehiculo.modelo }}">
+                        <i class="bi bi-clipboard-check"></i>
+                      </button>
+
+                    {% elif orden.estado == 'en_revision' %}
+                      <!-- NUEVO: Desde en_revision se puede ir a la pantalla de revisión -->
+                      <a href="{% url 'orden_revision' orden.id %}" class="btn btn-outline-primary btn-sm" title="Ir a Revisión de Calidad">
+                        <i class="bi bi-clipboard-check"></i>
+                      </a>
+
+                    {% elif orden.estado == 'rechazado' %}
+                      <!-- NUEVO: Desde rechazado se puede reanudar para corregir -->
+                      <a href="{% url 'orden_reanudar_desde_rechazo' orden.id %}" class="btn btn-outline-warning btn-sm" title="Reanudar para corregir" onclick="return confirm('⚠️ ¿Reanudar esta orden?\n\nSOLO podrá modificar los servicios RECHAZADOS.\nLos servicios APROBADOS quedarán BLOQUEADOS.')">
+                        <i class="bi bi-arrow-return-left"></i>
+                      </a>
+
+                    {% elif orden.estado == 'aprobado' %}
+                      <!-- NUEVO: Desde aprobado se puede facturar -->
+                      <a href="{% url 'generar_factura_desde_orden' orden.id %}" class="btn btn-outline-success btn-sm" title="Generar Factura">
+                        <i class="bi bi-receipt"></i>
+                      </a>
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="8" class="text-center py-4 text-muted">
+                  <i class="bi bi-inbox display-4 d-block mb-2"></i>
+                  No hay órdenes para gestionar
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- PAGINACIÓN -->
+        {% if ordenes.has_other_pages %}
+        <div class="card-body pt-2">
+          <div class="d-flex justify-content-between align-items-center">
+            <small class="text-muted">
+              Mostrando {{ ordenes.start_index }}–{{ ordenes.end_index }} de {{ ordenes.paginator.count }} órdenes
+            </small>
+            <ul class="pagination pagination-sm mb-0">
+              {% if ordenes.has_previous %}
+                <li class="page-item">
+                  <a class="page-link" href="?page=1{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">«</a>
+                </li>
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ ordenes.previous_page_number }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">‹</a>
+                </li>
+              {% else %}
+                <li class="page-item disabled"><span class="page-link">«</span></li>
+                <li class="page-item disabled"><span class="page-link">‹</span></li>
+              {% endif %}
+
+              {% for i in ordenes.paginator.page_range %}
+                {% if i == ordenes.number %}
+                  <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+                {% elif i >= ordenes.number|add:'-2' and i <= ordenes.number|add:'2' %}
+                  <li class="page-item">
+                    <a class="page-link" href="?page={{ i }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">{{ i }}</a>
+                  </li>
+                {% endif %}
+              {% endfor %}
+
+              {% if ordenes.has_next %}
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ ordenes.next_page_number }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">›</a>
+                </li>
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ ordenes.paginator.num_pages }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">»</a>
+                </li>
+              {% else %}
+                <li class="page-item disabled"><span class="page-link">›</span></li>
+                <li class="page-item disabled"><span class="page-link">»</span></li>
+              {% endif %}
+            </ul>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MODALES PARA CADA TRANSICIÓN -->
+
+<!-- Modal: Espera Repuestos -->
+<div class="modal fade" id="esperaRepuestosModal" tabindex="-1" aria-labelledby="esperaRepuestosModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title" id="esperaRepuestosModalLabel">Espera de Repuestos</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body text-center">
+        <div class="mb-3"><i class="bi bi-clock text-info display-6"></i></div>
+        <p>¿Marcar la orden como <strong class="text-info">ESPERA REPUESTOS</strong>?</p>
+        <p class="small text-muted mt-1" id="ordenInfoEsperaRepuestos"></p>
+      </div>
+      <div class="modal-footer justify-content-center">
+        <form method="post" action="" id="esperaRepuestosForm">
+          {% csrf_token %}
+          <input type="hidden" name="estado" value="espera_repuestos">
+          <input type="hidden" name="origen" value="lista">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-info btn-sm">Confirmar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Iniciar Orden -->
+<div class="modal fade" id="iniciarOrdenModal" tabindex="-1" aria-labelledby="iniciarOrdenModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title" id="iniciarOrdenModalLabel">Marcar como En Proceso</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body text-center">
+        <div class="mb-3"><i class="bi bi-play-circle text-primary display-6"></i></div>
+        <p>¿Marcar la orden como <strong class="text-primary">EN PROCESO</strong>?</p>
+        <p class="small text-muted mt-1" id="ordenInfoIniciar"></p>
+      </div>
+      <div class="modal-footer justify-content-center">
+        <form method="post" action="" id="iniciarOrdenForm">
+          {% csrf_token %}
+          <input type="hidden" name="estado" value="en_proceso">
+          <input type="hidden" name="origen" value="lista">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary btn-sm">Confirmar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Reanudar Orden -->
+<div class="modal fade" id="reanudarOrdenModal" tabindex="-1" aria-labelledby="reanudarOrdenModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title" id="reanudarOrdenModalLabel">Reanudar Orden</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body text-center">
+        <div class="mb-3"><i class="bi bi-play-circle text-primary display-6"></i></div>
+        <p>¿Reanudar la orden como <strong class="text-primary">EN PROCESO</strong>?</p>
+        <p class="small text-muted mt-1" id="ordenInfoReanudar"></p>
+      </div>
+      <div class="modal-footer justify-content-center">
+        <form method="post" action="" id="reanudarOrdenForm">
+          {% csrf_token %}
+          <input type="hidden" name="estado" value="en_proceso">
+          <input type="hidden" name="origen" value="lista">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary btn-sm">Reanudar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Pausar Orden -->
+<div class="modal fade" id="pausarOrdenModal" tabindex="-1" aria-labelledby="pausarOrdenModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title" id="pausarOrdenModalLabel">Pausar Orden</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body text-center">
+        <div class="mb-3"><i class="bi bi-pause-circle text-warning display-6"></i></div>
+        <p>¿Marcar la orden como <strong class="text-warning">PAUSADO</strong>?</p>
+        <p class="small text-muted mt-1" id="ordenInfoPausar"></p>
+      </div>
+      <div class="modal-footer justify-content-center">
+        <form method="post" action="" id="pausarOrdenForm">
+          {% csrf_token %}
+          <input type="hidden" name="estado" value="pausado">
+          <input type="hidden" name="origen" value="lista">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-warning btn-sm">Pausar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Completar Orden -->
+<div class="modal fade" id="completarOrdenModal" tabindex="-1" aria-labelledby="completarOrdenModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title" id="completarOrdenModalLabel">Completar Orden</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body text-center">
+        <div class="mb-3"><i class="bi bi-check-circle text-success display-6"></i></div>
+        <p>¿Marcar la orden como <strong class="text-success">COMPLETADO</strong>?</p>
+        <p class="small text-muted mt-1" id="ordenInfoCompletar"></p>
+      </div>
+      <div class="modal-footer justify-content-center">
+        <form method="post" action="" id="completarOrdenForm">
+          {% csrf_token %}
+          <input type="hidden" name="estado" value="completado">
+          <input type="hidden" name="origen" value="lista">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-success btn-sm">Confirmar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Cancelar Orden -->
+<div class="modal fade" id="cancelarOrdenModal" tabindex="-1" aria-labelledby="cancelarOrdenModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title" id="cancelarOrdenModalLabel">Cancelar Orden</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body text-center">
+        <div class="mb-3"><i class="bi bi-x-circle text-danger display-6"></i></div>
+        <p>¿Está seguro de <strong class="text-danger">CANCELAR</strong> la orden?</p>
+        <p class="small text-muted mt-1" id="ordenInfoCancelar"></p>
+      </div>
+      <div class="modal-footer justify-content-center">
+        <form method="post" action="" id="cancelarOrdenForm">
+          {% csrf_token %}
+          <input type="hidden" name="estado" value="cancelado">
+          <input type="hidden" name="origen" value="lista">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">No</button>
+          <button type="submit" class="btn btn-danger btn-sm">Cancelar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PARA ENVIAR A REVISIÓN (desde estado COMPLETADO) -->
+<div class="modal fade" id="enviarRevisionModal" tabindex="-1" aria-labelledby="enviarRevisionModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title" id="enviarRevisionModalLabel">Enviar a Revisión</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body text-center">
+        <div class="mb-3">
+          <i class="bi bi-clipboard-check text-warning display-6"></i>
+        </div>
+        <p>¿Desea <strong class="text-warning">ENVIAR A REVISIÓN DE CALIDAD</strong> esta orden de trabajo?</p>
+        <p class="small text-muted mt-1" id="ordenInfoEnviarRevision"></p>
+      </div>
+      <div class="modal-footer justify-content-center">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-warning btn-sm" id="confirmarEnviarRevision">Enviar a Revisión</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.table td, .table th {
+  padding: 0.5rem 0.75rem;
+  vertical-align: middle;
+}
+
+.modal-dialog.modal-sm {
+  max-width: 350px;
+  width: 50%;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  min-height: calc(100% - 2rem);
+}
+.modal-content {
+  min-height: 50px;
+}
+.modal-title, .modal-body {
+  text-align: center;
+}
+.modal-footer {
+  justify-content: center;
+  gap: .4rem;
+}
+.modal-footer .btn {
+  padding: 0.45rem 0.9rem;
+  font-size: 0.75rem;
+  min-width: 120px;
+  line-height: 1.15;
+  border-radius: 20px;
+}
+
+.table-warning {
+  background-color: #fff3cd !important;
+}
+.table-danger {
+  background-color: #f8d7da !important;
+}
+.table-success {
+  background-color: #d1e7dd !important;
+}
+
+.swal2-popup {
+    width: 350px !important;
+    font-size: 1.2rem !important;
+    padding: 0.9rem !important;
+}
+
+.swal2-title {
+    font-size: 0.95rem !important;
+    padding: 0.3rem 0 0 0 !important;
+    margin-bottom: 0 !important;
+}
+
+/* ICONOS MÁS PEQUEÑOS */
+.swal2-icon.swal2-warning,
+.swal2-icon.swal2-error {
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    border-width: 2px !important;
+    margin: 0 auto 0.3rem auto !important;
+}
+
+.swal2-icon.swal2-warning .swal2-icon-content {
+    font-size: 1.4rem !important;
+}
+
+/* X DEL ERROR COMPLETAMENTE CORREGIDA */
+.swal2-icon.swal2-error {
+    position: relative !important;
+}
+
+.swal2-icon.swal2-error .swal2-x-mark {
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: 24px !important;
+    height: 24px !important;
+    margin: 0 !important;
+}
+
+.swal2-icon.swal2-error .swal2-x-mark-line-left,
+.swal2-icon.swal2-error .swal2-x-mark-line-right {
+    position: absolute !important;
+    height: 3px !important;
+    width: 20px !important;
+    border-radius: 2px !important;
+}
+
+.swal2-icon.swal2-error .swal2-x-mark-line-left {
+    left: 2px !important;
+    top: 10px !important;
+    transform: rotate(45deg) !important;
+}
+
+.swal2-icon.swal2-error .swal2-x-mark-line-right {
+    right: 2px !important;
+    top: 10px !important;
+    transform: rotate(-45deg) !important;
+}
+
+/* BOTÓN MÁS PEQUEÑO */
+.swal2-confirm {
+    padding: 0.3rem 1rem !important;
+    font-size: 0.75rem !important;
+    margin-top: 0 !important;
+}
+
+.swal2-actions {
+    margin-top: 0.5rem !important;
+}
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Configurar todos los modales de cambio de estado
+  const modals = [
+    { id: 'esperaRepuestosModal', formId: 'esperaRepuestosForm', infoId: 'ordenInfoEsperaRepuestos' },
+    { id: 'iniciarOrdenModal', formId: 'iniciarOrdenForm', infoId: 'ordenInfoIniciar' },
+    { id: 'reanudarOrdenModal', formId: 'reanudarOrdenForm', infoId: 'ordenInfoReanudar' },
+    { id: 'pausarOrdenModal', formId: 'pausarOrdenForm', infoId: 'ordenInfoPausar' },
+    { id: 'completarOrdenModal', formId: 'completarOrdenForm', infoId: 'ordenInfoCompletar' },
+    { id: 'cancelarOrdenModal', formId: 'cancelarOrdenForm', infoId: 'ordenInfoCancelar' }
+  ];
+
+  modals.forEach(modalConfig => {
+    const modal = document.getElementById(modalConfig.id);
+    if (modal) {
+      modal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        const ordenInfo = button.getAttribute('data-orden-info');
+        const actionUrl = button.getAttribute('data-action-url');
+        const infoElement = document.getElementById(modalConfig.infoId);
+        const formElement = document.getElementById(modalConfig.formId);
+        if (infoElement) infoElement.textContent = ordenInfo;
+        if (formElement) formElement.action = actionUrl;
+      });
+    }
+  });
+
+  // ===== MANEJO ESPECIAL PARA COMPLETAR ORDEN CON VALIDACIÓN =====
+  const completarModal = document.getElementById('completarOrdenModal');
+  let ordenIdCompletar = null;
+  let ordenInfoCompletar = null;
+  
+  if (completarModal) {
+    completarModal.addEventListener('show.bs.modal', function(event) {
+      const button = event.relatedTarget;
+      ordenIdCompletar = button.getAttribute('data-orden-id');
+      ordenInfoCompletar = button.getAttribute('data-orden-info');
+      const ordenInfoElement = document.getElementById('ordenInfoCompletar');
+      if (ordenInfoElement) {
+        ordenInfoElement.textContent = ordenInfoCompletar;
+      }
+    });
+    
+    const completarForm = document.getElementById('completarOrdenForm');
+    if (completarForm) {
+      completarForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        fetch(`/orden-trabajo/${ordenIdCompletar}/cambiar-estado/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: new URLSearchParams({
+            'estado': 'completado',
+            'origen': 'lista'
+          })
+        })
+        .then(response => response.json())
+        .then(data => {
+          Swal.close();
+          
+          if (data.success === false) {
+            if (data.error === 'servicios_pendientes' && data.servicios_pendientes) {
+              let htmlContent = `
+                <div style="text-align: left; font-size: 0.9rem;">
+                  <p style="margin: 0 0 10px 0;"><strong>${ordenInfoCompletar || 'Orden de trabajo'}</strong></p>
+              `;
+              
+              data.servicios_pendientes.forEach(servicio => {
+                let estadoTexto = '';
+                let estadoColor = '';
+                let estadoIcono = '';
+                
+                switch(servicio.estado) {
+                  case 'no_iniciado':
+                    estadoTexto = 'No iniciado';
+                    estadoColor = '#6c757d';
+                    estadoIcono = '⭕';
+                    break;
+                  case 'en_curso':
+                    estadoTexto = 'En curso';
+                    estadoColor = '#0d6efd';
+                    estadoIcono = '▶️';
+                    break;
+                  case 'pausado':
+                    estadoTexto = 'Pausado';
+                    estadoColor = '#ffc107';
+                    estadoIcono = '⏸️';
+                    break;
+                  default:
+                    estadoTexto = servicio.estado;
+                    estadoColor = '#dc3545';
+                    estadoIcono = '❌';
+                }
+                
+                htmlContent += `
+                  <div style="margin-bottom: 10px; padding: 8px; background: #f8f9fa; border-radius: 6px;">
+                    <div style="font-weight: 600; margin-bottom: 4px;">
+                      ${estadoIcono} ${servicio.nombre}
+                    </div>
+                    <div style="color: ${estadoColor}; font-size: 0.85rem;">
+                      Estado: ${estadoTexto}
+                    </div>
+                    <div style="color: #dc3545; font-size: 0.8rem; margin-top: 4px;">
+                      ⚠️ Finalice este servicio antes de completar la orden
+                    </div>
+                  </div>
+                `;
+              });
+              
+              htmlContent += `<p style="margin: 8px 0 0 0; color: #6c757d; font-size: 0.8rem;">Complete todos los servicios para poder marcar la orden como COMPLETADO.</p></div>`;
+              
+              Swal.fire({
+                icon: 'warning',
+                title: '⚠️ SERVICIOS PENDIENTES',
+                html: htmlContent,
+                confirmButtonText: 'Entendido',
+                confirmButtonColor: '#004280',
+                width: '450px'
+              });
+            } else {
+              Swal.fire({
+                icon: 'error',
+                title: 'No se puede completar',
+                text: data.mensaje || 'Error al validar la orden',
+                confirmButtonText: 'Entendido',
+                confirmButtonColor: '#004280'
+              });
+            }
+          } else {
+            Swal.fire({
+              icon: 'success',
+              title: 'Orden Completada',
+              text: 'La orden ha sido marcada como COMPLETADO',
+              timer: 1500,
+              showConfirmButton: false,
+              toast: true,
+              position: 'top-end'
+            }).then(() => {
+              const originalForm = document.getElementById('completarOrdenForm');
+              originalForm.action = originalForm.action;
+              originalForm.submit();
+            });
+          }
+        })
+        .catch(error => {
+          Swal.close();
+          console.error('Error:', error);
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            html: 'No se puede finalizar una OT con servicios <strong>NO</strong> completados',
+            confirmButtonText: 'Entendido',
+            confirmButtonColor: '#004280',
+          });
+        });
+      });
+    }
+  }
+
+  // Modal para Enviar a Revisión (desde estado COMPLETADO)
+  const enviarRevisionModal = document.getElementById('enviarRevisionModal');
+  let ordenIdEnviarRevision = null;
+  
+  if (enviarRevisionModal) {
+    enviarRevisionModal.addEventListener('show.bs.modal', function(event) {
+      const button = event.relatedTarget;
+      ordenIdEnviarRevision = button.getAttribute('data-orden-id');
+      const ordenInfo = button.getAttribute('data-orden-info');
+      const ordenInfoElement = document.getElementById('ordenInfoEnviarRevision');
+      if (ordenInfoElement) {
+        ordenInfoElement.textContent = ordenInfo;
+      }
+    });
+
+    const confirmarBtn = document.getElementById('confirmarEnviarRevision');
+    if (confirmarBtn) {
+      confirmarBtn.addEventListener('click', function() {
+        if (ordenIdEnviarRevision) {
+          const url = "{% url 'orden_enviar_revision' 0 %}".replace('0', ordenIdEnviarRevision);
+          window.location.href = url;
+        }
+      });
+    }
+  }
+
+  // Formatear totales con separador de miles
+  function formatearNumero(numero) {
+    return numero.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  }
+  document.querySelectorAll('.total-valor').forEach(function(el) {
+    const valor = el.textContent.trim();
+    if (valor && !isNaN(valor.replace(/\./g, ''))) {
+      el.textContent = formatearNumero(valor);
+    }
+  });
+
+  // Timer para actualizar tiempo transcurrido en tiempo real
+  function actualizarTimers() {
+    document.querySelectorAll('.timer-display').forEach(function(el) {
+      const inicioStr = el.getAttribute('data-inicio');
+      if (inicioStr) {
+        const inicio = new Date(inicioStr);
+        const ahora = new Date();
+        const diffMs = ahora - inicio;
+        const minutos = Math.floor(diffMs / 60000);
+        const horas = Math.floor(minutos / 60);
+        const mins = minutos % 60;
+        el.textContent = `${horas.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+      }
+    });
+  }
+  
+  actualizarTimers();
+  setInterval(actualizarTimers, 60000);
+});
+</script>
+
+{% endblock %}

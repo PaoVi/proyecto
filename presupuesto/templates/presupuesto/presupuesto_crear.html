@@ -1,0 +1,1425 @@
+{% extends 'seguridad/base.html' %}
+
+{% block content %}
+<div class="container-fluid py-0"> 
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-8">
+
+      <!-- HEADER -->
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <h2 class="h4 mb-1">CREAR PRESUPUESTO</h2>
+        <button type="button" onclick="window.history.back()" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-arrow-left"></i>Volver
+        </button>
+      </div>
+
+      <!-- FORMULARIO -->
+      <div class="card">
+        <div class="card-body">
+          <form method="post" class="needs-validation" novalidate id="presupuesto-form">
+            {% csrf_token %}
+        
+            <!-- ERRORES GENERALES DEL FORMULARIO -->
+            {% if form.non_field_errors %}
+              <div class="alert alert-danger small">
+                {% for error in form.non_field_errors %}
+                  <div>{{ error }}</div>
+                {% endfor %}
+              </div>
+            {% endif %}
+
+            <!-- INFORMACIÓN BÁSICA -->
+            <div class="row g-3">
+            <!-- CLIENTE CON AUTOCOMPLETADO -->
+            <div class="col-md-6">
+              <label for="cliente-search" class="form-label small">Cliente</label>
+              <select id="cliente-search" class="form-control {% if form.cliente.errors %}is-invalid{% endif %}" name="cliente">
+                {% if form.cliente.value %}
+                  <option value="{{ form.cliente.value }}" selected>
+                    {% if form.instance.cliente %}
+                      {{ form.instance.cliente.nombre }} - {{ form.instance.cliente.numero_documento }}
+                    {% else %}
+                      Cargando cliente...
+                    {% endif %}
+                  </option>
+                {% endif %}
+              </select>
+              {% if form.cliente.errors %}
+                <div class="invalid-feedback d-block small">
+                  {{ form.cliente.errors.0 }}
+                </div>
+              {% endif %} 
+            </div>
+
+            <!-- VEHÍCULO CON AUTOCOMPLETADO -->
+            <div class="col-md-6">
+              <label for="vehiculo-search" class="form-label small">Vehículo</label>
+              <select id="vehiculo-search" class="form-control {% if form.vehiculo.errors %}is-invalid{% endif %}" name="vehiculo">
+                {% if form.vehiculo.value %}
+                  <option value="{{ form.vehiculo.value }}" selected>
+                    {% if form.instance.vehiculo %}
+                      {{ form.instance.vehiculo.marca }} {{ form.instance.vehiculo.modelo }} - {{ form.instance.vehiculo.nro_chapa }} - {{ form.instance.vehiculo.nro_chasis }}
+                    {% else %}
+                      Cargando vehículo...
+                    {% endif %}
+                  </option>
+                {% endif %}
+              </select>
+              {% if form.vehiculo.errors %}
+                <div class="invalid-feedback d-block small">
+                  {{ form.vehiculo.errors.0 }}
+                </div>
+              {% endif %}
+            </div>
+
+              <!-- FECHA VENCIMIENTO -->
+              <div class="col-md-4">
+                <label for="{{ form.fecha_vencimiento.id_for_label }}" class="form-label small">Fecha de Vencimiento</label>
+                {{ form.fecha_vencimiento }}
+                {% if form.fecha_vencimiento.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for error in form.fecha_vencimiento.errors %}
+                      <div>{{ error }}</div>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- IVA -->
+              <div class="col-md-4">
+                <label for="{{ form.iva_porcentaje.id_for_label }}" class="form-label small">IVA</label>
+                {{ form.iva_porcentaje }}
+                {% if form.iva_porcentaje.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.iva_porcentaje.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- DESCUENTO -->
+              <div class="col-md-4">
+                <label for="id_descuento_display" class="form-label small">Descuento</label>
+                <input
+                  type="text"
+                  id="id_descuento_display"
+                  class="form-control {% if form.descuento.errors %}is-invalid{% endif %}"
+                  placeholder="Gs. 0"
+                  value=""
+                >
+                <input
+                  type="hidden"
+                  name="descuento"
+                  id="id_descuento"
+                  value="{{ form.descuento.value|default_if_none:'0' }}"
+                >
+                {% if form.descuento.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.descuento.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- DESCRIPCIÓN -->
+              <div class="col-12">
+                <label for="{{ form.descripcion.id_for_label }}" class="form-label small">Descripción del Presupuesto</label>
+                {{ form.descripcion }}
+                {% if form.descripcion.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.descripcion.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- SECCIÓN SERVICIOS -->
+            <div class="row mt-4"> 
+              <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <label class="form-label small fw-semibold mb-0">Servicios a Realizar </label>
+                  <span class="badge bg-primary" id="contador-servicios">0 servicios</span>
+                </div>             
+                <!-- SERVICIOS AGREGADOS -->
+                <div id="servicios-container" class="mb-3">
+                  <!-- Los servicios se agregarán aquí dinámicamente -->
+                </div>
+
+                <!-- FORMULARIO PARA AGREGAR SERVICIO -->
+                <div class="card border">
+                  <div class="card-body py-2">
+                    <div class="row g-2 align-items-center">
+                      <div class="col-md-2">
+                        <label class="form-label small">Cantidad</label>
+                        <input type="number" id="servicio-cantidad" class="form-control form-control-sm" 
+                              value="1" step="0.01" min="0.01" placeholder="1.00">
+                        <div id="cantidad-error" class="invalid-feedback d-block small" style="display: none;"></div>
+                      </div>
+                      
+                      <div class="col-md-9">
+                        <label class="form-label small">Servicio</label>
+                        <select id="servicio-select" class="form-select form-select-sm">
+                          <option value="">Seleccionar servicio...</option>
+                          {% for servicio in servicios_disponibles %}
+                          <option value="{{ servicio.id }}" 
+                                  data-precio="{{ servicio.precio_base }}" 
+                                  data-tiempo="{{ servicio.tiempo_min_estimado }}"
+                                  data-categoria="{{ servicio.categoria|default:'Sin categoría' }}">
+                            ({{ servicio.id }}) {{ servicio.nombre }} - Gs. <span class="total-valor">{{ servicio.precio_base|floatformat:0 }}</span> (<span class="tiempo-hhmm" data-minutos="{{ servicio.tiempo_min_estimado }}"></span>)
+                          {% endfor %}
+                        </select>
+                        <div id="servicio-error" class="invalid-feedback d-block small" style="display: none;"></div>
+                      </div>
+                      
+                      <!-- BOTÓN + -->
+                      <div class="col-md-1 d-flex align-items-center justify-content-center">
+                        <button 
+                          type="button" 
+                          id="agregar-servicio-btn" 
+                          class="btn btn-success btn-small w-100" 
+                          style="padding: 0.35rem 0.8rem; margin-top: 1.25rem;"
+                          title="Agregar servicio">
+                          <i class="bi bi-plus-circle" style="font-size: 0.9rem;"></i>
+                        </button>
+                      </div> 
+                    </div>
+                  </div>
+                </div>
+
+                <!-- RESUMEN DE TOTALES EN DOS FILAS -->
+                <div class="card border-primary mt-3">
+                  <div class="card-body py-2">
+                    <!-- PRIMERA FILA: SUBTOTAL Y DESCUENTO -->
+                    <div class="row text-center mb-2">
+                      <div class="col-md-6">
+                        <div class="small text-muted">Subtotal Servicios</div>
+                        <div class="h6 mb-0 js-gs" id="subtotal-display" data-precio="0">Gs. 0</div>
+                      </div>
+                      <div class="col-md-6">
+                        <div class="small text-muted">Descuento</div>
+                        <div class="h6 mb-0 js-gs" id="descuento-display" data-precio="0">Gs. 0</div>
+                      </div>
+                    </div>
+                    
+                    <!-- SEGUNDA FILA: BASE, IVA Y TOTAL -->
+                    <div class="row text-center border-top pt-2">
+                      <div class="col-md-4">
+                        <div class="small text-muted">Base Imponible</div>
+                        <div class="h6 mb-0 js-gs" id="base-imponible-display" data-precio="0">Gs. 0</div>
+                      </div>
+                      <div class="col-md-4">
+                        <div class="small text-muted">IVA (<span id="iva-porcentaje-display">10</span>%)</div>
+                        <div class="h6 mb-0 js-gs" id="iva-display" data-precio="0">Gs. 0</div>
+                      </div>
+                      <div class="col-md-4">
+                        <div class="small text-muted">Total General</div>
+                        <div class="h5 mb-0 text-primary js-gs" id="total-display" data-precio="0">Gs. 0</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- SERVICIOS OCULTOS PARA ENVÍO -->
+                <div id="servicios-hidden-fields">
+                  <!-- Los campos hidden para los servicios se generarán aquí -->
+                </div>
+              </div>
+            </div>
+
+            <!-- BOTONES -->
+            <div class="d-flex justify-content-between align-items-center pt-3 border-top gap-2">
+              <a href="{% url 'presupuesto_lista' %}" class="btn btn-outline-secondary btn-sm flex-grow-1">
+                <i class="bi bi-x-circle"></i>Cancelar
+              </a>
+              <button type="submit" class="btn btn-primary btn-sm flex-grow-1" id="submit-btn">
+                <i class="bi bi-check-circle"></i>Crear Presupuesto
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+        <!-- INFORMACIÓN DE AYUDA -->
+        <div class="card">
+            <div class="card-body py-2">
+                <div class="row">
+                    <div class="col-12">
+                        <small class="text-muted">
+                            <i class="bi bi-info-circle"></i>
+                            El presupuesto debe tener al menos un servicio. La fecha de vencimiento por defecto es de hoy +15 días. La fecha de vencimiento no puede ser mayor a esa.
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+  </div>
+</div>
+
+<!-- Incluir Select2 CSS y JS -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+<style>
+.container-fluid { max-width: 1000px; }
+.form-control, .form-select {
+  border-radius: 0.375rem;
+  border: 1px solid #ced4da;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+}
+.form-control:focus, .form-select:focus {
+  border-color: #86b7fe;
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+.btn-sm { padding: 0.375rem 0.75rem; font-size: 0.875rem; min-width: 100px; }
+.servicio-item { border-left: 3px solid #0d6efd; }
+/* ESTILOS SIMPLIFICADOS PARA SELECT2 */
+.select2-container--default .select2-selection--single {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    height: 38px;
+    background-color: #fff;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    color: #212529;
+    line-height: 1.5;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 30px;
+    right: 8px;
+}
+
+/* DROPDOWN SIMPLIFICADO - FONDO BLANCO */
+.select2-container--default .select2-dropdown {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    background: white;
+    box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+}
+
+/* RESULTADOS SIMPLES - FONDO BLANCO, TEXTO OSCURO */
+.select2-container--default .select2-results__option {
+    padding: 0.5rem 0.75rem;
+    background: white;
+    color: #212529;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+.select2-container--default .select2-results__option:last-child {
+    border-bottom: none;
+}
+
+/* RESALTADO AL PASAR MOUSE */
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background-color: #e9ecef;
+    color: #00264dff;
+}
+
+/* ELEMENTO SELECCIONADO */
+.select2-container--default .select2-results__option[aria-selected=true] {
+    background-color: #f8f9fa;
+    color: #212529;
+}
+
+/* CAMPO DE BÚSQUEDA */
+.select2-container--default .select2-search--dropdown .select2-search__field {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+    background: white;
+    color: #212529;
+}
+
+/* ESTILOS PERSONALIZADOS PARA LOS RESULTADOS */
+.select2-result-item {
+    padding: 0.15rem 0;
+}
+
+.select2-result-cliente .nombre {
+    font-size: 0.875rem;
+    color: #212529;
+    font-weight: 500;
+    display: block;
+}
+
+.select2-result-cliente .documento {
+    font-size: 0.75rem;
+    color: #033e7e;
+    display: block;
+}
+
+.select2-result-vehiculo .marca-modelo {
+    font-size: 0.875rem;
+    color: #212529;
+    font-weight: 500;
+    display: block;
+}
+
+.select2-result-vehiculo .chapa {
+    font-size: 0.75rem;
+    color: #097241ff;
+    display: block;
+}
+
+/* ESTILOS PARA MENSAJES "NO SE ENCONTRARON..." */
+.select2-container--default .select2-results__option--disabled {
+    font-size: 0.1rem !important;
+    color: #6c757d !important;
+    background-color: transparent !important;
+    padding: 0.375rem 0.75rem;
+    text-align: center;
+}
+
+/* OCULTAR MENSAJES DE CARÁCTER MÍNIMO */
+.select2-container--default .select2-results__option--load-more,
+.select2-container--default .select2-results__option--loading {
+    display: none !important;
+}
+
+/* BÚSQUEDA INMEDIATA - SIN MENSAJES */
+.select2-container--default .select2-search--dropdown {
+    padding: 0.5rem;
+}
+
+/* SELECT DE SERVICIOS */
+#servicio-select + .select2-container--default .select2-selection--single {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    height: 38px;
+    background-color: #fff;
+}
+
+#servicio-select + .select2-container--default .select2-selection--single .select2-selection__rendered {
+    color: #212529;
+    line-height: 1.5;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.8rem;
+}
+
+#servicio-select + .select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 30px;
+    right: 8px;
+}
+
+/* Estilo para las opciones en el dropdown */
+.select2-container--default .select2-results__option--servicio {
+    font-size: 0.8rem;
+    padding: 0.4rem 0.75rem;
+}
+
+/* Contenedor principal del servicio */
+.select2-container--default .select2-results__option .servicio-item {
+    line-height: 1;
+}
+
+/* Nombre del servicio en negrita */
+.select2-container--default .select2-results__option .servicio-nombre {
+    font-weight: 600;
+    color: #212529;
+    margin-left: 2px;
+}
+
+/* Detalles (precio y tiempo) más pequeños en nueva línea */
+.select2-container--default .select2-results__option .servicio-detalle {
+    font-size: 0.8rem;
+    color: #6c757d;
+    display: block;
+    margin-top: 2px;
+    margin-left: 0;
+}
+
+/* ICONOS en SweetAlert2 - WARNING (modal) */
+.swal2-icon.swal2-warning {
+    width: 2.5em !important;
+    height: 2.5em !important;
+    margin: 0.5em auto 0.3em !important;
+}
+
+.swal2-popup {
+    border-radius: 20px !important;
+}
+
+.swal2-icon.swal2-warning .swal2-icon-content {
+    font-size: 1.8em !important;
+}
+
+/* TOAST DE ÉXITO */
+.swal2-toast {
+    min-height: 2.5em !important;  
+    padding: 0.2em 0.8em !important;  
+    display: flex !important;
+    align-items: center !important;
+    border-radius: 25px !important;  
+    max-width: fit-content !important;    /* Se ajusta al contenido */
+    width: auto !important;                /* Ancho automático */
+}
+
+.swal2-toast .swal2-icon.swal2-success {
+    width: 0.5em !important;        
+    height: 1.1em !important;       
+    margin: 0 0.2em 0 0 !important;  
+    flex-shrink: 0 !important;
+    border-width: 2px !important;
+    font-size: 0.7em !important;   /* Controla el tamaño relativo */
+    align-self: center !important;    /* Asegura alineación vertical */
+    transform: translateY(-3px) !important; 
+}
+
+.swal2-toast .swal2-icon.swal2-success .swal2-icon-content {
+    font-size: 0.7em !important;    /* Ajustado para que el check se vea bien */
+    line-height: 1 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.swal2-toast .swal2-title {
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1.3em !important;
+    font-size: 0.9em !important;
+    font-weight: 500 !important;
+}
+
+/* NOMBRE DEL INSUMO - MÁS GRANDE Y NEGRITA */
+.swal2-html-container p strong {
+    font-size: 1.2em !important;
+}
+
+.swal2-html-container div[style*="font-weight: 500;"] {
+    font-size: 1.1em !important;
+    font-weight: 600 !important;
+    color: #000000 !important;
+    margin-bottom: 8px !important;
+}
+
+/* Ajuste para el contenedor del insumo */
+.swal2-html-container div[style*="background: #f8f9fa;"] {
+    padding: 8px !important;
+    border-radius: 1px !important;
+}
+
+/* Reducir espacio entre icono y título en modal */
+.swal2-title {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+    line-height: 1.4 !important;
+}
+
+.swal2-header {
+    padding-bottom: 0 !important;
+}
+</style>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Inicializar Select2 para Clientes
+    $('#cliente-search').select2({
+        placeholder: 'Buscar por N° de documento',
+        allowClear: false,
+        width: '100%',
+        language: {
+            noResults: function() {
+                return "No se encontraron clientes";
+            },
+            searching: function() {
+                return "Buscando...";
+            },
+            inputTooShort: function() {
+                return "Ingrese al menos 1 carácter";
+            },
+            errorLoading: function() {
+                return "Error al cargar resultados";
+            }
+        },
+        ajax: {
+            url: '/buscar-clientes-autocomplete/',
+            dataType: 'json',
+            delay: 300,
+            data: function (params) {
+                return {
+                    q: params.term || ''
+                };
+            },
+            processResults: function (data) {
+                // Verificar que data sea un array
+                if (!Array.isArray(data)) {
+                    return { results: [] };
+                }
+                return {
+                    results: $.map(data, function (item) {
+                        return {
+                            id: item.id,
+                            text: item.text || 'Sin nombre',
+                            documento: item.documento || '',
+                            nombre: item.nombre || '',
+                            telefono: item.telefono || ''
+                        };
+                    })
+                };
+            },
+            error: function(xhr, status, error) {
+                console.error('Error loading clientes:', error);
+                return { results: [] };
+            }
+        },
+        minimumInputLength: 0,
+        templateResult: formatCliente,
+        templateSelection: formatClienteSelection
+    });
+
+    // Inicializar Select2 para Vehículos
+    $('#vehiculo-search').select2({
+        placeholder: 'Buscar por N° de chapa o N° de chasis',
+        allowClear: false,
+        width: '100%',
+        language: {
+            noResults: function() {
+                return "No se encontraron vehículos";
+            },
+            searching: function() {
+                return "Buscando...";
+            },
+            inputTooShort: function() {
+                return "Ingrese al menos 1 carácter";
+            },
+            errorLoading: function() {
+                return "Error al cargar resultados";
+            }
+        },
+        ajax: {
+            url: '{% url "buscar_vehiculos_autocomplete" %}',
+            dataType: 'json',
+            delay: 300,
+            data: function (params) {
+                return {
+                    q: params.term || ''
+                };
+            },
+            processResults: function (data) {
+                if (!Array.isArray(data)) {
+                    return { results: [] };
+                }
+                return {
+                    results: $.map(data, function (item) {
+                        return {
+                            id: item.id,
+                            text: item.text || 'Sin identificar',
+                            marca: item.marca || '',
+                            modelo: item.modelo || '',
+                            chapa: item.chapa || '',
+                            chasis: item.chasis || '',
+                        };
+                    })
+                };
+            },
+            error: function(xhr, status, error) {
+                console.error('Error loading vehiculos:', error);
+                return { results: [] };
+            }
+        },
+        minimumInputLength: 0,
+        templateResult: formatVehiculo,
+        templateSelection: formatVehiculoSelection
+    });
+
+    // Inicializar Select2 para Servicios (búsqueda local)
+    $('#servicio-select').select2({
+        placeholder: 'Buscar servicio por nombre o ID...',
+        allowClear: false,
+        width: '100%',
+        language: {
+            noResults: function() {
+                return "No se encontraron servicios";
+            },
+            searching: function() {
+                return "Buscando...";
+            }
+        },
+        matcher: function(params, data) {
+            if ($.trim(params.term) === '') {
+                return data;
+            }
+            var term = params.term.toLowerCase();
+            var text = data.text.toLowerCase();
+            
+            // Buscar por ID exacto (ahora con paréntesis)
+            if (!isNaN(term)) {
+                var idMatch = data.text.match(/^\((\d+)\)/);  // Cambiado de \[ a \(
+                if (idMatch && idMatch[1] === term) {
+                    return data;
+                }
+            }
+            
+            // Búsqueda normal por texto
+            if (text.indexOf(term) > -1) {
+                return data;
+            }
+            return null;
+        },
+        templateResult: function(data) {
+            if (data.loading || !data.id) {
+                return data.text;
+            }
+            
+            // Extraer ID, nombre, precio y tiempo del texto
+            var texto = data.text;
+            var idMatch = texto.match(/^\((\d+)\)/);  // Cambiado de \[ a \(
+            var id = idMatch ? idMatch[1] : '';
+            
+            var nombreMatch = texto.replace(/^\(\d+\)\s*/, '').match(/(.+?)\s+-\s+Gs\./);
+            var nombre = nombreMatch ? nombreMatch[1] : texto;
+            
+            var precioMatch = texto.match(/Gs\.\s*([\d,.]+)/);
+            var precio = precioMatch ? precioMatch[1] : '';
+            
+            var tiempoMatch = texto.match(/\((\d{2}:\d{2})\)/);
+            var tiempo = tiempoMatch ? tiempoMatch[1] : '';
+            
+            var $container = $(
+                '<div class="select2-results__option--servicio">' +
+                    '<div class="servicio-item">' +
+                        '<span class="servicio-nombre">' + nombre + '</span>' +
+                        '<span class="servicio-detalle">Gs. ' + precio + ' • ' + tiempo + '</span>' +
+                    '</div>' +
+                '</div>'
+            );
+            
+            return $container;
+        },
+        templateSelection: function(data) {
+            if (!data.id) {
+                return data.text;
+            }
+            
+            // Extraer solo (ID) Nombre del texto original
+            var texto = data.text;
+            var match = texto.match(/^\((\d+)\)\s*([^(]+)/);
+            if (match) {
+                return '(' + match[1] + ') ' + match[2].trim();
+            }
+            
+            return data.text;
+        }
+    });
+
+    // Formatear cómo se muestran los resultados de Clientes
+    function formatCliente(cliente) {
+        if (cliente.loading) {
+            return cliente.text;
+        }
+        
+        if (!cliente.id) {
+            return cliente.text;
+        }
+        
+        var $container = $(
+            '<div class="select2-result-item select2-result-cliente">' +
+                '<span class="nombre">' + (cliente.nombre || 'Sin nombre') + '</span>' +
+                '<span class="documento text-primary small">Documento: ' + (cliente.documento || 'Sin documento') + '</span>' +
+            '</div>'
+        );
+        
+        return $container;
+    }
+
+    // Formatear cómo se muestra la selección de Clientes
+    function formatClienteSelection(cliente) {
+        if (!cliente.id) {
+            return 'Buscar por N° de documento';
+        }
+        
+        // Si es un objeto completo (con nombre, documento)
+        if (cliente.nombre && cliente.documento) {
+            return cliente.nombre + ' - ' + cliente.documento;
+        }
+        
+        // Si es solo texto (cuando viene del backend con error)
+        return cliente.text || 'Cliente seleccionado';
+    }
+
+    // Formatear cómo se muestran los resultados de Vehículos
+    function formatVehiculo(vehiculo) {
+        if (vehiculo.loading) {
+            return vehiculo.text;
+        }
+        
+        if (!vehiculo.id) {
+            return vehiculo.text;
+        }
+        
+        var $container = $(
+            '<div class="select2-result-item select2-result-vehiculo">' +
+                '<span class="marca-modelo">' + (vehiculo.marca || '') + ' ' + (vehiculo.modelo || '') + '</span>' +
+                '<span class="chapa text-success small">Chapa: ' + (vehiculo.chapa || 'Sin chapa') + '</span>' +
+                '<span class="chasis text-primary small">Chasis: ' + (vehiculo.chasis || 'Sin chasis') + '</span>' +
+            '</div>'
+        );
+        
+        return $container;
+    }
+
+    // Formatear cómo se muestra la selección de Vehículos
+    function formatVehiculoSelection(vehiculo) {
+        if (!vehiculo.id) {
+            return 'Buscar por N° de chapa o N° de chasis';
+        }
+        
+        // Usar el formato marca modelo - chapa - chasis
+        if (vehiculo.marca && vehiculo.modelo && vehiculo.chapa && vehiculo.chasis) {
+            return vehiculo.marca + ' ' + vehiculo.modelo + ' - ' + vehiculo.chapa + ' - ' + vehiculo.chasis;
+        }
+        
+        // Si es solo texto (cuando viene del backend con error)
+        return vehiculo.text || 'Vehículo seleccionado';
+    }
+
+    // Cargar el vehículo seleccionado cuando hay un valor inicial
+    const vehiculoSelect = document.getElementById('vehiculo-search');
+    if (vehiculoSelect && vehiculoSelect.value) { 
+        const vehiculoId = vehiculoSelect.value;
+        
+        // Hacer una petición para obtener los datos del vehículo específico
+        $.ajax({
+            url: '{% url "buscar_vehiculos_autocomplete" %}',
+            data: { 
+                q: '',
+                id_especifico: vehiculoId
+            },
+            dataType: 'json',
+            success: function(data) {
+                if (Array.isArray(data) && data.length > 0) {
+                    const vehiculoEncontrado = data.find(item => item.id == vehiculoId);
+                    if (vehiculoEncontrado) {
+                        // Crear una opción con el formato correcto
+                        const option = new Option(
+                            vehiculoEncontrado.marca + ' ' + vehiculoEncontrado.modelo + ' - ' + vehiculoEncontrado.chapa + ' - ' + vehiculoEncontrado.chasis,
+                            vehiculoEncontrado.id,
+                            true,
+                            true
+                        );
+                        $('#vehiculo-search').append(option).trigger('change');
+                    }
+                }
+            }
+        });
+    } 
+
+    // Enfocar automáticamente el campo de búsqueda al abrir 
+    $('#cliente-search').on('select2:open', function() {
+        setTimeout(function() {
+            // Buscar el campo de búsqueda dentro del dropdown
+            const $search = $('.select2-container--open .select2-search__field');
+            if ($search.length) {
+                // Enfocar y seleccionar todo el texto
+                $search.focus();
+                $search.trigger('select');
+                
+                // También disparar input para cargar resultados iniciales
+                if (!$search.val()) {
+                    $search.trigger('input');
+                }
+            }
+        }, 100);
+    });
+
+    $('#vehiculo-search').on('select2:open', function() {
+        setTimeout(function() {
+            // Buscar el campo de búsqueda dentro del dropdown
+            const $search = $('.select2-container--open .select2-search__field');
+            if ($search.length) {
+                // Enfocar y seleccionar todo el texto
+                $search.focus();
+                $search.trigger('select');
+                
+                // También disparar input para cargar resultados iniciales
+                if (!$search.val()) {
+                    $search.trigger('input');
+                }
+            }
+        }, 100);
+    });
+
+    // Enfocar también al hacer click en el contenedor del select
+    $(document).on('click', '.select2-container', function(e) {
+        setTimeout(function() {
+            const $search = $('.select2-container--open .select2-search__field');
+            if ($search.length) {
+                $search.focus();
+                $search.trigger('select');
+            }
+        }, 150);
+    });
+
+    // Actualizar Select2 cuando hay valores existentes
+    setTimeout(function() {
+        const clienteSelect = document.getElementById('cliente-search');
+        const vehiculoSelect = document.getElementById('vehiculo-search');
+        
+        if (clienteSelect && clienteSelect.value) {
+            $('#cliente-search').trigger('change');
+        }
+        
+        if (vehiculoSelect && vehiculoSelect.value) {
+            $('#vehiculo-search').trigger('change');
+        }
+    }, 100);
+
+    // Aplicar estilos de error a Select2 cuando hay errores de Django
+    if (document.querySelector('#cliente-search').classList.contains('is-invalid')) {
+        $('#cliente-search').next('.select2-container').find('.select2-selection').addClass('is-invalid');
+    }
+    if (document.querySelector('#vehiculo-search').classList.contains('is-invalid')) {
+        $('#vehiculo-search').next('.select2-container').find('.select2-selection').addClass('is-invalid');
+    }
+    
+    // Aplicar estilos de error en tiempo real cuando Select2 cambia
+    $('#cliente-search').on('change', function() {
+        const select2Container = $(this).next('.select2-container').find('.select2-selection');
+        if (this.value) {
+            $(this).removeClass('is-invalid');
+            select2Container.removeClass('is-invalid');
+        }
+    });
+    
+    $('#vehiculo-search').on('change', function() {
+        const select2Container = $(this).next('.select2-container').find('.select2-selection');
+        if (this.value) {
+            $(this).removeClass('is-invalid');
+            select2Container.removeClass('is-invalid');
+        }
+    });
+
+    // ========== CÓDIGO PARA SERVICIOS  ==========
+    let servicioCounter = 0;
+    const serviciosContainer = document.getElementById('servicios-container');
+    const hiddenFieldsContainer = document.getElementById('servicios-hidden-fields');
+    const agregarBtn = document.getElementById('agregar-servicio-btn');
+    const contadorServicios = document.getElementById('contador-servicios');
+    
+    // Referencias a los inputs (declaradas aquí para que sean accesibles globalmente en las funciones)
+    const cantidadInput = document.getElementById('servicio-cantidad');
+    const select = document.getElementById('servicio-select');
+    
+    // Elementos para cálculos VISUALES
+    const subtotalDisplay = document.getElementById('subtotal-display');
+    const descuentoDisplay = document.getElementById('descuento-display');
+    const baseImponibleDisplay = document.getElementById('base-imponible-display');
+    const ivaDisplay = document.getElementById('iva-display');
+    const ivaPorcentajeDisplay = document.getElementById('iva-porcentaje-display');
+    const totalDisplay = document.getElementById('total-display');
+    const descuentoInput = document.getElementById('id_descuento');
+    const descuentoDisplayInput = document.getElementById('id_descuento_display');
+    const ivaSelect = document.getElementById('id_iva_porcentaje');
+
+    // Función para actualizar contador de servicios
+    function actualizarContadorServicios() {
+        const cantidad = document.querySelectorAll('[data-servicio-id]').length;
+        contadorServicios.textContent = `${cantidad} servicio${cantidad !== 1 ? 's' : ''}`;
+    }
+
+    // Función para formatear precios (solo visual)
+    function formatearGs(valorNum) { 
+        if (valorNum === null || valorNum === '' || isNaN(valorNum)) return 'Gs. 0';
+        const n = Math.floor(Number(valorNum));
+        return 'Gs. ' + n.toLocaleString('es-PY');
+    }
+
+    // Función para desformatear (quitar formato)
+    function desformatearGs(texto) {
+        if (!texto) return '0';
+        return texto
+            .toString()
+            .replace(/^Gs\.\s*/i, '')
+            .replace(/\./g, '')
+            .replace(/,/g, '')
+            .trim();
+    }
+
+    // Función para formatear input en tiempo real
+    function formatearInputGs(valor) {
+        if (!valor) return '';
+        const numeros = valor.replace(/\D/g, '');
+        if (!numeros) return '';
+        const numero = parseInt(numeros, 10);
+        return 'Gs. ' + numero.toLocaleString('es-PY');
+    }
+
+    // ====== DESCUENTO CON FORMATO Gs. ======
+    if (descuentoInput && descuentoDisplayInput) {
+        // Inicializar con valor por defecto
+        if (descuentoInput.value && descuentoInput.value !== '0') {
+            descuentoDisplayInput.value = formatearInputGs(descuentoInput.value);
+        } else {
+            descuentoDisplayInput.value = '';
+            descuentoInput.value = '0';
+        }
+        
+        // Formatear mientras escribe
+        descuentoDisplayInput.addEventListener('input', function(e) {
+            const cursorPosition = e.target.selectionStart;
+            const valorOriginal = e.target.value;
+            
+            // Obtener solo números
+            const numeros = valorOriginal.replace(/\D/g, '');
+            
+            // Actualizar input hidden con valor numérico
+            descuentoInput.value = numeros || '0';
+            
+            // Formatear display
+            if (numeros) {
+                const numero = parseInt(numeros, 10);
+                e.target.value = 'Gs. ' + numero.toLocaleString('es-PY');
+                
+                // Mantener cursor en posición correcta
+                const nuevoLength = e.target.value.length;
+                const diff = nuevoLength - valorOriginal.length;
+                e.target.setSelectionRange(cursorPosition + diff, cursorPosition + diff);
+            } else {
+                e.target.value = '';
+                descuentoInput.value = '0';
+            }
+            
+            actualizarTotalesVisuales();
+        });
+
+        // Manejar pegado de texto
+        descuentoDisplayInput.addEventListener('paste', function(e) {
+            e.preventDefault();
+            const textoPegado = (e.clipboardData || window.clipboardData).getData('text');
+            const numeros = textoPegado.replace(/\D/g, '');
+            
+            if (numeros) {
+                const numero = parseInt(numeros, 10);
+                descuentoInput.value = numeros;
+                e.target.value = 'Gs. ' + numero.toLocaleString('es-PY');
+                actualizarTotalesVisuales();
+            }
+        });
+
+        // Permitir borrar con Backspace/Delete
+        descuentoDisplayInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Backspace' || e.key === 'Delete') {
+                setTimeout(() => {
+                    const numeros = e.target.value.replace(/\D/g, '');
+                    descuentoInput.value = numeros || '0';
+                    if (!numeros) {
+                        e.target.value = '';
+                    }
+                    actualizarTotalesVisuales();
+                }, 0);
+            }
+        });
+    }
+
+    // Función para actualizar totales VISUALES
+    function actualizarTotalesVisuales() {
+        let subtotal = 0;
+        
+        // Calcular subtotal de servicios
+        const serviciosItems = document.querySelectorAll('[data-servicio-id]');
+        serviciosItems.forEach(item => {
+            const precio = parseFloat(item.getAttribute('data-precio')) || 0;
+            const cantidad = parseFloat(item.getAttribute('data-cantidad')) || 0;
+            subtotal += precio * cantidad;
+        });
+        
+        // Obtener descuento del input hidden
+        const descuento = parseFloat(descuentoInput?.value) || 0;
+        
+        // Calcular base imponible
+        const baseImponible = Math.max(subtotal - descuento, 0);
+        
+        // Obtener porcentaje de IVA
+        const ivaPorcentaje = parseFloat(ivaSelect?.value) || 0;
+        
+        // Calcular IVA
+        const ivaMonto = baseImponible * (ivaPorcentaje / 100);
+        
+        // Calcular total
+        const total = baseImponible + ivaMonto;
+        
+        // Actualizar displays VISUALES
+        subtotalDisplay.textContent = formatearGs(subtotal);
+        subtotalDisplay.setAttribute('data-precio', subtotal);
+        
+        descuentoDisplay.textContent = formatearGs(descuento);
+        descuentoDisplay.setAttribute('data-precio', descuento);
+        
+        baseImponibleDisplay.textContent = formatearGs(baseImponible);
+        baseImponibleDisplay.setAttribute('data-precio', baseImponible);
+        
+        ivaDisplay.textContent = formatearGs(ivaMonto);
+        ivaDisplay.setAttribute('data-precio', ivaMonto);
+        
+        ivaPorcentajeDisplay.textContent = ivaPorcentaje;
+        
+        totalDisplay.textContent = formatearGs(total);
+        totalDisplay.setAttribute('data-precio', total);
+    }
+
+    // Función para mostrar errores
+    function mostrarError(campoId, mensaje) {
+        const errorDiv = document.getElementById(campoId);
+        errorDiv.textContent = mensaje;
+        errorDiv.style.display = 'block';
+        
+        const campo = campoId === 'cantidad-error' ? cantidadInput : select;
+        campo.classList.add('is-invalid');
+    }
+
+    // Función para limpiar errores
+    function limpiarErrores() {
+        const errores = ['cantidad-error', 'servicio-error'];
+        errores.forEach(errorId => {
+            const errorDiv = document.getElementById(errorId);
+            errorDiv.style.display = 'none';
+            errorDiv.textContent = '';
+            
+            const campo = errorId === 'cantidad-error' ? cantidadInput : select;
+            campo.classList.remove('is-invalid');
+        });
+    }
+
+    // FUNCIÓN PARA FORMATEAR A HH:MM 
+    function minutosToHHMM(minutos) {
+        if (!minutos || isNaN(minutos)) return '00:00';
+        const totalMin = parseInt(minutos, 10);
+        const horas = Math.floor(totalMin / 60);
+        const min = totalMin % 60;
+        return `${String(horas).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+    }
+    
+    // Aplicar a todas las opciones del select
+    document.querySelectorAll('#servicio-select option .tiempo-hhmm').forEach(span => {
+        const minutos = span.getAttribute('data-minutos');
+        span.textContent = minutosToHHMM(minutos);
+    });
+    
+
+    // Función para agregar servicio
+    function agregarServicio() {
+        limpiarErrores();
+        
+        const selectedOption = select.options[select.selectedIndex];
+        
+        const cantidad = parseFloat(cantidadInput.value);
+        const servicioId = select.value;
+        const servicioNombre = selectedOption.text.split(' - ')[0];
+        const servicioPrecio = selectedOption.getAttribute('data-precio');
+        const servicioTiempo = selectedOption.getAttribute('data-tiempo');
+        const servicioCategoria = selectedOption.getAttribute('data-categoria');
+
+        let hayErrores = false;
+
+        if (!servicioId) {
+            mostrarError('servicio-error', 'Seleccione un servicio');
+            hayErrores = true;
+        }
+
+        if (!cantidad || cantidad <= 0 || isNaN(cantidad)) {
+            mostrarError('cantidad-error', 'Cantidad debe ser mayor a 0.00');
+            hayErrores = true;
+        }
+
+        if (hayErrores) return;
+
+        // Verificar si el servicio ya fue agregado
+        const serviciosExistentes = document.querySelectorAll('[data-servicio-id]');
+        for (let item of serviciosExistentes) {
+            if (item.getAttribute('data-servicio-id') === servicioId) {
+                mostrarError('servicio-error', 'Este servicio ya fue agregado al presupuesto');
+                return;
+            }
+        }
+
+        // Agregar el servicio visualmente
+        agregarServicioAlPresupuesto(servicioId, cantidad, servicioNombre, servicioPrecio, servicioTiempo, servicioCategoria);
+        
+        // Verificar stock con SweetAlert2
+        console.log('Verificando stock para servicio ID:', servicioId, 'cantidad:', cantidad);
+
+        fetch(`/verificar-stock-servicio/${servicioId}/?cantidad=${cantidad}`)
+            .then(response => {
+                console.log('Respuesta recibida:', response);
+                if (!response.ok) { 
+                    throw new Error(`Error HTTP: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Datos recibidos:', data);
+                if (data.insumos_faltantes && data.insumos_faltantes.length > 0) {
+                    // Construir mensaje HTML compacto
+                    let htmlContent = `
+                        <div style="text-align: left; font-size: 0.8rem;">
+                            <p style="margin: 0 0 10px 0;"><strong> ${servicioNombre}</strong> [x${cantidad}]</p>
+                    `;
+                    
+                    data.insumos_faltantes.forEach(insumo => {
+                        htmlContent += `
+                            <div style="margin-bottom: 8px; padding: 6px; background: #f8f9fa; border-radius: 4px;">
+                                <div style="font-weight: 500;">• ${insumo.nombre}</div>
+                                <div style="color: #000000;">❌ Necesitas: ${insumo.necesario} ${insumo.unidad}</div>
+                                <div style="color: #036320;">📦 Disponible: ${insumo.disponible} ${insumo.unidad}</div>
+                                <div style="color: #dc3545; font-weight: 500;">⚠️ Faltan: ${insumo.faltante} ${insumo.unidad}</div>
+                            </div>
+                        `;
+                    });
+                    
+                    htmlContent += `<p style="margin: 4px 0 0 0; color: #6c757d; font-size: 0.8rem;">Obs: El servicio se agregó igualmente.</p></div>`;
+                    
+                    // Mostrar SweetAlert2 compacto
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'STOCK INSUFICIENTE',
+                        text: '————————————————————',
+                        html: htmlContent,
+                        confirmButtonText: 'Entendido',
+                        confirmButtonColor: '#004280',
+                        width: '400px',
+                    });
+                } else {
+                    // Stock suficiente - mensaje pequeño opcional
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'STOCK OK',
+                        timer: 1500,
+                        showConfirmButton: false,
+                        toast: true,
+                        position: 'top-end'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error verificando stock:', error);
+                // Comentado para no molestar con errores de prueba
+                // alert('Error al verificar stock: ' + error.message);
+            });
+    }
+
+    // Función separada para agregar el servicio al presupuesto
+    function agregarServicioAlPresupuesto(servicioId, cantidad, servicioNombre, servicioPrecio, servicioTiempo, servicioCategoria) {
+        const subtotalServicio = cantidad * parseFloat(servicioPrecio);
+
+        const servicioItem = document.createElement('div');
+        servicioItem.className = 'card servicio-item mb-2';
+        servicioItem.setAttribute('data-servicio-id', servicioId);
+        servicioItem.setAttribute('data-precio', servicioPrecio);
+        servicioItem.setAttribute('data-cantidad', cantidad);
+        servicioItem.innerHTML = `
+        <div class="card-body py-1">
+            <div class="row align-items-center">
+            <div class="col-md-6"> 
+                <div class="small fw-semibold text-start"> ${servicioNombre}</div>
+                <div class="text-muted small text-start">${servicioCategoria} • ${minutosToHHMM(servicioTiempo)} c/u</div>
+            </div>
+            <div class="col-md-2">
+                <div class="small">Cantidad: <strong>${cantidad}</strong></div>
+            </div>
+            <div class="col-md-3">
+                <div class="small">Subtotal: <strong class="js-gs" data-precio="${subtotalServicio}"></strong></div>
+            </div>
+            <div class="col-md-1 text-end">
+                <button type="button" class="btn btn-small btn-outline-danger eliminar-servicio">
+                <i class="bi bi-trash"></i>
+                </button>
+            </div>
+            </div>
+        </div>
+        `;
+
+        const hiddenId = `servicio_${servicioCounter}`;
+        
+        const cantidadField = document.createElement('input');
+        cantidadField.type = 'hidden';
+        cantidadField.name = `servicios[${servicioCounter}][cantidad]`;
+        cantidadField.value = cantidad;
+        
+        const servicioField = document.createElement('input');
+        servicioField.type = 'hidden';
+        servicioField.name = `servicios[${servicioCounter}][servicio_id]`;
+        servicioField.value = servicioId;
+
+        serviciosContainer.appendChild(servicioItem);
+        hiddenFieldsContainer.appendChild(cantidadField);
+        hiddenFieldsContainer.appendChild(servicioField);
+
+        servicioItem.querySelector('.js-gs').textContent = formatearGs(subtotalServicio);
+
+        servicioItem.querySelector('.eliminar-servicio').addEventListener('click', function() {
+            servicioItem.remove();
+            cantidadField.remove();
+            servicioField.remove();
+            actualizarTotalesVisuales();
+            actualizarContadorServicios();
+        });
+
+        cantidadInput.value = '1';
+        select.value = '';
+        servicioCounter++;
+        actualizarTotalesVisuales();
+        actualizarContadorServicios();
+    }
+
+    // Event listeners
+    agregarBtn.addEventListener('click', agregarServicio);
+
+    cantidadInput.addEventListener('input', function() {
+        limpiarErrores();
+    });
+
+    select.addEventListener('change', function() {
+        limpiarErrores();
+    });
+
+    select.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            agregarServicio();
+        }
+    });
+
+    // Actualizar totales visuales cuando cambian los campos
+    if (ivaSelect) {
+        ivaSelect.addEventListener('change', actualizarTotalesVisuales);
+    }
+
+    // FUNCIÓN PARA FORMATEAR NÚMEROS CON SEPARADOR DE MILES
+    function formatearNumero(numero) {
+      if (!numero && numero !== 0) return '';
+      const numeroLimpio = numero.toString().replace(/\./g, '');
+      if (isNaN(numeroLimpio)) return numero;
+      return numeroLimpio.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    }
+
+    // APLICAR FORMATEO A LOS PRECIOS EN EL SELECT DE SERVICIOS
+    function aplicarFormatoMilesSelect() {
+      const servicioOptions = document.querySelectorAll('#servicio-select option');
+      servicioOptions.forEach(function(option) {
+        if (option.value) {
+          const texto = option.textContent;
+          // Buscar el patrón "Gs. XXXXXX" donde XXXXXX es el número
+          const match = texto.match(/Gs\.\s*(\d+)/);
+          if (match) {
+            const precioSinFormato = match[1];
+            const precioFormateado = formatearNumero(precioSinFormato);
+            // Reemplazar en el texto
+            option.textContent = texto.replace(
+              /Gs\.\s*\d+/,
+              `Gs. ${precioFormateado}`
+            );
+          }
+        }
+      });
+    }
+
+    // ACTUALIZAR LA FUNCIÓN formatear Gs EXISTENTE
+    function formatearGs(valorNum) { 
+      if (valorNum === null || valorNum === '' || isNaN(valorNum)) return 'Gs. 0';
+      const n = Math.floor(Number(valorNum));
+      return 'Gs. ' + formatearNumero(n);
+    }
+
+    // EJECUTAR CUANDO EL DOM ESTÉ LISTO
+    aplicarFormatoMilesSelect();
+    // FORMATEO AUTOMÁTICO DE FECHA
+    const fechaInput = document.getElementById('id_fecha_vencimiento');
+
+    if (fechaInput) {
+        fechaInput.setAttribute("placeholder", "DD/MM/AAAA");
+        fechaInput.setAttribute("inputmode", "numeric");
+        
+        fechaInput.addEventListener('input', function(e) {
+            // Obtener solo números
+            let numbers = this.value.replace(/\D/g, '');
+            
+            // Limitar a 8 dígitos (DDMMAAAA)
+            if (numbers.length > 8) {
+                numbers = numbers.slice(0, 8);
+            }
+            
+            let formatted = '';
+            
+            // Construir la fecha con barras
+            if (numbers.length > 0) {
+                // Día (primeros 2 dígitos)
+                let day = numbers.slice(0, 2);
+                if (day.length === 2 && parseInt(day) > 31) {
+                    day = '31';
+                }
+                formatted = day;
+                
+                // Mes (siguientes 2 dígitos)
+                if (numbers.length >= 3) {
+                    let month = numbers.slice(2, 4);
+                    if (month.length === 2 && parseInt(month) > 12) {
+                        month = '12';
+                    }
+                    formatted += '/' + month;
+                } else if (numbers.length === 3) {
+                    // Si solo tenemos 3 dígitos, el mes está incompleto
+                    formatted += '/' + numbers.slice(2);
+                }
+                
+                // Año (últimos 4 dígitos)
+                if (numbers.length >= 5) {
+                    let year = numbers.slice(4, 8);
+                    formatted += '/' + year;
+                } else if (numbers.length === 4) {
+                    // Después del día y mes completo, empezamos el año
+                    formatted += '/';
+                }
+            }
+            
+            this.value = formatted;
+        });
+        
+        // Permitir teclas de navegación y borrado
+        fechaInput.addEventListener('keydown', function(e) {
+            const key = e.key;
+            const allowedKeys = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Home', 'End', 'Enter'];
+            
+            if (allowedKeys.includes(key)) {
+                return;
+            }
+            
+            // Permitir solo números
+            if (!/^\d$/.test(key)) {
+                e.preventDefault();
+            }
+        });
+    }
+
+    // ========== VALIDACIÓN CON ENTER ==========
+    const form = document.getElementById('presupuesto-form');
+    
+    // Prevenir el envío del formulario con Enter
+    form.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA' && e.target.type !== 'submit') {
+            e.preventDefault();
+            
+            // Si es el campo de servicio, agregar servicio en lugar de validar
+            if (e.target.id === 'servicio-select' || e.target.id === 'servicio-cantidad') {
+                return; // Deja que el evento normal continúe para agregar servicio
+            }
+            
+            // Simular el envío del formulario para mostrar errores de Django
+            const submitBtn = document.getElementById('submit-btn');
+            if (submitBtn) {
+                submitBtn.click();
+            }
+        }
+    });
+    
+    // Inicializar totales visuales y contador
+    actualizarTotalesVisuales();
+    actualizarContadorServicios();
+});
+</script>
+
+{% endblock %}

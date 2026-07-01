@@ -1,0 +1,562 @@
+{% extends 'seguridad/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-0">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-12">
+
+      <!-- HEADER -->
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <h2 class="h4 mb-1">DETALLES DE ORDEN DE TRABAJO</h2>
+        <div class="d-flex gap-2">
+          <button type="button" onclick="window.history.back()" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i>Volver
+          </button>
+          {% if perms.seguridad.editar_ordenes_trabajo and orden.es_editable %}
+            <a href="{% url 'orden_trabajo_editar' orden.pk %}" class="btn btn-primary btn-sm">
+              <i class="bi bi-pencil"></i>Editar
+            </a>
+          {% endif %}
+          
+          <!-- Enviar a Revisión CON MODAL (solo cuando está completado) -->
+          {% if perms.seguridad.cambiar_estado_ordenes_trabajo and orden.estado == 'completado' %}
+            <button type="button" 
+              class="btn btn-warning btn-sm" 
+              title="Enviar a Revisión"
+              data-bs-toggle="modal" 
+              data-bs-target="#enviarRevisionModal"
+              data-orden-id="{{ orden.id }}"
+              data-orden-info="Orden #{{ orden.id }} - {{ orden.cliente.nombre }} - {{ orden.vehiculo.marca }} {{ orden.vehiculo.modelo }}">
+              <i class="bi bi-clipboard-check"></i>Enviar a Revisión
+            </button>
+          {% endif %}
+
+          <!-- Revisar Calidad (solo cuando está en_revision) -->
+          {% if perms.seguridad.cambiar_estado_ordenes_trabajo and orden.estado == 'en_revision' %}
+            <a href="{% url 'orden_revision' orden.id %}" class="btn btn-primary btn-sm">
+              <i class="bi bi-clipboard-check"></i>Revisar Calidad
+            </a>
+          {% endif %}
+
+          <!-- Reanudar Orden Rechazada CON MODAL -->
+          {% if perms.seguridad.cambiar_estado_ordenes_trabajo and orden.estado == 'rechazado' %}
+            <button type="button" 
+              class="btn btn-warning btn-sm"  
+              title="Reanudar Orden"
+              data-bs-toggle="modal" 
+              data-bs-target="#reanudarOrdenModal"
+              data-orden-id="{{ orden.id }}"
+              data-orden-info="Orden #{{ orden.id }} - {{ orden.cliente.nombre }} - {{ orden.vehiculo.marca }} {{ orden.vehiculo.modelo }}">
+              <i class="bi bi-arrow-return-left"></i>Reanudar
+            </button>
+          {% endif %}
+          
+          {% if perms.seguridad.agregar_facturas and orden.estado == 'aprobado' %}
+            {% if not orden.factura_generada %}
+              <button type="button" 
+                class="btn btn-success btn-sm" 
+                  title="Generar Factura"
+                  data-bs-toggle="modal" 
+                  data-bs-target="#generarFacturaModal"
+                  data-orden-id="{{ orden.id }}"
+                  data-orden-info="Orden #{{ orden.id }} - {{ orden.cliente.nombre }} - {{ orden.vehiculo.marca }} {{ orden.vehiculo.modelo }}">
+                <i class="bi bi-receipt"></i>Facturar
+              </button>
+            {% endif %}
+          {% endif %}          
+          <a href="{% url 'orden_trabajo_imprimir' orden.pk %}" target="_blank" class="btn btn-info btn-sm">
+            <i class="bi bi-printer"></i>Imprimir
+          </a>
+        </div>
+      </div>
+
+      <!-- CARD -->
+      <div class="card">
+        <div class="card-body">
+          <div class="row g-3">
+            <!-- INFORMACIÓN GENERAL -->
+            <div class="col-md-6">
+              <h6 class="mb-2 border-bottom pb-2 small fw-semibold text-muted">INFORMACIÓN GENERAL</h6>
+              <div class="mb-2">
+                <label class="form-label small text-muted">N° de Orden</label>
+                <p class="mb-0 fw-semibold">{{ orden.id }}</p>
+              </div>
+              <div class="mb-2">
+                <label class="form-label small text-muted">Cliente</label>
+                <p class="mb-0 fw-semibold">
+                  {% if orden.cliente %}
+                    <a href="{% url 'cliente_ver' orden.cliente.pk %}" class="btn btn-outline fw-semibold d-flex align-items-center gap-1">
+                      <i class="bi bi-person"></i> {{ orden.cliente.nombre }}
+                    </a>
+                    <div class="documento-cell small fw-semibold">Documento: {{ orden.cliente.numero_documento|default:"—" }}</div>
+                  {% else %}
+                    <small class="fw-semibold"><i class="bi bi-person-x"></i> No asignado</small>
+                  {% endif %}
+                </p>
+              </div>
+              <div class="mb-2">
+                <label class="form-label small text-muted">Vehículo</label>
+                <div class="mb-0 fw-semibold">
+                    {% if orden.vehiculo %}
+                      <a href="{% url 'vehiculo_ver' orden.vehiculo.pk %}" class="btn btn-outline fw-semibold d-flex align-items-center gap-1">
+                        <i class="bi bi-car-front"></i> {{ orden.vehiculo.marca }} {{ orden.vehiculo.modelo }}
+                      </a> 
+                      {% if orden.vehiculo.nro_chapa %}
+                          <div class="text-small">Chapa: {{ orden.vehiculo.nro_chapa }}</div>
+                      {% else %}
+                          <div class="text-small">Chasis: {{ orden.vehiculo.nro_chasis }}</div>
+                      {% endif %}
+                    {% else %}
+                      <small class="fw-semibold"><i class="bi bi-car-front"></i> No asignado</small>
+                    {% endif %}
+                </div>
+              </div>
+              <div class="mb-2">
+                <label class="form-label small text-muted">Presupuesto Asociado</label>
+                  <div class="mb-0 fw-semibold">
+                    {% if orden.presupuesto_origen %}
+                      <a href="{% url 'presupuesto_ver' orden.presupuesto_origen.pk %}" class="btn btn-outline fw-semibold d-flex align-items-center gap-1">
+                        <i class="bi bi-file-text"></i> Presupuesto #{{ orden.presupuesto_origen.pk }}
+                      </a>
+                    {% else %}
+                      <small class="fw-semibold"><i class="bi bi-file-text"></i> No asignado</small>
+                    {% endif %}
+                  </div>
+                </div>
+            </div>
+
+            <!-- FECHAS Y ESTADO -->
+            <div class="col-md-6">
+              <h6 class="mb-2 border-bottom pb-2 small fw-semibold text-muted">FECHAS Y ESTADO</h6>
+              <div class="mb-2">
+                <label class="form-label small text-muted">Fecha de Creación</label>
+                <p class="mb-1">{{ orden.fecha_creacion|date:"d/m/Y • H:i" }}</p>
+              </div>
+              <div class="mb-2">
+                <label class="form-label small text-muted">Fecha de Inicio</label>
+                <p class="mb-0">{{ orden.fecha_inicio|date:"d/m/Y • H:i"|default:"—" }}</p>
+              </div>
+              <div class="mb-2">
+                <label class="form-label small text-muted">Fecha de Finalización</label>
+                <p class="mb-0">{{ orden.fecha_fin|date:"d/m/Y • H:i"|default:"—" }}</p>
+              </div>
+              <div class="mb-2">
+                <label class="form-label small text-muted">Estado</label>
+                <p class="mb-0 fw-semibold
+                  {% if orden.estado == 'completado' %} text-success
+                  {% elif orden.estado == 'facturado' %} text-fw-bold text-dark
+                  {% elif orden.estado == 'cancelado' %} text-danger
+                  {% elif orden.estado == 'en_proceso' %} text-primary
+                  {% elif orden.estado == 'espera_repuestos' %} text-info
+                  {% elif orden.estado == 'pausado' %} text-warning
+                  {% elif orden.estado == 'en_revision' %} text-warning
+                  {% elif orden.estado == 'aprobado' %} text-success
+                  {% elif orden.estado == 'rechazado' %} text-danger
+                  {% else %} text-secondary{% endif %}">
+                  {{ orden.get_estado_display }} 
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- OBSERVACIONES -->
+          <div class="row mt-2">
+            <div class="col-12">
+              <h6 class="mb-2 border-bottom pb-2 small fw-semibold text-muted">OBSERVACIONES</h6>
+              <p class="mb-0">{{ orden.descripcion|default:"—" }}</p>
+            </div>
+          </div>
+
+          <!-- SERVICIOS DE LA ORDEN -->
+          <div class="row mt-4">
+            <div class="col-12">
+              <h6 class="mb-3 border-bottom pb-2 small fw-semibold text-muted">SERVICIOS INCLUIDOS</h6>
+
+              {% if servicios %}
+                <div class="table-responsive">
+                  <table class="table table-sm table-hover">
+                    <thead class="table-light">
+                      <tr>
+                        <th style="width: 6%">Cód.</th>
+                        <th style="width: 30%">Servicio</th>
+                        <th style="width: 8%">HH:MM</th>
+                        <th style="width: 8%" class="text-center">Cant.</th>
+                        <th style="width: 12%" class="text-center">Sub-Total</th>
+                        <th style="width: 36%" class="text-center">Empleado(s) / Estado / Tiempo</th>
+                        <th style="width: 20%" class="text-center">Observación Revisión</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for os in servicios %}
+                        {% with servicio=os.servicio %}
+                          <tr> 
+                            <td class="text-center">
+                              <code class="fw-semibold" style="color: #003363; font-size: 0.8rem;">{{ servicio.pk }}</code>
+                            </td>
+                            <td>
+                              <div class="text-start fw-semibold">{{ servicio.nombre }}</div>
+                              {% if servicio.descripcion %}
+                                <div class="text-start small">{{ servicio.descripcion|truncatewords:8 }}</div>
+                              {% endif %}
+                            </td>
+                            <td class="text-center">
+                              <span class="tiempo-hhmm" data-minutos="{{ servicio.tiempo_min_estimado }}"></span>
+                            </td>
+                            <td class="text-center">{{ os.cantidad|floatformat:"0" }}</td>
+                            <td class="text-center fw-semibold" data-precio="{{ os.subtotal }}"></td>
+                            <td class="text-center">
+                              {% with asignaciones=os.asignacionorden_set.all %}
+                                {% if asignaciones %}
+                                  <div class="d-flex flex-column gap-2">
+                                    {% for asignacion in asignaciones %}
+                                      {% with registro=asignacion.registro_tiempo_real %}
+                                        <div class="border rounded p-1 {% if registro and registro.estado == 'en_curso' %}bg-light{% endif %}">
+                                          <div class="d-flex justify-content-between align-items-center">
+                                            <span class="fw-semibold small">{{ asignacion.empleado.nombre }}</span>
+                                            {% if registro %}
+                                              {% if registro.estado == 'en_curso' %}
+                                                <span class="badge bg-primary">Trabajando</span>
+                                              {% elif registro.estado == 'pausado' %}
+                                                <span class="badge bg-warning text-dark">Pausado</span>
+                                              {% elif registro.estado == 'finalizado' %}
+                                                <span class="badge bg-success">Completado</span>
+                                              {% endif %}
+                                            {% else %}
+                                              <span class="badge bg-secondary">No iniciado</span>
+                                            {% endif %}
+                                          </div>
+                                          {% if registro %}
+                                            {% if registro.estado == 'en_curso' %}
+                                              <div class="d-flex justify-content-between align-items-center mt-1">
+                                                  <span class="small text-muted">
+                                                      <i class="bi bi-play-circle-fill text-success"></i> {{ registro.fecha_inicio|date:"H:i" }}
+                                                  </span>
+                                                  <span class="small text-muted">
+                                                      <i class="bi bi-clock"></i> <span class="fw-bold text-primary" id="timer-{{ registro.id }}">00:00</span>
+                                                  </span>
+                                              </div>
+
+                                            {% elif registro.estado == 'pausado' %}
+                                              <div class="d-flex justify-content-between mt-1">
+                                                  <span class="small text-muted">
+                                                      <i class="bi bi-pause-circle-fill text-success"></i> {{ registro.fecha_inicio|date:"H:i" }}
+                                                  </span>
+                                                  <span class="small text-muted">
+                                                      <i class="bi bi-pause-circle-fill text-warning"></i> {{ registro.tiempo_formateado }}
+                                                  </span>
+                                              </div>
+                                            {% elif registro.estado == 'finalizado' %}
+                                                <div class="d-flex justify-content-between align-items-center mt-1">
+                                                    <span class="small text-muted">
+                                                        <i class="bi bi-play-circle-fill text-success"></i> {{ registro.fecha_inicio|date:"d/m H:i" }}
+                                                    </span>
+                                                    <span class="small text-muted">
+                                                        <i class="bi bi-stop-circle-fill text-danger"></i> {{ registro.fecha_fin|date:"d/m H:i" }}
+                                                    </span>
+                                                </div>
+                                                <div class="fw-semibold text-dark text-end"> 
+                                                    Total: {{ registro.tiempo_formateado }}
+                                                </div>
+                                            {% endif %}
+                                          {% else %}
+                                            <!-- <div class="small text-muted text-end">No iniciado</div> -->
+                                          {% endif %}
+                                        </div>
+                                      {% endwith %}
+                                    {% endfor %}
+                                  </div>
+                                {% else %}
+                                  <span class="text-muted small">—</span>
+                                {% endif %}
+                              {% endwith %}
+                            </td>
+                            <td class="text-start">
+                              {% with revision=os.revisiones.first %}
+                                {% if revision %}
+                                  {% if revision.aprobado %}
+                                    {# APROBADO #}
+                                    {% if revision.observacion %}
+                                      <div class="small text-muted">
+                                        <i class="bi bi-chat-dots text-info"></i>
+                                        <strong>Aprobado:</strong> {{ revision.observacion|truncatewords:15 }}
+                                      </div>
+                                    {% else %}
+                                      <div class="small text-muted">
+                                        <i class="bi bi-check-circle text-success"></i> Aprobado • Sin observaciones
+                                      </div>
+                                    {% endif %}
+                                  {% else %}
+                                    {# RECHAZADO - Solo el ícono en rojo #}
+                                    {% if revision.observacion %}
+                                      <div class="small text-muted">
+                                        <i class="bi bi-x-circle text-danger"></i>
+                                        <strong>Rechazado:</strong> {{ revision.observacion|truncatewords:15 }}
+                                      </div>
+                                    {% else %}
+                                      <div class="small text-muted">
+                                        <i class="bi bi-x-circle text-danger"></i> Rechazado • Sin observaciones
+                                      </div>
+                                    {% endif %}
+                                  {% endif %}
+                                {% else %}
+                                  <span class="text-muted small">—</span>
+                                {% endif %}
+                              {% endwith %}
+                            </td>
+                          </tr>
+                        {% endwith %}
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              {% else %}
+                <div class="text-center py-4 text-muted">
+                  <i class="bi bi-inbox display-6 d-block mb-2"></i>
+                  <p>No hay servicios asignados a esta orden.</p>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- RESUMEN FINANCIERO -->
+          <div class="row mt-3">
+            <div class="col-12">
+              <h6 class="mb-3 border-bottom pb-2 small fw-semibold text-muted">RESUMEN FINANCIERO</h6>
+              <div class="table-responsive">
+                <table class="table table-sm table-borderless">
+                  <tbody>
+                    <tr><td class="text-end fw-semibold">Subtotal Servicios:</td><td class="text-end" style="width: 180px;" data-precio="{{ orden.subtotal_servicios|default_if_none:'' }}">—</td></tr>
+                    <tr><td class="text-end fw-semibold">Descuento:</td><td class="text-end" data-precio="{{ orden.descuento|default_if_none:'' }}">—</td></tr>
+                    <tr><td class="text-end fw-semibold">Base Imponible:</td><td class="text-end" data-precio="{{ orden.base_imponible|default_if_none:'' }}">—</td></tr>
+                    <tr><td class="text-end fw-semibold">IVA({{ orden.iva_porcentaje|floatformat:"0" }}%):</td><td class="text-end" data-precio="{{ orden.iva_monto|default_if_none:'' }}">—</td></tr>
+                    <tr class="table-primary"><td class="text-end fw-bold">TOTAL:</td><td class="text-end fw-bold" data-precio="{{ orden.total|default_if_none:'' }}">—</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /card-body -->
+
+        <!-- FOOTER -->
+        <div class="card-footer bg-light py-1">
+          <div class="d-flex justify-content-between align-items-center">
+            <small class="text-muted"><i class="bi bi-hash"></i>ID: {{ orden.pk }}</small>
+            <small class="text-muted">
+              {% if usuario_actualizacion and ultima_actualizacion %}
+                Modificado: {{ ultima_actualizacion|date:"d/m/Y H:i" }} | {{ usuario_actualizacion.get_full_name|default:usuario_actualizacion.username }}
+              {% elif usuario_creacion %}
+                Creado: {{ orden.fecha_creacion|date:"d/m/Y H:i" }} | {{ usuario_creacion.get_full_name|default:usuario_creacion.username }}
+              {% else %}
+                Creado: {{ orden.fecha_creacion|date:"d/m/Y H:i" }}
+              {% endif %} 
+            </small>
+          </div>
+        </div>
+      </div><!-- /card -->
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PARA ENVIAR A REVISIÓN -->
+<div class="modal fade" id="enviarRevisionModal" tabindex="-1" aria-labelledby="enviarRevisionModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title" id="enviarRevisionModalLabel">Enviar a Revisión</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body text-center">
+        <div class="mb-3"><i class="bi bi-clipboard-check text-warning display-6"></i></div>
+        <p>¿Desea <strong class="text-warning">ENVIAR A REVISIÓN DE CALIDAD</strong> esta orden de trabajo?</p>
+        <p class="small text-muted mt-1" id="ordenInfoEnviarRevision"></p>
+      </div>
+      <div class="modal-footer justify-content-center">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-warning btn-sm" id="confirmarEnviarRevision">Enviar a Revisión</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PARA REANUDAR ORDEN RECHAZADA -->
+<div class="modal fade" id="reanudarOrdenModal" tabindex="-1" aria-labelledby="reanudarOrdenModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title" id="reanudarOrdenModalLabel">Reanudar Orden</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body text-center">
+        <div class="mb-3"><i class="bi bi-arrow-return-left text-warning display-6"></i></div>
+        <p>¿Desea <strong class="text-warning">REANUDAR</strong> esta orden de trabajo?</p>
+        <p class="small text-muted mt-1" id="ordenInfoReanudar"></p>
+      </div>
+      <div class="modal-footer justify-content-center">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-warning btn-sm" id="confirmarReanudarOrden">Reanudar Orden</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PARA GENERAR FACTURA -->
+<div class="modal fade" id="generarFacturaModal" tabindex="-1" aria-labelledby="generarFacturaModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title" id="generarFacturaModalLabel">Generar Factura</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body text-center">
+        <div class="mb-3"><i class="bi bi-receipt text-success display-6"></i></div>
+        <p>¿Desea <strong class="text-success">GENERAR</strong> una Factura desde esta orden de trabajo?</p>
+        <p class="small text-muted mt-1" id="ordenInfoGenerarFactura"></p>
+      </div>
+      <div class="modal-footer justify-content-center">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-success btn-sm" id="confirmarGenerarFactura">Generar Factura</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.container-fluid { max-width: 1500px; }
+.table td, .table th { padding: 0.5rem 0.75rem; vertical-align: middle; }
+.btn-group-sm > .btn { padding: 0.25rem 0.5rem; }
+code {
+  background-color: #f8f9fa;
+  padding: 0.2rem 0.4rem;
+  border-radius: 0.25rem;
+  font-size: 0.8rem;
+  font-family: monospace;
+}
+.table-responsive {
+  overflow-x: auto;
+}
+#enviarRevisionModal .modal-dialog,
+#reanudarOrdenModal .modal-dialog,
+#generarFacturaModal .modal-dialog { max-width: 400px; width: 50%; margin: 0 auto; display: flex; align-items: center; min-height: calc(100% - 2rem); }
+#enviarRevisionModal .modal-content,
+#reanudarOrdenModal .modal-content,
+#generarFacturaModal .modal-content { min-height: 50px; }
+#enviarRevisionModal .modal-title,
+#enviarRevisionModal .modal-body,
+#reanudarOrdenModal .modal-title,
+#reanudarOrdenModal .modal-body,
+#generarFacturaModal .modal-title,
+#generarFacturaModal .modal-body { text-align: center; }
+#enviarRevisionModal .modal-footer,
+#reanudarOrdenModal .modal-footer,
+#generarFacturaModal .modal-footer { justify-content: center; gap: .4rem; }
+#enviarRevisionModal .modal-footer .btn,
+#reanudarOrdenModal .modal-footer .btn,
+#generarFacturaModal .modal-footer .btn { padding: 0.45rem 0.9rem; font-size: 0.75rem; min-width: 120px; line-height: 1.15; border-radius: 8px; }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  function parseGsAttr(v) {
+    if (v === null || v === undefined) return null;
+    const raw = String(v).trim();
+    if (!raw) return null;
+    let clean = raw.replace(/[^0-9.,]/g, '');
+    if (/^\d{1,3}(\.\d{3})*(,\d+)$/.test(clean) || /^\d+(,\d+)$/.test(clean)) clean = clean.split(',')[0];
+    if (/^\d+(\.\d{2})$/.test(clean)) clean = clean.split('.')[0];
+    clean = clean.replace(/\./g, '').replace(/,/g, '');
+    if (!clean) return null;
+    const n = parseInt(clean, 10);
+    return isNaN(n) ? null : n;
+  }
+  function formatGsEntero(n) { if (n === null || isNaN(n)) return '—'; return 'Gs. ' + n.toLocaleString('es-PY'); }
+  function formatDocumento(documento) {
+    if (!documento || documento === 'Sin documento') return documento;
+    const doc = documento.toString().trim();
+    if (doc.includes('-')) { const [principal, dv] = doc.split('-'); const principalFmt = principal.replace(/\B(?=(\d{3})+(?!\d))/g, '.'); return `${principalFmt}-${dv}`; }
+    return doc.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  }
+  function aplicarFormatoPrecios() { document.querySelectorAll('[data-precio]').forEach(el => { const valor = parseGsAttr(el.getAttribute('data-precio')); el.textContent = formatGsEntero(valor); }); }
+  function aplicarFormatoDocumentos() { document.querySelectorAll('.documento-cell').forEach(el => { const original = el.textContent.replace('Documento:', '').trim(); if (original && original !== '—' && original !== 'Sin documento') { el.textContent = 'Documento: ' + formatDocumento(original); } }); }
+  function minutosToHHMM(minutos) { if (!minutos || isNaN(minutos)) return '00:00'; const totalMin = parseInt(minutos, 10); const horas = Math.floor(totalMin / 60); const min = totalMin % 60; return `${String(horas).padStart(2, '0')}:${String(min).padStart(2, '0')}`; }
+  document.querySelectorAll('.tiempo-hhmm').forEach(span => { const minutos = span.getAttribute('data-minutos'); span.textContent = minutosToHHMM(minutos); });
+  
+  // Timer para vista de detalles
+  function actualizarTimersView() {
+    document.querySelectorAll('.timer-display-view').forEach(el => {
+      const inicioStr = el.getAttribute('data-inicio');
+      if (inicioStr) {
+        const inicio = new Date(inicioStr);
+        const ahora = new Date();
+        const diffMs = ahora - inicio;
+        const minutos = Math.floor(diffMs / 60000);
+        const horas = Math.floor(minutos / 60);
+        const mins = minutos % 60;
+        el.textContent = `${horas.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+      }
+    });
+  }
+  actualizarTimersView();
+  setInterval(actualizarTimersView, 60000);
+  
+  // Modal para Enviar a Revisión
+  const enviarRevisionModal = document.getElementById('enviarRevisionModal');
+  let ordenIdEnviarRevision = null;
+  if (enviarRevisionModal) {
+    enviarRevisionModal.addEventListener('show.bs.modal', function(event) {
+      const button = event.relatedTarget;
+      ordenIdEnviarRevision = button.getAttribute('data-orden-id');
+      const ordenInfo = button.getAttribute('data-orden-info');
+      document.getElementById('ordenInfoEnviarRevision').textContent = ordenInfo;
+    });
+    document.getElementById('confirmarEnviarRevision').addEventListener('click', function() {
+      if (ordenIdEnviarRevision) {
+        const url = `{% url 'orden_enviar_revision' 0 %}`.replace('0', ordenIdEnviarRevision);
+        window.location.href = url;
+      }
+    });
+  }
+  
+  // Modal para Reanudar Orden Rechazada
+  const reanudarOrdenModal = document.getElementById('reanudarOrdenModal');
+  let ordenIdReanudar = null;
+  if (reanudarOrdenModal) {
+    reanudarOrdenModal.addEventListener('show.bs.modal', function(event) {
+      const button = event.relatedTarget;
+      ordenIdReanudar = button.getAttribute('data-orden-id');
+      const ordenInfo = button.getAttribute('data-orden-info');
+      document.getElementById('ordenInfoReanudar').textContent = ordenInfo;
+    });
+    document.getElementById('confirmarReanudarOrden').addEventListener('click', function() {
+      if (ordenIdReanudar) {
+        const url = `{% url 'orden_trabajo_editar_reanudado' 0 %}`.replace('0', ordenIdReanudar);
+        window.location.href = url;
+      }
+    });
+  }
+  
+  // Modal para Generar Factura
+  const generarFacturaModal = document.getElementById('generarFacturaModal');
+  let ordenIdActual = null;
+  if (generarFacturaModal) {
+    generarFacturaModal.addEventListener('show.bs.modal', function(event) {
+      const button = event.relatedTarget;
+      ordenIdActual = button.getAttribute('data-orden-id');
+      const ordenInfo = button.getAttribute('data-orden-info');
+      document.getElementById('ordenInfoGenerarFactura').textContent = ordenInfo;
+    });
+    document.getElementById('confirmarGenerarFactura').addEventListener('click', function() {
+      if (ordenIdActual) {
+        const url = `{% url 'generar_factura_desde_orden' 0 %}`.replace('0', ordenIdActual);
+        window.location.href = url;
+      }
+    });
+  }
+  
+  aplicarFormatoPrecios();
+  aplicarFormatoDocumentos();
+});
+</script>
+
+{% endblock %}

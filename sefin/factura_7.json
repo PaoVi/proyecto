@@ -1,0 +1,31 @@
+{
+    "factura": {
+        "numero": "001-001-0000183",
+        "fecha": "2026-05-20",
+        "timbrado": "87654321",
+        "establecimiento": "001",
+        "punto_emision": "001",
+        "estado": "ACTIVA"
+    },
+    "cliente": {
+        "nombre": "John Michael Smith",
+        "documento": "AB123456"
+    },
+    "totales": {
+        "total": 405000.0
+    },
+    "items": [
+        {
+            "tipo": "insumo",
+            "descripcion": "INSV-0121 - Lámpara LED H7 6000K",
+            "cantidad": 1.0,
+            "precio": 85000.0
+        },
+        {
+            "tipo": "insumo",
+            "descripcion": "INSV-0095 - Batería libre de mantenimiento 12V 60Ah",
+            "cantidad": 1.0,
+            "precio": 320000.0
+        }
+    ]
+}

@@ -1,0 +1,25 @@
+{
+    "factura": {
+        "numero": "001-001-0000107",
+        "fecha": "2026-04-22",
+        "timbrado": "12345678",
+        "establecimiento": "001",
+        "punto_emision": "001",
+        "estado": "ACTIVA"
+    },
+    "cliente": {
+        "nombre": "Transporte Rápido S.A.",
+        "documento": "8056789-5"
+    },
+    "totales": {
+        "total": 21000.0
+    },
+    "items": [
+        {
+            "tipo": "insumo",
+            "descripcion": "INSV-0112 - Aceite",
+            "cantidad": 1.0,
+            "precio": 21000.0
+        }
+    ]
+}

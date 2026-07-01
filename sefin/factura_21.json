@@ -1,0 +1,31 @@
+{
+    "factura": {
+        "numero": "001-001-0000250",
+        "fecha": "2026-06-16",
+        "timbrado": "87654321",
+        "establecimiento": "001",
+        "punto_emision": "001",
+        "estado": "ACTIVA"
+    },
+    "cliente": {
+        "nombre": "Laura Beatriz Acosta",
+        "documento": "1122334"
+    },
+    "totales": {
+        "total": 1382000.0
+    },
+    "items": [
+        {
+            "tipo": "servicio",
+            "descripcion": "Cambio de amortiguadores traseros",
+            "cantidad": 1.0,
+            "precio": 970000.0
+        },
+        {
+            "tipo": "servicio",
+            "descripcion": "Aceite y cambios generales",
+            "cantidad": 1.0,
+            "precio": 412000.0
+        }
+    ]
+}

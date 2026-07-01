@@ -1,0 +1,25 @@
+{
+    "factura": {
+        "numero": "001-001-0000268",
+        "fecha": "2026-06-17",
+        "timbrado": "87654321",
+        "establecimiento": "001",
+        "punto_emision": "001",
+        "estado": "ACTIVA"
+    },
+    "cliente": {
+        "nombre": "Patricia Elizabeth Vargas",
+        "documento": "8901234"
+    },
+    "totales": {
+        "total": 85000.0
+    },
+    "items": [
+        {
+            "tipo": "insumo",
+            "descripcion": "INSV-0121 - Lámpara LED H7 6000K",
+            "cantidad": 1.0,
+            "precio": 85000.0
+        }
+    ]
+}

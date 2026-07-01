@@ -1,0 +1,381 @@
+{% extends 'seguridad/base.html' %}
+
+{% block content %}
+<div class="container-fluid py-0">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-12">
+
+      <!-- HEADER -->
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <div>
+          <h2 class="h4 mb-1">GESTIÓN DE PRESUPUESTOS</h2> 
+        </div>
+        <div class="d-flex gap-2">
+          {% if perms.seguridad.cambiar_estado_presupuestos %}
+          <a href="{% url 'presupuesto_cambiar_estados' %}" class="btn btn-info btn-sm">
+            <i class="bi bi-toggle-on"></i>Cambiar Estados
+          </a>
+          {% endif %}
+          {% if perms.seguridad.agregar_presupuestos %}
+          <a href="{% url 'presupuesto_crear' %}" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-circle"></i>Nuevo Presupuesto
+          </a>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- FILTROS -->
+      <div class="card mb-2">
+        <div class="card-body p-2">
+          <form method="get" class="row g-2 align-items-end">
+
+            <!-- BÚSQUEDA -->
+            <div class="col-md-4">
+              <label class="form-label small">#PRESUPUESTO / CLIENTE / VEHÍCULO</label>
+              <input type="text" name="q" value="{{ request.GET.q }}" class="form-control form-control-sm" style="height: 33px;"
+                     placeholder="Ej.: 120, Juan, Toyota, ABC123">
+            </div>
+
+            <!-- CLIENTE
+            <div class="col-md-2">
+              <label class="form-label small">CLIENTE</label>
+              <select name="cliente" class="form-select form-select-sm" style="height: 33px;">
+                <option value="">Todos</option>
+                {% for cliente in clientes %}
+                <option value="{{ cliente.id }}" {% if request.GET.cliente == cliente.id|stringformat:"s" %}selected{% endif %}>
+                  {{ cliente.nombre }}
+                </option>
+                {% endfor %}
+              </select>
+            </div> -->
+
+            <!-- FECHA DESDE -->
+            <div class="col-md-2">
+              <label class="form-label small">DESDE</label>
+              <input type="date" name="fecha_desde" class="form-control form-control-sm" style="height: 33px;" 
+                     value="{{ request.GET.fecha_desde }}">
+            </div>
+
+            <!-- FECHA HASTA -->
+            <div class="col-md-2">
+              <label class="form-label small">HASTA</label>
+              <input type="date" name="fecha_hasta" class="form-control form-control-sm" style="height: 33px;" 
+                     value="{{ request.GET.fecha_hasta }}">
+            </div>
+
+            <!-- ESTADO -->
+            <div class="col-md-2">
+              <label class="form-label small">ESTADO</label>
+              <select name="estado" class="form-select form-select-sm">
+                <option value="">Todos</option>
+                {% for estado in estados %}
+                <option value="{{ estado.0 }}" {% if request.GET.estado == estado.0 %}selected{% endif %}>
+                  {{ estado.1 }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <!-- BOTONES FILTRO -->
+            <div class="col-md-1">
+              <label class="form-label small">&nbsp;</label>
+              <button type="submit" class="btn btn-outline-primary w-100 btn-sm" style="height: 33px;">
+                <i class="bi bi-search"></i>Buscar
+              </button>
+            </div>
+
+            <div class="col-md-1">
+              <label class="form-label small">&nbsp;</label>
+              <a href="{% url 'presupuesto_lista' %}" class="btn btn-outline-secondary w-100 btn-sm" style="height: 33px;">
+                <i class="bi bi-arrow-clockwise"></i> Limpiar
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- LISTA -->
+      <div class="card">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th style="width: 11%">#Presupuesto</th>
+                <th style="width: 25%">Cliente</th>
+                <th style="width: 16%">Vehículo</th>
+                <th style="width: 9%">Estado</th>
+                <th style="width: 9%">Creación</th>
+                <th style="width: 10%">Vencimiento</th>
+                <th style="width: 10%">Total</th>
+                <th style="width: 10%" class="text-center">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for presupuesto in presupuestos %}
+              <tr>
+                <!-- ID -->
+                <td class="fw-semibold">
+                  {{ presupuesto.id }}
+                </td>
+
+                <!-- CLIENTE -->
+                <td>
+                  <div class="fw-semibold text-start">
+                    {{ presupuesto.cliente.nombre }}
+                  </div>
+                  {% if presupuesto.cliente.telefono %}
+                    <div class="text-muted small text-start">
+                      {{ presupuesto.cliente.telefono }}
+                    </div>
+                  {% endif %}
+                </td>
+
+                <!-- VEHÍCULO -->
+                <td>
+                  <div class="fw-semibold text-start">
+                    {{ presupuesto.vehiculo.marca }} {{ presupuesto.vehiculo.modelo }}
+                  </div>
+                  <div class="text-muted small text-start">
+                    Chapa: {{ presupuesto.vehiculo.nro_chapa|default:"—" }}
+                  </div>
+                </td>
+
+                <!-- ESTADO -->
+                <td>
+                  <span class="badge
+                    {% if presupuesto.estado == 'aprobado' %}bg-success
+                    {% elif presupuesto.estado == 'rechazado' %}bg-danger
+                    {% elif presupuesto.estado == 'vencido' %}bg-dark
+                    {% else %}bg-secondary{% endif %}">
+                    {{ presupuesto.get_estado_display }}
+                  </span>
+                  {% if presupuesto.dias_restantes > 0 and presupuesto.estado == 'pendiente' %}
+                    {% if presupuesto.dias_restantes == 1 %}
+                      <div class="text-dark small">{{ presupuesto.dias_restantes }} día</div>
+                    {% else %}
+                      <div class="text-dark small">{{ presupuesto.dias_restantes }} días</div>
+                    {% endif %}
+                  {% endif %}
+                </td>
+
+                <!-- FECHA CREACIÓN -->
+                <td class="text-truncate">
+                  <div>{{ presupuesto.fecha_creacion|date:"d/m/Y" }}</div>
+                  <div class="text-muted small">{{ presupuesto.fecha_creacion|date:"H:i" }}</div>
+                </td>
+
+                <!-- FECHA VENCIMIENTO -->
+                <td class="text-truncate">
+                  {{ presupuesto.fecha_vencimiento|date:"d/m/Y" }}
+                </td>
+
+                <!-- TOTAL -->
+                <td class="text-truncate fw-semibold">
+                  ₲ <span class="total-valor">{{ presupuesto.total|floatformat:0 }}</span>
+                </td>
+
+                <!-- ACCIONES -->
+                <td class="text-center">
+                  <div class="btn-group btn-group-sm">
+                    {% if perms.seguridad.ver_presupuestos %}
+                      <a href="{% url 'presupuesto_ver' presupuesto.id %}" class="btn btn-outline-info btn-sm" title="Ver">
+                        <i class="bi bi-eye"></i>
+                      </a>
+                    {% endif %}
+
+                    {% if perms.seguridad.editar_presupuestos %}
+                      {% if presupuesto.es_editable %}
+                        <a href="{% url 'presupuesto_editar' presupuesto.id %}" class="btn btn-outline-primary btn-sm" title="Editar">
+                          <i class="bi bi-pencil"></i>
+                        </a>
+                      {% endif %}
+                    {% endif %}
+    
+                    {% if perms.seguridad.agregar_ordenes_trabajo and presupuesto.estado == 'aprobado' %}
+                      {% if not presupuesto.orden_trabajo_generada %}
+                        <button type="button" 
+                                class="btn btn-outline-primary btn-sm" 
+                                title="Generar OT"
+                                data-bs-toggle="modal" 
+                                data-bs-target="#generarOTModal"
+                                data-presupuesto-id="{{ presupuesto.id }}"
+                                data-presupuesto-info="Presupuesto #{{ presupuesto.id }} - {{ presupuesto.cliente.nombre }} - {{ presupuesto.vehiculo.marca }} {{ presupuesto.vehiculo.modelo }}">
+                          <i class="bi bi-file-earmark-text"></i>
+                        </button>
+                      {% else %}
+                        <button type="button" 
+                                class="btn btn-outline-secondary btn-sm" 
+                                title="Ya se generó una OT desde este presupuesto"
+                                disabled>
+                          <i class="bi bi-file-earmark-check"></i>
+                        </button>
+                      {% endif %}
+                    {% endif %}
+
+                    {% if perms.seguridad.imprimir_presupuestos %}
+                      <a href="{% url 'presupuesto_imprimir' presupuesto.id %}" target="_blank" class="btn btn-outline-secondary btn-sm" title="Imprimir">
+                        <i class="bi bi-printer"></i>
+                      </a>
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="8" class="text-center py-4 text-muted">No se encontraron presupuestos</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- PAGINACIÓN -->
+        {% if presupuestos.has_other_pages %}
+        <div class="card-body pt-2">
+          <div class="d-flex justify-content-between align-items-center">
+            <small class="text-muted">
+              Mostrando {{ presupuestos.start_index }}–{{ presupuestos.end_index }} de {{ presupuestos.paginator.count }}
+            </small>
+            <ul class="pagination pagination-sm mb-0">
+              {% if presupuestos.has_previous %}
+                <li class="page-item">
+                  <a class="page-link" href="?page=1{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">«</a>
+                </li>
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ presupuestos.previous_page_number }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">‹</a>
+                </li>
+              {% else %}
+                <li class="page-item disabled"><span class="page-link">«</span></li>
+                <li class="page-item disabled"><span class="page-link">‹</span></li>
+              {% endif %}
+
+              {% for i in presupuestos.paginator.page_range %}
+                {% if i == presupuestos.number %}
+                  <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+                {% elif i >= presupuestos.number|add:'-2' and i <= presupuestos.number|add:'2' %}
+                  <li class="page-item">
+                    <a class="page-link" href="?page={{ i }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">{{ i }}</a>
+                  </li>
+                {% endif %}
+              {% endfor %}
+
+              {% if presupuestos.has_next %}
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ presupuestos.next_page_number }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">›</a>
+                </li>
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ presupuestos.paginator.num_pages }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">»</a>
+                </li>
+              {% else %}
+                <li class="page-item disabled"><span class="page-link">›</span></li>
+                <li class="page-item disabled"><span class="page-link">»</span></li>
+              {% endif %}
+            </ul>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+<!-- MODAL PARA GENERAR ORDEN DE TRABAJO -->
+<div class="modal fade" id="generarOTModal" tabindex="-1" aria-labelledby="generarOTModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title" id="generarOTModalLabel">Generar Orden de Trabajo</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body text-center">
+        <div class="mb-3">
+          <i class="bi bi-file-earmark-text text-primary display-6"></i>
+        </div>
+        <p>¿Desea <strong class="text-primary">GENERAR</strong> una Orden de Trabajo desde este presupuesto?</p>
+        <p class="small text-muted mt-1" id="presupuestoInfoGenerarOT"></p>
+      </div>
+      <div class="modal-footer justify-content-center">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary btn-sm" id="confirmarGenerarOT">Generar OT</button>
+      </div>
+    </div>
+  </div>
+</div>
+<style>
+.table td, .table th {
+  padding: 0.5rem 0.75rem;
+  vertical-align: middle;
+}
+.btn-group-sm > .btn {
+  padding: 0.25rem 0.5rem;
+}
+<style>
+#generarOTModal .modal-dialog {
+  max-width: 400px;
+  width: 50%;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  min-height: calc(100% - 2rem); 
+}
+#generarOTModal .modal-content {
+  min-height: 50px;
+}
+#generarOTModal .modal-title,
+#generarOTModal .modal-body {
+  text-align: center;
+}
+#generarOTModal .modal-footer {
+  justify-content: center;
+  gap: .4rem;
+}
+#generarOTModal .modal-footer .btn {
+  padding: 0.45rem 0.9rem;
+  font-size: 0.75rem;
+  min-width: 120px;
+  line-height: 1.15;
+  border-radius: 8px;
+}
+</style>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // FUNCIÓN PARA FORMATEAR NÚMEROS CON SEPARADOR DE MILES
+  function formatearNumero(numero) {
+    return numero.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  }
+
+  // APLICAR FORMATEO A LOS TOTALES
+  const totales = document.querySelectorAll('.total-valor');
+  totales.forEach(function(total) {
+    const valor = total.textContent.trim();
+    if (valor && !isNaN(valor.replace(/\./g, ''))) {
+      total.textContent = formatearNumero(valor);
+    }
+  });
+
+  // Modal para Generar Orden de Trabajo
+  const generarOTModal = document.getElementById('generarOTModal');
+  let presupuestoIdActual = null;
+  
+  generarOTModal.addEventListener('show.bs.modal', function(event) {
+    const button = event.relatedTarget;
+    
+    // Obtener datos del botón
+    presupuestoIdActual = button.getAttribute('data-presupuesto-id');
+    const presupuestoInfo = button.getAttribute('data-presupuesto-info');
+    
+    // Actualizar información en el modal
+    document.getElementById('presupuestoInfoGenerarOT').textContent = presupuestoInfo;
+  });
+
+  // Manejar el botón de confirmación
+  document.getElementById('confirmarGenerarOT').addEventListener('click', function() {
+    if (presupuestoIdActual) {
+      // Redirigir directamente a la vista de generar OT
+      const url = `{% url 'generar_orden_desde_presupuesto' 0 %}`.replace('0', presupuestoIdActual);
+      window.location.href = url;
+    }
+  });
+});
+</script>
+
+{% endblock %}

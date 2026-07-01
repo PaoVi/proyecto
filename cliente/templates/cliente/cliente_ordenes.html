@@ -1,0 +1,286 @@
+{% extends 'seguridad/base.html' %}
+
+{% load humanize %}
+
+{% block content %}
+<div class="container-fluid py-0">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-10">
+
+      <!-- HEADER -->
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <div>
+          <h2 class="h4 mb-1">ÓRDENES DE TRABAJO DEL CLIENTE</h2>
+        </div>
+        <div class="d-flex gap-2">
+          <button type="button" onclick="window.history.back()" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i>Volver
+          </button>
+          <!--{% if perms.seguridad.agregar_ordenes_trabajo %}
+            <a href="{% url 'orden_trabajo_crear' %}?cliente={{ cliente.id }}" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-circle"></i>Crear Orden
+            </a>
+          {% endif %}-->
+        </div>
+      </div>
+
+      <!-- RESUMEN DEL CLIENTE -->
+      <div class="card">
+        <div class="card-body py-1">
+          <div class="row">
+            <div class="col-md-8">
+              <small class="text-muted">Cliente:</small>
+              <div class="fw-semibold">{{ cliente.nombre }}</div>
+            </div>
+            <div class="col-md-4">
+              <small class="text-muted">Documento:</small>
+              <div class="documento-cell">{{ cliente.numero_documento|default:"—" }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LISTA DE ÓRDENES -->
+      <div class="card">
+        <div class="card-body p-0">
+          {% if ordenes %}
+            <div class="list-group list-group-flush">
+              {% for orden in ordenes %}
+              <div class="list-group-item {% if orden.estado == 'rechazado' or orden.estado == 'cancelado' %}bg-light{% endif %}">
+                <div class="row align-items-center">
+                  <!-- INFORMACIÓN DE LA ORDEN -->
+                  <div class="col-md-8">
+                    <div class="d-flex align-items-center">
+                      <i class="bi bi-clipboard-check text-muted me-3 fs-5"></i>
+                      <div class="flex-grow-1">
+                        <div class="fw-semibold text-start">
+                          Orden #{{ orden.id }} • 
+                          <span class="fw-semibold">
+                            {{ orden.vehiculo.marca }} {{ orden.vehiculo.modelo }} ({{ orden.vehiculo.nro_chapa|default:"—" }})
+                          </span>
+                        </div>
+                        <div class="small text-muted text-start">
+                          {{ orden.fecha_creacion|date:"d/m/Y H:i" }} • 
+                          Total: <span class="total-orden" data-precio="{{ orden.total|default:0 }}">₲ {{ orden.total|floatformat:0|default:"0" }}</span>
+                          {% if orden.presupuesto_origen %}
+                            • <span class="text-info">Desde Presupuesto #{{ orden.presupuesto_origen.id }}</span>
+                          {% endif %}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                <!-- ESTADO DE LA ORDEN -->
+                <div class="col-md-2 text-center estado-col">
+                <div class="small text-muted mb-1">Estado Orden</div>
+                <div>
+                    {% if orden.estado == 'aprobado' %}
+                    <span class="badge bg-success d-inline-flex align-items-center gap-1" style="font-size: 0.7rem; padding: 0.35rem 0.65rem;">
+                        <i class="bi bi-check-circle-fill"></i> Aprobado
+                    </span>
+                    {% elif orden.estado == 'facturado' %}
+                    <span class="badge bg-dark d-inline-flex align-items-center gap-1" style="font-size: 0.7rem; padding: 0.35rem 0.65rem;">
+                        <i class="bi bi-receipt"></i> Facturado
+                    </span>
+                    {% elif orden.estado == 'en_revision' %}
+                    <span class="badge bg-warning text-dark d-inline-flex align-items-center gap-1" style="font-size: 0.7rem; padding: 0.35rem 0.65rem;">
+                        <i class="bi bi-arrow-repeat"></i> En Revisión
+                    </span>
+                    {% elif orden.estado == 'rechazado' %}
+                    <span class="badge bg-danger d-inline-flex align-items-center gap-1" style="font-size: 0.7rem; padding: 0.35rem 0.65rem;">
+                        <i class="bi bi-x-octagon-fill"></i> Rechazado
+                    </span>
+                    {% elif orden.estado == 'completado' %}
+                    <span class="badge bg-success d-inline-flex align-items-center gap-1" style="font-size: 0.7rem; padding: 0.35rem 0.65rem;">
+                        <i class="bi bi-check-all"></i> Completado
+                    </span>
+                    {% elif orden.estado == 'en_proceso' %}
+                    <span class="badge bg-primary d-inline-flex align-items-center gap-1" style="font-size: 0.7rem; padding: 0.35rem 0.65rem;">
+                        <i class="bi bi-gear-fill"></i> En Proceso
+                    </span>
+                    {% elif orden.estado == 'pendiente' %}
+                    <span class="badge bg-secondary d-inline-flex align-items-center gap-1" style="font-size: 0.7rem; padding: 0.35rem 0.65rem;">
+                        <i class="bi bi-clock-history"></i> Pendiente
+                    </span>
+                    {% elif orden.estado == 'espera_repuestos' %}
+                    <span class="badge bg-info d-inline-flex align-items-center gap-1" style="font-size: 0.7rem; padding: 0.35rem 0.65rem;">
+                        <i class="bi bi-truck"></i> Espera Repuestos
+                    </span>
+                    {% elif orden.estado == 'pausado' %}
+                    <span class="badge bg-warning text-dark d-inline-flex align-items-center gap-1" style="font-size: 0.7rem; padding: 0.35rem 0.65rem;">
+                        <i class="bi bi-pause-circle-fill"></i> Pausado
+                    </span>
+                    {% elif orden.estado == 'cancelado' %}
+                    <span class="badge bg-danger d-inline-flex align-items-center gap-1" style="font-size: 0.7rem; padding: 0.35rem 0.65rem;">
+                        <i class="bi bi-x-circle-fill"></i> Cancelado
+                    </span>
+                    {% else %}
+                    <span class="badge bg-secondary d-inline-flex align-items-center gap-1" style="font-size: 0.7rem; padding: 0.35rem 0.65rem;">
+                        <i class="bi bi-question-circle-fill"></i> {{ orden.get_estado_display|default:orden.estado }}
+                    </span>
+                    {% endif %}
+                </div>
+                <div style="height: 20px;"></div>
+                </div>
+
+                  <!-- ACCIONES -->
+                  <div class="col-md-2">
+                    <div class="align-items-center text-end">                           
+                      <div class="btn-group btn-group-sm">
+                        {% if perms.seguridad.ver_ordenes_trabajo %}
+                        <a class="btn btn-outline-info" title="Ver" href="{% url 'orden_trabajo_ver' orden.pk %}">
+                          <i class="bi bi-eye"></i>
+                        </a>
+                        {% endif %}
+
+                        {% if perms.seguridad.editar_ordenes_trabajo %}
+                          {% if orden.es_editable or orden.estado == 'rechazado' %}
+                            <a class="btn btn-outline-primary" title="Editar" href="{% url 'orden_trabajo_editar' orden.pk %}">
+                              <i class="bi bi-pencil"></i>
+                            </a>
+                          {% endif %}
+                        {% endif %}
+
+                        {% if perms.seguridad.imprimir_ordenes_trabajo %}
+                        <a class="btn btn-outline-secondary" title="Imprimir" href="{% url 'orden_trabajo_imprimir' orden.pk %}" target="_blank">
+                          <i class="bi bi-printer"></i>
+                        </a>
+                        {% endif %}
+
+                        {% if perms.seguridad.agregar_facturas and orden.estado == 'aprobado' and not orden.factura_generada %}
+                        <a class="btn btn-outline-success" title="Generar Factura" href="{% url 'generar_factura_desde_orden' orden.pk %}">
+                          <i class="bi bi-receipt"></i>
+                        </a>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
+                  
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <!-- ESTADO VACÍO -->
+            <div class="text-center py-5">
+              <i class="bi bi-clipboard-x display-1 text-muted mb-3"></i>
+              <h5 class="text-muted">No hay órdenes de trabajo</h5>
+              <p class="text-muted mb-3">Este cliente no tiene órdenes de trabajo asociadas.</p>
+              
+              <!--{% if perms.seguridad.agregar_ordenes_trabajo %}
+              <a href="{% url 'orden_trabajo_crear' %}?cliente={{ cliente.id }}" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-circle"></i>Crear primera orden
+              </a>
+              {% endif %}-->
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- PIE DE PÁGINA CON ESTADÍSTICAS -->
+        {% if ordenes %}
+        <div class="card-footer bg-light py-2">
+          <div class="row text-center">
+            <div class="col-2">
+              <small class="text-muted">Pendientes</small>
+              <div class="fw-semibold">{{ ordenes_pendientes }}</div>
+            </div>
+            <div class="col-2">
+              <small class="text-muted">En Proceso</small>
+              <div class="fw-semibold">{{ ordenes_proceso }}</div>
+            </div>
+            <div class="col-2">
+              <small class="text-muted">Completadas</small>
+              <div class="fw-semibold">{{ ordenes_completadas }}</div>
+            </div>
+            <div class="col-2">
+              <small class="text-muted">Aprobadas</small>
+              <div class="fw-semibold">{{ ordenes_aprobadas }}</div>
+            </div>
+            <div class="col-2">
+              <small class="text-muted">Facturadas</small>
+              <div class="fw-semibold">{{ ordenes_facturadas }}</div>
+            </div>
+            <div class="col-2">
+              <small class="text-muted">Total</small>
+              <div class="fw-semibold">{{ total_ordenes }}</div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<style>
+.container-fluid { max-width: 1000px; }
+.list-group-item { padding: 1rem 1.25rem; border-bottom: 1px solid #e9ecef; }
+.list-group-item:last-child { border-bottom: none; }
+.btn-sm { padding: 0.25rem 0.5rem; font-size: 0.75rem; }
+.badge {
+  font-size: 0.7rem;
+  font-weight: 500;
+  padding: 0.35em 0.65em;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Efecto hover suave en los items
+  const listItems = document.querySelectorAll('.list-group-item');
+  listItems.forEach(item => {
+    item.addEventListener('mouseenter', function() {
+      this.style.backgroundColor = '#f8f9fa';
+      this.style.transition = 'background-color 0.2s ease';
+    });
+    item.addEventListener('mouseleave', function() {
+      if (!this.classList.contains('bg-light')) {
+        this.style.backgroundColor = '';
+      }
+    });
+  });
+
+  // Formatear números con separadores de miles
+  const totalElements = document.querySelectorAll('.total-orden');
+  totalElements.forEach(element => {
+    const value = element.textContent.trim();
+    if (value && !isNaN(value.replace(/[^\d]/g, ''))) {
+      const number = parseInt(value.replace(/[^\d]/g, ''));
+      element.textContent = '₲ ' + number.toLocaleString('es-PY');
+    }
+  });
+
+  // Función para formatear documento (cédula/RUC) con puntos
+  function formatDocumento(documento) {
+    if (!documento || documento === 'Sin documento') return documento;
+    
+    const docLimpio = documento.toString().trim();
+    
+    if (docLimpio.includes('-')) {
+      const partes = docLimpio.split('-');
+      const partePrincipal = partes[0];
+      const digitoVerificador = partes[1];
+      const parteFormateada = partePrincipal.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+      return `${parteFormateada}-${digitoVerificador}`;
+    } else {
+      return docLimpio.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    }
+  }
+
+  // Aplicar formato a documentos 
+  function aplicarFormatos() {
+    const documentoElements = document.querySelectorAll('.documento-cell');
+    documentoElements.forEach(element => {
+      const originalText = element.textContent.trim();
+      if (originalText && originalText !== '—' && originalText !== 'Sin documento') {
+        element.textContent = formatDocumento(originalText);
+      }
+    });
+  }
+
+  aplicarFormatos();
+});
+</script>
+
+{% endblock %}

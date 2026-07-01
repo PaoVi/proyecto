@@ -1,0 +1,351 @@
+{% extends 'seguridad/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-0">
+    <div class="row justify-content-center">
+        <div class="col-12 col-xl-12">
+            
+            <!-- HEADER -->
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <div>
+                    <h2 class="h4 mb-1">CONFIGURACIONES DEL SISTEMA</h2>
+                </div>
+                {% if perms.seguridad.agregar_configuraciones %}
+                <a href="{% url 'configuracion_crear' %}" class="btn btn-primary btn-sm">
+                    <i class="bi bi-plus-circle"></i>Nueva Configruación
+                </a>
+                {% endif %}
+            </div>
+
+            <!-- FILTROS -->
+            <div class="card mb-2">
+                <div class="card-body p-2">
+                    <form method="get" class="row g-2 align-items-center">
+                        <div class="col-md-5">
+                            <label class="form-label small">CLAVE</label>
+                            <input type="text" name="clave" class="form-control form-control-sm" style="height: 33px;"
+                                   placeholder="Buscar por clave" value="{{ request.GET.clave|default:'' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small">GRUPO</label>
+                            {{ form_busqueda.grupo }}
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small">ESTADO</label>
+                            <select name="estado" class="form-select form-select-sm">
+                                <option value="">Todos</option>
+                                <option value="activo" {% if request.GET.estado == 'activo' %}selected{% endif %}>Activo</option>
+                                <option value="inactivo" {% if request.GET.estado == 'inactivo' %}selected{% endif %}>Inactivo</option>
+                            </select>
+                        </div>
+                        <div class="col-md-1">
+                            <label class="form-label small">&nbsp;</label>
+                            <button type="submit" class="btn btn-outline-primary w-100 btn-sm" style="height: 33px;">
+                                <i class="bi bi-search"></i>Buscar
+                            </button>
+                        </div>
+                        <div class="col-md-1">
+                            <label class="form-label small">&nbsp;</label>
+                            <a href="{% url 'configuracion_lista' %}" class="btn btn-outline-secondary w-100 btn-sm" style="height: 33px;">
+                                <i class="bi bi-arrow-clockwise"></i> Limpiar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- ENCABEZADO -->
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="table-responsive table-container">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 25%;">Clave</th>
+                                    <th style="width: 25%;">Valor</th>
+                                    <th style="width: 15%;">Grupo</th>
+                                    <th style="width: 15%;">Tipo</th>
+                                    <th style="width: 10%;">Estado</th>
+                                    <th style="width: 10%;" class="text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for config in configuraciones %}
+                                <tr class="{% if not config.activo %}table-secondary{% endif %}">
+                                    <!-- CLAVE -->
+                                    <td style="width: 25%; min-width: 200px;">
+                                        <div class="fw-semibold text-start text-truncate" title="{{ config.clave }}">
+                                            {{ config.clave }}
+                                        </div>
+                                        {% if config.descripcion %}
+                                        <small class="text-muted text-start text-truncate d-block" title="{{ config.descripcion }}">
+                                            {{ config.descripcion|truncatewords:6 }}
+                                        </small>
+                                        {% endif %}
+                                    </td>
+                                    
+                                    <!-- VALOR -->
+                                    <td style="width: 20%; min-width: 150px;">
+                                        {% if config.tipo == 'boolean' %}
+                                            {% if config.valor == 'True' or config.valor == 'true' or config.valor == '1' %}
+                                                <span class="text-decoration-none text-dark">Sí</span>
+                                            {% else %}
+                                                <span class="text-decoration-none text-dark">No</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-monospace small text-truncate d-block" title="{{ config.valor }}">
+                                                {{ config.valor|truncatechars:25 }}
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    
+                                    <!-- GRUPO -->
+                                    <td style="width: 15%; min-width: 120px;">
+                                        <span class="text-decoration-none text-dark text-muted" title="{{ config.grupo }}">
+                                            {{ config.grupo }}
+                                        </span>
+                                    </td>
+                                    
+                                    <!-- TIPO -->
+                                    <td style="width: 15%; min-width: 100px;">
+                                        <small class="text-muted text-truncate d-block" title="{{ config.get_tipo_display }}">
+                                            {{ config.get_tipo_display }}
+                                        </small>
+                                    </td>
+                                    
+                                    <!-- ESTADO -->
+                                    <td style="width: 10%; min-width: 80px;">
+                                        {% if config.activo %}
+                                            <span class="badge bg-success">Activo</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Inactivo</span>
+                                        {% endif %}
+                                    </td>
+                                    
+                                    <!-- ACCIONES -->
+                                    <td style="width: 15%; min-width: 150px;" class="text-center">
+                                        <div class="btn-group btn-group-sm">
+                                            <!-- BOTÓN VER -->
+                                            {% if perms.seguridad.ver_configuraciones %}
+                                            <a href="{% url 'configuracion_ver' config.id %}" class="btn btn-outline-info btn-sm" title="Ver detalles">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            {% endif %}                                           
+                                            <!-- BOTÓN MODIFICAR -->
+                                            {% if config.editable %}
+                                                {% if perms.seguridad.editar_configuraciones %}
+                                                <a href="{% url 'configuracion_editar' config.id %}" class="btn btn-outline-primary btn-sm" title="Editar">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                                {% endif %}
+                                            {% else %}
+                                                <span class="btn btn-outline-secondary btn-sm disabled" title="No editable">
+                                                    <i class="bi bi-lock"></i>
+                                                </span>
+                                            {% endif %}
+                                            
+                                            <!-- BOTÓN ACTIVAR/DESACTIVAR -->
+                                            {% if perms.seguridad.desactivar_configuraciones %}
+                                                {% if config.editable %}
+                                                    {% if config.activo %}
+                                                    <button type="button" class="btn btn-outline-danger btn-sm" title="Desactivar" 
+                                                            data-bs-toggle="modal" data-bs-target="#deactivateModal"
+                                                            data-config-id="{{ config.id }}" data-config-name="{{ config.clave }}">
+                                                        <i class="bi bi-x-circle"></i>
+                                                    </button>
+                                                    {% else %}
+                                                    <button type="button" class="btn btn-outline-success btn-sm" title="Activar" 
+                                                            data-bs-toggle="modal" data-bs-target="#activateModal" 
+                                                            data-config-id="{{ config.id }}" data-config-name="{{ config.clave }}">
+                                                        <i class="bi bi-check-circle"></i>
+                                                    </button>
+                                                    {% endif %}
+                                                {% endif %}
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center py-3">
+                                        <i class="bi bi-gear text-muted" style="font-size: 1.5rem;"></i>
+                                        <p class="text-muted mt-1 mb-0">No hay configuraciones</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PAGINACIÓN -->
+            {% if configuraciones.has_other_pages %}
+            <div class="d-flex justify-content-between align-items-center mt-2">
+            <div>
+                <span class="text-muted small">
+                Mostrando {{ configuraciones.start_index }} - {{ configuraciones.end_index }} de {{ configuraciones.paginator.count }}
+                (Pág. {{ configuraciones.number }} de {{ configuraciones.paginator.num_pages }})
+                </span>
+            </div>
+            <nav>
+                <ul class="pagination pagination-sm mb-0">
+                {% if configuraciones.has_previous %}
+                    <li class="page-item">
+                    <a class="page-link" href="?page=1{% if qs_no_page %}&{{ qs_no_page }}{% endif %}" title="Primera página">«</a>
+                    </li>
+                    <li class="page-item">
+                    <a class="page-link" href="?page={{ configuraciones.previous_page_number }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}" title="Anterior">‹</a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link">«</span></li>
+                    <li class="page-item disabled"><span class="page-link">‹</span></li>
+                {% endif %}
+
+                {% for i in configuraciones.paginator.page_range %}
+                    {% if i == configuraciones.number %}
+                    <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+                    {% elif i >= configuraciones.number|add:'-2' and i <= configuraciones.number|add:'2' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ i }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">{{ i }}</a>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if configuraciones.has_next %}
+                    <li class="page-item">
+                    <a class="page-link" href="?page={{ configuraciones.next_page_number }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}" title="Siguiente">›</a>
+                    </li>
+                    <li class="page-item">
+                    <a class="page-link" href="?page={{ configuraciones.paginator.num_pages }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}" title="Última página">»</a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link">›</span></li>
+                    <li class="page-item disabled"><span class="page-link">»</span></li>
+                {% endif %}
+                </ul>
+            </nav>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- MODAL DE CONFIRMACIÓN PARA DESACTIVAR -->
+<div class="modal fade" id="deactivateModal" tabindex="-1" aria-labelledby="deactivateModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deactivateModalLabel">Desactivar Configuración</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Desactivar <strong id="configNameDeactivate"></strong>?</p>
+            </div>
+            <div class="modal-footer">
+                <form method="post" action="" id="deactivateForm">
+                    {% csrf_token %}
+                    <input type="hidden" name="estado" value="inactivo">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger btn-sm">Desactivar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL DE CONFIRMACIÓN PARA ACTIVAR -->
+<div class="modal fade" id="activateModal" tabindex="-1" aria-labelledby="activateModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="activateModalLabel">Activar Configuración</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Activar <strong id="configNameActivate"></strong>?</p>
+            </div>
+            <div class="modal-footer">
+                <form method="post" action="" id="activateForm">
+                    {% csrf_token %}
+                    <input type="hidden" name="estado" value="activo">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success btn-sm">Activar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Aplicar estilo al campo grupo */
+#id_grupo {
+height: 33px;
+font-size: 0.875rem;
+}
+#deactivateModal .modal-dialog,
+#activateModal .modal-dialog {
+  max-width: 300px;       
+  width: 90%;              
+  margin: 0 auto;          
+  display: flex;           
+  align-items: center;     
+  min-height: calc(100% - 2rem); 
+}
+#deactivateModal .modal-content,
+#activateModal .modal-content {
+  min-height: 50px;      
+}
+/* Texto y acciones centradas */
+#deactivateModal .modal-title,
+#activateModal .modal-title,
+#deactivateModal .modal-body,
+#activateModal .modal-body {
+  text-align: center;
+}
+#deactivateModal .modal-footer,
+#activateModal .modal-footer {
+  justify-content: center; 
+  gap: .5rem;
+}
+#deactivateModal .modal-footer .btn,
+#activateModal  .modal-footer .btn {
+  /* tamaño */
+  padding: 0.45rem 0.9rem;   
+  font-size: 0.75rem;      
+  min-width: 120px;       
+  line-height: 1.15;       
+  border-radius: 8px;     
+}
+</style>
+<script>
+// Configuración de modales
+document.addEventListener('DOMContentLoaded', function() {
+    const deactivateModal = document.getElementById('deactivateModal');
+    const activateModal = document.getElementById('activateModal');
+    
+    if (deactivateModal) {
+        deactivateModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            const configId = button.getAttribute('data-config-id');
+            const configName = button.getAttribute('data-config-name');
+            
+            document.getElementById('configNameDeactivate').textContent = configName;
+            document.getElementById('deactivateForm').action = "{% url 'configuracion_desactivar' 0 %}".replace('0', configId);
+        });
+    }
+    
+    if (activateModal) {
+        activateModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            const configId = button.getAttribute('data-config-id');
+            const configName = button.getAttribute('data-config-name');
+            
+            document.getElementById('configNameActivate').textContent = configName;
+            document.getElementById('activateForm').action = "{% url 'configuracion_desactivar' 0 %}".replace('0', configId);
+        });
+    }
+});
+</script>
+{% endblock %}

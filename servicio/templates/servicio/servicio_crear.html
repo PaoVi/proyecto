@@ -1,0 +1,822 @@
+{% extends 'seguridad/base.html' %}
+
+{% block content %}
+<div class="container-fluid py-0">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-8">
+
+      <!-- HEADER -->
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <h2 class="h4 mb-1">REGISTRAR SERVICIO</h2>
+        <button type="button" onclick="window.history.back()" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-arrow-left"></i>Volver
+        </button>
+      </div>
+
+      <!-- ERRORES NO ASOCIADOS A CAMPOS -->
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger small">
+          {% for e in form.non_field_errors %}<div>{{ e }}</div>{% endfor %}
+        </div>
+      {% endif %}
+
+      <!-- FORMULARIO -->
+      <div class="card">
+        <div class="card-body">
+          <form method="post" class="needs-validation" novalidate>
+            {% csrf_token %}
+
+            <div class="row g-3">
+              <!-- NOMBRE -->
+              <div class="col-12">
+                <label for="{{ form.nombre.id_for_label }}" class="form-label small">Nombre del Servicio</label>
+                {{ form.nombre }}
+                {% if form.nombre.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.nombre.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- CATEGORÍA -->
+              <div class="col-md-6">
+                <label class="form-label small">Categoría</label>
+                <input
+                  type="text"
+                  name="categoria"
+                  id="id_categoria"
+                  class="form-control"
+                  placeholder="MANTENIMIENTO, FRENOS, MOTOR..."
+                  value="{{ form.categoria.value|default_if_none:''|upper }}"
+                  style="text-transform: uppercase;"
+                >
+                {% if form.categoria.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.categoria.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- TIEMPO MÍNIMO ESTIMADO -->
+              <div class="col-md-6">
+                  <label class="form-label small">Tiempo Mínimo Estimado</label>
+
+                  <input
+                      type="hidden"
+                      name="tiempo_min_estimado"
+                      id="id_tiempo_min_estimado"
+                      value="{{ form.tiempo_min_estimado.value|default_if_none:'' }}"
+                  >
+
+                  <div class="d-flex align-items-center gap-2">
+                      <div class="flex-grow-1">
+                          <input
+                              type="number"
+                              id="id_tiempo_horas"
+                              class="form-control"
+                              min="00"
+                              max="360"
+                              value=" "
+                              placeholder="Ej: 1, 10, 100"
+                          >
+                          <label for="id_tiempo_horas" class="form-label small text-muted">Horas</label>
+                      </div>
+                      <div class="flex-shrink-0" style="margin-top: -27px;">
+                          <span class="fw-bold" style="font-size: 1.2rem; line-height: 1;">:</span>
+                      </div>
+                      <div class="flex-grow-1">
+                          <input
+                              type="number"
+                              id="id_tiempo_minutos"
+                              class="form-control"
+                              min="00"
+                              max="59"
+                              value=" "
+                              placeholder="Ej: 25, 30, 45"
+                          >
+                          <label for="id_tiempo_minutos" class="form-label small text-muted">Minutos</label>
+                      </div>
+                  </div>
+
+                  {% if form.tiempo_min_estimado.errors %}
+                      <div class="invalid-feedback d-block small">
+                          {% for e in form.tiempo_min_estimado.errors %}<div>{{ e }}</div>{% endfor %}
+                      </div>
+                  {% endif %}
+              </div>
+
+              <!-- PORCENTAJE DE COMISIÓN -->
+              <div class="col-md-6">
+                <label class="form-label small">Comisión (%)</label>
+                <div class="input-group">
+                  <input
+                    type="number"
+                    name="comision_porcentaje"
+                    id="id_comision_porcentaje"
+                    class="form-control"
+                    placeholder="Ej.: 10, 15.50"
+                    value="{{ form.comision_porcentaje.value|default_if_none:'' }}"
+                    step="0.01"
+                    min="0"
+                    max="100"
+                  >
+                </div>
+                {% if form.comision_porcentaje.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.comision_porcentaje.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- MANO DE OBRA  -->
+              <div class="col-md-6">
+                <label class="form-label small">Costo Mano de Obra</label>
+                
+                <!-- Campo oculto para el valor real -->
+                <input
+                  type="hidden"
+                  name="mano_obra"
+                  id="id_mano_obra" 
+                  value="{{ form.mano_obra.value|default_if_none:'' }}"
+                >
+                
+                <!-- Campo visible para mostrar/ingresar el valor -->
+                <input
+                  type="text"
+                  id="id_mano_obra_display"
+                  class="form-control"
+                  placeholder="Gs. 0"
+                  value="{% if form.mano_obra.value %}{{ form.mano_obra.value }}{% endif %}"
+                  required
+                  onblur="actualizarManoObraHidden()"
+                >
+                
+                {% if form.mano_obra.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.mano_obra.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- DESCRIPCIÓN -->
+              <div class="col-12">
+                <label for="{{ form.descripcion.id_for_label }}" class="form-label small">Descripción</label>
+                {{ form.descripcion }}
+                {% if form.descripcion.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.descripcion.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- SECCIÓN INSUMOS -->
+            <div class="row mt-4">
+              <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <label class="form-label small fw-semibold">Insumos Necesarios</label>
+                  <span class="badge bg-primary" id="contador-insumos">0 insumos</span> 
+                </div>
+                <!-- INSUMOS AGREGADOS -->
+                <div id="insumos-container" class="mb-3">
+                  <!-- Los insumos se agregarán aquí dinámicamente -->
+                </div>
+
+                <!-- FORMULARIO PARA AGREGAR INSUMO -->
+                <div class="card border">
+                  <div class="card-body py-2">
+                    <div class="row g-2 align-items-center">
+                      <div class="col-md-2">
+                        <label class="form-label small">Cantidad</label>
+                        <input type="number" id="insumo-cantidad" class="form-control form-control-sm" 
+                              value="0" step="0.01" min="0" placeholder="-"
+                              onkeydown="return event.keyCode !== 38 && event.keyCode !== 40">
+                        <!-- Mensaje de error para cantidad -->
+                        <div id="cantidad-error" class="invalid-feedback d-block small" style="display: none;"></div>
+                      </div>
+                      
+                      <div class="col-md-9">
+                        <label class="form-label small">Insumo</label>
+                        <select id="insumo-select" class="form-select form-select-sm">
+                          <option value="">Seleccionar Insumo...</option>
+                          {% for insumo in insumos_disponibles %}
+                          <option value="{{ insumo.id }}" 
+                                  data-precio="{{ insumo.costo_unitario }}" 
+                                  data-unidad="{{ insumo.unidad }}"
+                                  data-codigo="{{ insumo.codigo_completo }}">
+                            <span class="insumo-option">
+                              <strong>[{{ insumo.codigo_completo }}]</strong>{{ insumo.nombre }} • ₲ {{ insumo.costo_unitario|floatformat:0 }} ({{ insumo.unidad }})
+                            </span>
+                          </option>
+                          {% endfor %}
+                        </select>
+                        <!-- Mensaje de error para insumo -->
+                        <div id="insumo-error" class="invalid-feedback d-block small" style="display: none;"></div>
+                      </div>
+                      
+                      <!-- BOTÓN + -->
+                      <div class="col-md-1 d-flex align-items-center justify-content-center">
+                          <button 
+                              type="button" 
+                              id="agregar-insumo-btn" 
+                              class="btn btn-success btn-small w-100" 
+                              style="padding: 0.35rem 0.8rem; margin-top: 1.25rem;"
+                              title="Agregar insumo">
+                              <i class="bi bi-plus-circle" style="font-size: 0.9rem;"></i>
+                          </button>
+                      </div> 
+                    </div>
+                  </div>
+                </div>
+
+                <!-- INSUMOS OCULTOS PARA ENVÍO -->
+                <div id="insumos-hidden-fields">
+                  <!-- Los campos hidden para los insumos se generarán aquí -->
+                </div>
+              </div>
+            </div>
+
+            <!-- BOTONES -->
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-center pt-3 border-top gap-2">
+              <a href="{% url 'servicio_lista' %}" class="btn btn-outline-secondary btn-sm w-100 w-md-auto order-2 order-md-1">
+                <i class="bi bi-x-circle"></i>Cancelar
+              </a>
+              <button type="submit" class="btn btn-primary btn-sm w-100 w-md-auto order-1 order-md-2">
+                <i class="bi bi-check-circle"></i>Registrar Servicio
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+        <!-- INFORMACIÓN DE AYUDA -->
+        <div class="card">
+            <div class="card-body py-2">
+                <div class="row">
+                    <div class="col-12">
+                        <small class="text-muted">
+                            <i class="bi bi-info-circle"></i>
+                            Todos los campos son obligatorios. El tiempo mínimo no puede exceder 360 horas (15 días).
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .container-fluid { max-width: 1000px; }
+  .form-control, .form-select {
+    border-radius: 0.375rem;
+    border: 1px solid #ced4da;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+  }
+  .form-control:focus, .form-select:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+  }
+  .btn-sm { 
+    padding: 0.375rem 0.75rem; 
+    font-size: 0.875rem; 
+    min-width: 60px;
+  }
+  .input-group-text { min-width: 2.2rem; justify-content: center; }
+  .insumo-item { border-left: 3px solid #0d6efd; }
+  
+  /* OCULTAR FLECHITAS DEL INPUT NUMBER */
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+  
+  /* Botón más pequeño específico para agregar insumo */
+  #agregar-insumo-btn {
+    padding: 0.25rem 0.5rem !important;
+    min-width: 40px !important;
+    height: 32px;
+  }
+  #agregar-insumo-btn i {
+    font-size: 0.8rem;
+  }
+
+  /* Estilo para campo de categoría en mayúsculas */
+  #id_categoria {
+    text-transform: uppercase;
+  }
+
+  /* Estilo para el código en el select */
+  .insumo-option strong {
+    color: #000000;
+    font-weight: 600;
+  }
+
+  /* Estilo para mostrar el código en los insumos agregados */
+  .insumo-codigo {
+    color: #000000;
+    font-weight: 600;
+    font-size: 0.75rem;
+    font-family: monospace;
+  }
+
+  /* ========== SELECT2 ESTILOS GENERALES ========== */
+  .select2-container--default .select2-selection--single {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    height: 38px;
+    background-color: #fff;
+  }
+
+  .select2-container--default .select2-selection--single .select2-selection__rendered {
+    color: #212529;
+    line-height: 1.5;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+  }
+
+  .select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 30px;
+    right: 8px;
+  }
+
+  .select2-container--default .select2-dropdown {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    background: white;
+    box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+  }
+
+  .select2-container--default .select2-results__option {
+    padding: 0.5rem 0.75rem;
+    background: white;
+    color: #212529;
+    font-size: 0.875rem;
+  }
+
+  /* RESALTADO AL PASAR MOUSE - COLOR MÁS CLARO */
+  .select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background-color: #e9ecef !important;
+    color: #212529 !important;
+  }
+
+  .select2-container--default .select2-results__option[aria-selected=true] {
+    background-color: #f8f9fa;
+    color: #212529;
+  }
+
+  .select2-container--default .select2-search--dropdown .select2-search__field {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    height: 38px;
+    background-color: #fff;
+  }
+
+  /* SELECT DE INSUMO */
+  #insumo-select + .select2-container--default .select2-selection--single {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    height: 38px;
+    background-color: #fff;
+  }
+
+  #insumo-select + .select2-container--default .select2-selection--single .select2-selection__rendered {
+    color: #212529;
+    line-height: 1.5;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.8rem;
+  }
+
+  #insumo-select + .select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 30px;
+    right: 8px;
+  }
+
+  /* Estilo para las opciones en el dropdown de insumos */
+  .select2-container--default .select2-results__option--insumo {
+    font-size: 0.8rem;
+    padding: 0.4rem 0.75rem;
+  }
+
+  /* Contenedor principal del insumo en el dropdown */
+  .select2-container--default .select2-results__option .insumo-item {
+    line-height: 1;
+  }
+
+  /* Código del insumo en negrita y color azul */
+  .select2-container--default .select2-results__option .insumo-codigo {
+    font-weight: 600;
+    color: #003668;
+    font-family: monospace;
+  }
+
+  /* Nombre del insumo */
+  .select2-container--default .select2-results__option .insumo-nombre {
+    font-weight: 600;
+    color: #212529;
+    margin-left: 2px;
+  }
+
+  /* Detalles (precio y unidad) más pequeños en nueva línea */
+  .select2-container--default .select2-results__option .insumo-detalle {
+    font-size: 0.75rem;
+    color: #6c757d;
+    display: block;
+    margin-top: 2px;
+    margin-left: 0;
+  }
+
+  /* RESALTADO AL PASAR MOUSE - ESPECÍFICO PARA INSUMOS */
+  .select2-container--default .select2-results__option--insumo--highlighted {
+    background-color: #e9ecef !important;
+  }
+</style>
+
+<!-- Incluir Select2 CSS y JS -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+
+<script>
+// ====== FUNCIONES GLOBALES PARA MANO DE OBRA ======
+function formatearGs(valorNum) {
+    if (valorNum === null || valorNum === '' || isNaN(valorNum)) return 'Gs. 0';
+    const n = Math.floor(Number(valorNum));
+    return 'Gs. ' + n.toLocaleString('es-PY');
+}
+
+function desformatearGs(texto) {
+    if (!texto) return '0';
+    return texto
+        .toString()
+        .replace(/^Gs\.?\s*/i, '')
+        .replace(/\./g, '')
+        .replace(/,/g, '')
+        .trim();
+}
+
+function actualizarManoObraHidden() {
+    const hiddenPrecio = document.getElementById('id_mano_obra');
+    const visiblePrecio = document.getElementById('id_mano_obra_display');
+    
+    if (hiddenPrecio && visiblePrecio) {
+        const rawValue = desformatearGs(visiblePrecio.value);
+        hiddenPrecio.value = rawValue;
+        visiblePrecio.value = formatearGs(rawValue);
+    }
+}
+
+function inicializarManoObra() {
+    const hiddenPrecio = document.getElementById('id_mano_obra');
+    const visiblePrecio = document.getElementById('id_mano_obra_display');
+    
+    if (hiddenPrecio && visiblePrecio) {
+        if (hiddenPrecio.value && hiddenPrecio.value !== '0') {
+            visiblePrecio.value = formatearGs(hiddenPrecio.value);
+        } else {
+            visiblePrecio.value = 'Gs. 0';
+            hiddenPrecio.value = '0';
+        }
+        
+        visiblePrecio.addEventListener('input', function() {
+            const raw = desformatearGs(this.value);
+            this.value = formatearGs(raw);
+        });
+    }
+}
+
+// ====== INICIALIZACIÓN CUANDO EL DOCUMENTO ESTÁ LISTO ======
+document.addEventListener('DOMContentLoaded', function () {
+    // ========== INICIALIZAR SELECT2 PARA EL SELECT DE INSUMOS  ==========
+    // ====== INICIALIZAR SELECT2 PARA EL SELECT DE INSUMOS ======
+    $('#insumo-select').select2({
+        placeholder: 'Buscar insumo por código, nombre o descripción...',
+        allowClear: false,
+        width: '100%',
+        language: {
+            noResults: function() {
+                return "No se encontraron insumos";
+            },
+            searching: function() {
+                return "Buscando...";
+            },
+            inputTooShort: function() {
+                return "Ingrese al menos 1 carácter";
+            }
+        },
+        matcher: function(params, data) {
+            if ($.trim(params.term) === '') {
+                return data;
+            }
+            const term = params.term.toLowerCase();
+            const text = data.text.toLowerCase();
+            
+            // Buscar por código (formato [CODIGO-0001])
+            const codigoMatch = text.match(/\[([^\]]+)\]/);
+            const codigo = codigoMatch ? codigoMatch[1].toLowerCase() : '';
+            
+            // Buscar por nombre (después del código)
+            const nombre = text.replace(/\[[^\]]+\]\s*/, '').split(' • ')[0].toLowerCase();
+            
+            // Si el término coincide con el código o nombre
+            if (codigo.includes(term) || nombre.includes(term) || text.includes(term)) {
+                return data;
+            }
+            return null;
+        },
+        templateResult: function(data) {
+            if (data.loading || !data.id) {
+                return data.text;
+            }
+            
+            // Extraer código, nombre y detalles del texto
+            const texto = data.text;
+            const codigoMatch = texto.match(/\[([^\]]+)\]/);
+            const codigo = codigoMatch ? codigoMatch[1] : '';
+            const nombre = texto.replace(/\[[^\]]+\]\s*/, '').split(' • ')[0];
+            const detalles = texto.split(' • ')[1] || '';
+            
+            // Mostrar código + nombre en la misma línea, detalles abajo
+            const $container = $(
+                '<div class="select2-results__option--insumo">' +
+                    '<div class="insumo-item">' +
+                        '<span class="insumo-codigo">[' + codigo + ']</span> ' +
+                        '<span class="insumo-nombre">' + nombre + '</span>' +
+                        '<span class="insumo-detalle">' + detalles + '</span>' +
+                    '</div>' +
+                '</div>'
+            );
+            
+            return $container;
+        },
+        templateSelection: function(data) {
+            if (!data.id) {
+                return data.text;
+            }
+            
+            // Extraer solo código y nombre para la selección
+            const texto = data.text;
+            const codigoMatch = texto.match(/\[([^\]]+)\]/);
+            const codigo = codigoMatch ? codigoMatch[1] : '';
+            const nombre = texto.replace(/\[[^\]]+\]\s*/, '').split(' • ')[0];
+            
+            return '[' + codigo + '] ' + nombre;
+        }
+    });
+
+    // Enfocar automáticamente el campo de búsqueda al abrir
+    $('#insumo-select').on('select2:open', function() {
+        setTimeout(function() {
+            const $search = $('.select2-container--open .select2-search__field');
+            if ($search.length) {
+                $search.focus();
+                $search.trigger('select');
+            }
+        }, 100);
+    });
+
+    // ========== CÓDIGO PARA INSUMOS ==========
+    let insumoCounter = 0;
+    const insumosContainer = document.getElementById('insumos-container');
+    const hiddenFieldsContainer = document.getElementById('insumos-hidden-fields');
+    const agregarBtn = document.getElementById('agregar-insumo-btn');
+    const contadorInsumos = document.getElementById('contador-insumos');
+    
+    // Inicializar mano de obra
+    inicializarManoObra();
+
+    // ====== CATEGORÍA EN MAYÚSCULAS ======
+    const categoriaInput = document.getElementById('id_categoria');
+    if (categoriaInput) {
+        categoriaInput.addEventListener('input', function() {
+            this.value = this.value.toUpperCase();
+        });
+        
+        if (categoriaInput.value) {
+            categoriaInput.value = categoriaInput.value.toUpperCase();
+        }
+    }
+
+    // Función para actualizar contador de insumos
+    function actualizarContadorInsumos() {
+        const cantidad = document.querySelectorAll('[data-insumo-id]').length;
+        contadorInsumos.textContent = `${cantidad} insumo${cantidad !== 1 ? 's' : ''}`;
+    }
+
+    // Función para mostrar errores
+    function mostrarError(campoId, mensaje) {
+        const errorDiv = document.getElementById(campoId);
+        errorDiv.textContent = mensaje;
+        errorDiv.style.display = 'block';
+        
+        const campo = campoId === 'cantidad-error' ? document.getElementById('insumo-cantidad') : document.getElementById('insumo-select');
+        campo.classList.add('is-invalid');
+        if (campoId === 'insumo-error') {
+            $('#insumo-select').next('.select2-container').find('.select2-selection').addClass('is-invalid');
+        }
+    }
+
+    // Función para limpiar errores
+    function limpiarErrores() {
+        const errores = ['cantidad-error', 'insumo-error'];
+        errores.forEach(errorId => {
+            const errorDiv = document.getElementById(errorId);
+            errorDiv.style.display = 'none';
+            errorDiv.textContent = '';
+            
+            const campo = errorId === 'cantidad-error' ? document.getElementById('insumo-cantidad') : document.getElementById('insumo-select');
+            campo.classList.remove('is-invalid');
+            if (errorId === 'insumo-error') {
+                $('#insumo-select').next('.select2-container').find('.select2-selection').removeClass('is-invalid');
+            }
+        });
+    }
+
+    // Función para agregar insumo
+    function agregarInsumo() {
+        limpiarErrores();
+        
+        const cantidadInput = document.getElementById('insumo-cantidad');
+        const select = document.getElementById('insumo-select');
+        const selectedOption = select.options[select.selectedIndex];
+        
+        const cantidad = parseFloat(cantidadInput.value);
+        const insumoId = select.value;
+        const insumoCodigo = selectedOption.getAttribute('data-codigo') || '';
+        const insumoNombre = selectedOption.text.split(' • ')[0].replace(/\[[^\]]+\]\s*/, '') || selectedOption.text;
+        const insumoPrecio = selectedOption.getAttribute('data-precio');
+        const insumoUnidad = selectedOption.getAttribute('data-unidad');
+
+        let hayErrores = false;
+
+        if (!insumoId) {
+            mostrarError('insumo-error', 'Seleccione un insumo');
+            hayErrores = true;
+        }
+
+        if (!cantidad || cantidad <= 0 || isNaN(cantidad)) {
+            mostrarError('cantidad-error', 'Cantidad debe ser mayor a 0.00');
+            hayErrores = true;
+        }
+
+        if (hayErrores) return;
+
+        // Verificar si el insumo ya fue agregado
+        const insumosExistentes = document.querySelectorAll('[data-insumo-id]');
+        for (let item of insumosExistentes) {
+            if (item.getAttribute('data-insumo-id') === insumoId) {
+                mostrarError('insumo-error', 'Este insumo ya fue agregado al servicio');
+                return;
+            }
+        }
+
+        // Crear elemento visual con código
+        const insumoItem = document.createElement('div');
+        insumoItem.className = 'card insumo-item mb-2';
+        insumoItem.setAttribute('data-insumo-id', insumoId);
+        insumoItem.innerHTML = `
+            <div class="card-body py-1"> 
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <div class="text-start small">
+                            <span class="insumo-codigo">[${insumoCodigo}]</span>
+                            <span class="fw-semibold"> ${insumoNombre}</span>
+                        </div>
+                        <div class="text-start text-muted small">${insumoUnidad} • ₲ ${parseInt(insumoPrecio).toLocaleString('es-PY')}</div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="small">Cantidad: <strong>${cantidad}</strong></div>
+                    </div>
+                    <div class="col-md-1 text-end">
+                        <button type="button" class="btn btn-small btn-outline-danger eliminar-insumo">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Crear campos hidden para el formulario
+        const cantidadField = document.createElement('input');
+        cantidadField.type = 'hidden';
+        cantidadField.name = `insumos_nuevos[${insumoCounter}][cantidad]`;
+        cantidadField.value = cantidad;
+        
+        const insumoField = document.createElement('input');
+        insumoField.type = 'hidden';
+        insumoField.name = `insumos_nuevos[${insumoCounter}][insumo_id]`;
+        insumoField.value = insumoId;
+
+        // Agregar al DOM
+        insumosContainer.appendChild(insumoItem);
+        hiddenFieldsContainer.appendChild(cantidadField);
+        hiddenFieldsContainer.appendChild(insumoField);
+
+        // Event listener para eliminar
+        insumoItem.querySelector('.eliminar-insumo').addEventListener('click', function() {
+            insumoItem.remove();
+            cantidadField.remove();
+            insumoField.remove();
+            actualizarContadorInsumos();
+        });
+
+        // Limpiar formulario
+        cantidadInput.value = '0';
+        $('#insumo-select').val(null).trigger('change');
+        
+        insumoCounter++;
+        actualizarContadorInsumos();
+    }
+
+    // Event listeners
+    agregarBtn.addEventListener('click', agregarInsumo);
+
+    document.getElementById('insumo-cantidad').addEventListener('input', function() {
+        limpiarErrores();
+    });
+
+    $('#insumo-select').on('change', function() {
+        limpiarErrores();
+    });
+
+    // Permitir agregar con Enter en el campo de cantidad
+    document.getElementById('insumo-cantidad').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            agregarInsumo();
+        }
+    });
+
+    // ====== TIEMPO MÍNIMO ======
+    const hiddenMin = document.getElementById('id_tiempo_min_estimado');
+    const horasInput = document.getElementById('id_tiempo_horas');
+    const minutosSelect = document.getElementById('id_tiempo_minutos');
+
+    function actualizarTiempoHidden() {
+        const horas = parseInt(horasInput.value) || 0;
+        const minutos = parseInt(minutosSelect.value) || 0;
+        const totalMinutos = (horas * 60) + minutos;
+        hiddenMin.value = totalMinutos;
+    }
+
+    // Inicializar valores si ya existe un valor en el hidden
+    if (hiddenMin && hiddenMin.value) {
+        const totalMinutos = parseInt(hiddenMin.value);
+        if (!isNaN(totalMinutos)) {
+            const horas = Math.floor(totalMinutos / 60);
+            const minutos = totalMinutos % 60;
+            horasInput.value = horas;
+            const opcionesMinutos = [0, 15, 30, 45];
+            let minutoSeleccionado = opcionesMinutos.reduce((prev, curr) => {
+                return (Math.abs(curr - minutos) < Math.abs(prev - minutos) ? curr : prev);
+            });
+            minutosSelect.value = minutoSeleccionado;
+        }
+    }
+
+    horasInput.addEventListener('input', actualizarTiempoHidden);
+    minutosSelect.addEventListener('change', actualizarTiempoHidden);
+
+    horasInput.addEventListener('blur', function() {
+        let horas = parseInt(this.value) || 0;
+        if (horas < 0) {
+            this.value = 0;
+        } else if (horas > 360) {
+            this.value = 360;
+            alert('El tiempo máximo permitido es 360 horas.');
+        }
+        actualizarTiempoHidden();
+    });
+
+    // ========== VALIDACIÓN DEL FORMULARIO ==========
+    const form = document.querySelector('form');
+    
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            actualizarManoObraHidden();
+            if (horasInput && minutosSelect && hiddenMin) {
+                actualizarTiempoHidden();
+            }
+            const hiddenPrecio = document.getElementById('id_mano_obra');
+            const visiblePrecio = document.getElementById('id_mano_obra_display');
+            if (hiddenPrecio && visiblePrecio) {
+                hiddenPrecio.value = visiblePrecio.value
+                    .toString()
+                    .replace(/^Gs\.?\s*/i, '')
+                    .replace(/\./g, '')
+                    .replace(/,/g, '')
+                    .trim();
+            }
+        });
+    }
+
+    // Inicializar contador de insumos
+    actualizarContadorInsumos();
+});
+</script>
+
+{% endblock %}

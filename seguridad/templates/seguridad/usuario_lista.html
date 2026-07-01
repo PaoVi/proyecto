@@ -1,0 +1,352 @@
+{% extends 'seguridad/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-0">
+    <div class="row justify-content-center">
+        <div class="col-12 col-xl-12">
+            
+            <!-- HEADER -->
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <div>
+                    <h2 class="h4 mb-1">GESTIÓN DE USUARIOS</h2>
+                </div>
+                {% if perms.seguridad.agregar_usuarios %}
+                <a href="{% url 'usuario_crear' %}" class="btn btn-primary btn-sm">
+                    <i class="bi bi-plus-circle"></i>Nuevo Usuario
+                </a>
+                {% endif %}
+            </div>
+
+            <!-- FILTROS -->
+            <div class="card mb-2">
+                <div class="card-body p-2">
+                    <form method="get" class="row g-2 align-items-center">
+                        <div class="col-md-5">
+                            <label class="form-label small">USUARIO</label>
+                            <input type="text" name="username" class="form-control form-control-sm" style="height: 33px;"
+                                   placeholder="Buscar por usuario" value="{{ request.GET.username|default:'' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small">ROL</label>
+                            <select name="rol" class="form-select form-select-sm">
+                                <option value="">Todos los roles</option>
+                                {% for codigo, nombre in roles %}
+                                <option value="{{ codigo }}" {% if request.GET.rol == codigo %}selected{% endif %}>
+                                    {{ nombre }}
+                                </option>
+                                {% endfor %}   
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small">ESTADO</label>
+                            <select name="estado" class="form-select form-select-sm">
+                                <option value="">Todos</option>
+                                <option value="activo" {% if request.GET.estado == 'activo' %}selected{% endif %}>Activo</option>
+                                <option value="inactivo" {% if request.GET.estado == 'inactivo' %}selected{% endif %}>Inactivo</option>
+                            </select>
+                        </div>
+                        <div class="col-md-1"> 
+                            <label class="form-label small">&nbsp;</label>
+                            <button type="submit" class="btn btn-outline-primary w-100 btn-sm" style="height: 33px;">
+                                <i class="bi bi-search"></i>Buscar
+                            </button>
+                        </div>
+                        <div class="col-md-1">
+                            <label class="form-label small">&nbsp;</label>
+                            <a href="{% url 'usuario_lista' %}" class="btn btn-outline-secondary w-100 btn-sm" style="height: 33px;">
+                                <i class="bi bi-arrow-clockwise"></i> Limpiar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- ENCABEZADO -->
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="table-responsive table-container">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 20%;">Usuario</th>
+                                    <th style="width: 30%;">Empleado asignado</th>
+                                    <th style="width: 15%;">Rol</th>
+                                    <th style="width: 10%;">Estado</th>
+                                    <th style="width: 15%;">Último acceso</th>
+                                    <th style="width: 10%;" class="text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for usuario in usuarios %}
+                                <tr class="{% if not usuario.is_active %}table-secondary{% endif %}">
+                                    <!-- USUARIO -->
+                                    <td style="width: 20%; min-width: 150px;">
+                                        <div class="fw-semibold text-truncate" title="{{ usuario.username }}">
+                                            {{ usuario.username }}
+                                        </div>
+                                        {% if usuario.get_full_name %}
+                                        <small class="text-muted text-truncate d-block" title="{{ usuario.get_full_name }}">
+                                            {{ usuario.get_full_name }}
+                                        </small>
+                                        {% endif %}
+                                    </td>
+                                    
+                                    <!-- EMPLEADO -->
+                                    <td style="width: 20%; min-width: 150px;">
+                                        <div class="mb-2">
+                                            <p class="mb-0 text-start ">
+                                                {% if usuario.empleado %}
+                                                    {{ usuario.empleado.nombre }}
+                                                {% else %}
+                                                    <span class="text-secondary">No vinculado</span>
+                                                {% endif %}
+                                            </p>
+                                        </div>
+                                    </td>
+                                    
+                                    <!-- ROL -->
+                                    <td style="width: 15%; min-width: 120px;">
+                                        <span class="text-decoration-none text-dark">
+                                            {{ usuario.get_rol_display }}
+                                        </span>
+                                    </td>
+                                    
+                                    <!-- ESTADO -->
+                                    <td style="width: 15%; min-width: 100px;">
+                                        {% if usuario.is_active %}
+                                            <span class="badge bg-success">Activo</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Inactivo</span>
+                                        {% endif %}
+                                    </td>
+                                    
+                                    <!-- ÚLTIMO ACCESO -->
+                                    <td style="width: 20%; min-width: 150px;">
+                                        {% if usuario.ultimo_acceso %}
+                                            <small class="text-muted">
+                                                {{ usuario.ultimo_acceso|date:"d/m/Y H:i" }}
+                                            </small>
+                                        {% else %}
+                                            <small class="text-muted">Nunca</small>
+                                        {% endif %}
+                                    </td>
+                                    
+                                    <!-- ACCIONES -->
+                                    <td style="width: 10%; min-width: 120px;" class="text-center">
+                                        <div class="btn-group btn-group-sm">
+                                            <!-- BOTÓN VER -->
+                                            {% if perms.seguridad.ver_usuarios %}
+                                            <a href="{% url 'usuario_ver' usuario.id %}" class="btn btn-outline-info btn-sm" title="Ver detalles">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            {% endif %}
+                                            
+                                            <!-- BOTÓN EDITAR -->
+                                            {% if perms.seguridad.editar_usuarios %}
+                                            <a href="{% url 'usuario_editar' usuario.id %}" class="btn btn-outline-primary btn-sm" title="Editar">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            {% endif %}
+                                            
+                                            <!-- BOTÓN ACTIVAR/DESACTIVAR -->
+                                            {% if perms.seguridad.desactivar_usuarios and usuario != request.user %}
+                                                {% if usuario.is_active %}
+                                                <button type="button" class="btn btn-outline-danger btn-sm" title="Desactivar" 
+                                                        data-bs-toggle="modal" data-bs-target="#deactivateModal"
+                                                        data-user-id="{{ usuario.id }}" data-user-name="{{ usuario.username }}">
+                                                    <i class="bi bi-x-circle"></i>
+                                                </button>
+                                                {% else %}
+                                                <button type="button" class="btn btn-outline-success btn-sm" title="Activar" 
+                                                        data-bs-toggle="modal" data-bs-target="#activateModal" 
+                                                        data-user-id="{{ usuario.id }}" data-user-name="{{ usuario.username }}">
+                                                    <i class="bi bi-check-circle"></i>
+                                                </button>
+                                                {% endif %}
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center py-3">
+                                        <i class="bi bi-person text-muted" style="font-size: 1.5rem;"></i>
+                                        <p class="text-muted mt-1 mb-0">No hay usuarios</p>
+                                        {% if perms.seguridad.agregar_usuarios %}
+                                        <a href="{% url 'usuario_crear' %}" class="btn btn-primary btn-sm mt-2">
+                                            <i class="bi bi-plus-circle"></i>Crear primer usuario
+                                        </a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PAGINACIÓN -->
+            {% if usuarios.has_other_pages %}
+            <div class="d-flex justify-content-between align-items-center mt-2">
+            <div>
+                <span class="text-muted small">
+                Mostrando {{ usuarios.start_index }} - {{ usuarios.end_index }} de {{ usuarios.paginator.count }}
+                (Pág. {{ usuarios.number }} de {{ usuarios.paginator.num_pages }})
+                </span>
+            </div>
+            <nav>
+                <ul class="pagination pagination-sm mb-0">
+                {% if usuarios.has_previous %}
+                    <li class="page-item">
+                    <a class="page-link" href="?page=1{% if qs_no_page %}&{{ qs_no_page }}{% endif %}" title="Primera página">«</a>
+                    </li>
+                    <li class="page-item">
+                    <a class="page-link" href="?page={{ usuarios.previous_page_number }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}" title="Anterior">‹</a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link">«</span></li>
+                    <li class="page-item disabled"><span class="page-link">‹</span></li>
+                {% endif %}
+
+                {% for i in usuarios.paginator.page_range %}
+                    {% if i == usuarios.number %}
+                    <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+                    {% elif i >= usuarios.number|add:'-2' and i <= usuarios.number|add:'2' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ i }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">{{ i }}</a>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if usuarios.has_next %}
+                    <li class="page-item">
+                    <a class="page-link" href="?page={{ usuarios.next_page_number }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}" title="Siguiente">›</a>
+                    </li>
+                    <li class="page-item">
+                    <a class="page-link" href="?page={{ usuarios.paginator.num_pages }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}" title="Última página">»</a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled"><span class="page-link">›</span></li>
+                    <li class="page-item disabled"><span class="page-link">»</span></li>
+                {% endif %}
+                </ul>
+            </nav>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- MODAL DE CONFIRMACIÓN PARA DESACTIVAR -->
+<div class="modal fade" id="deactivateModal" tabindex="-1" aria-labelledby="deactivateModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title" id="deactivateModalLabel">Desactivar Usuario</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Desactivar usuario <strong id="userNameDeactivate"></strong>?</p>
+                <p>El usuario ya no podrá iniciar sesión.</p>
+            </div>
+            <div class="modal-footer">
+                <form method="post" action="" id="deactivateForm">
+                    {% csrf_token %}
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger btn-sm">Desactivar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL DE CONFIRMACIÓN PARA ACTIVAR -->
+<div class="modal fade" id="activateModal" tabindex="-1" aria-labelledby="activateModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title" id="activateModalLabel">Activar Usuario</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Activar usuario <strong id="userNameActivate"></strong>?</p>
+                <p>El usuario podrá iniciar sesión nuevamente.</p>
+            </div>
+            <div class="modal-footer">
+                <form method="post" action="" id="activateForm">
+                    {% csrf_token %}
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success btn-sm">Activar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<style>
+#deactivateModal .modal-dialog,
+#activateModal .modal-dialog {
+  max-width: 300px;        
+  width: 90%;           
+  margin: 0 auto;         
+  display: flex;         
+  align-items: center;   
+  min-height: calc(100% - 2rem); 
+}
+#deactivateModal .modal-content,
+#activateModal .modal-content {
+  min-height: 50px;      
+}
+/* Texto y acciones centradas */
+#deactivateModal .modal-title,
+#activateModal .modal-title,
+#deactivateModal .modal-body,
+#activateModal .modal-body {
+  text-align: center;
+}
+#deactivateModal .modal-footer,
+#activateModal .modal-footer {
+  justify-content: center; 
+  gap: .5rem;
+}
+#deactivateModal .modal-footer .btn,
+#activateModal  .modal-footer .btn {
+  /* tamaño */
+  padding: 0.45rem 0.9rem;   
+  font-size: 0.75rem;      
+  min-width: 120px;       
+  line-height: 1.15;       
+  border-radius: 8px;     
+}
+</style>
+<script>
+// Configuración de modales
+document.addEventListener('DOMContentLoaded', function() {
+    const deactivateModal = document.getElementById('deactivateModal');
+    const activateModal = document.getElementById('activateModal');
+    
+    if (deactivateModal) {
+        deactivateModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            const userId = button.getAttribute('data-user-id');
+            const userName = button.getAttribute('data-user-name');
+            
+            document.getElementById('userNameDeactivate').textContent = userName;
+            document.getElementById('deactivateForm').action = "{% url 'usuario_desactivar' 0 %}".replace('0', userId);
+        });
+    }
+    
+    if (activateModal) {
+        activateModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            const userId = button.getAttribute('data-user-id');
+            const userName = button.getAttribute('data-user-name');
+            
+            document.getElementById('userNameActivate').textContent = userName;
+            document.getElementById('activateForm').action = "{% url 'usuario_desactivar' 0 %}".replace('0', userId);
+        });
+    }
+});
+</script>
+{% endblock %}

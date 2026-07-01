@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Orden de Trabajo #{{ orden.id }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        @media print {
+            body {
+                margin: 0;
+                padding: 15px;
+            }
+            .no-print {
+                display: none;
+            }
+            @page {
+                margin: 1.5cm;
+            }
+            .section-title {
+                break-inside: avoid;
+            }
+            .table {
+                break-inside: avoid;
+            }
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+        }
+        
+        .info-section {
+            margin-bottom: 15px;
+        }
+        
+        .info-row {
+            display: flex;
+            margin-bottom: 5px;
+        }
+        
+        .info-label {
+            width: 150px;
+            font-weight: bold;
+        }
+        
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        
+        .table th, .table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        
+        .table th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+        
+        .totals {
+            margin-top: 20px;
+            text-align: right;
+            border-top: 2px solid #333;
+            padding-top: 10px;
+        }
+        
+        .total-grande {
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        
+        .total-row {
+            margin: 5px 0;
+        }
+        
+        .text-right {
+            text-align: right;
+        }
+        
+        .nowrap {
+            white-space: nowrap;
+        }
+        
+        .description-box {
+            margin: 15px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+        }
+        
+        .section-title { 
+            margin-top: 20px; 
+            font-weight: bold; 
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            font-size: 11px;
+            font-weight: bold;
+            border-radius: 12px;
+            margin: 1px;
+        }
+        
+        .badge-primary { background-color: #007bff; color: white; }
+        .badge-secondary { background-color: #6c757d; color: white; }
+        
+        .two-columns {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .column {
+            flex: 1;
+        }
+        
+        /* Botones de impresión */
+        .btn-print {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .btn-print:hover {
+            background-color: #0056b3;
+        }
+        
+        .btn-close-print {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .btn-close-print:hover {
+            background-color: #5a6268;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>ORDEN DE TRABAJO #{{ orden.id }}</h2>
+        <p><strong>Fecha de impresión:</strong> {% now "d/m/Y H:i" %}</p>
+    </div>
+
+    <div class="two-columns">
+        <!-- COLUMNA IZQUIERDA - INFORMACIÓN GENERAL -->
+        <div class="column">
+            <div class="section-title">INFORMACIÓN GENERAL</div>
+            <div class="info-section">
+                <div class="info-row">
+                    <div class="info-label">N° de Orden:</div>
+                    <div><strong>{{ orden.id }}</strong></div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Cliente:</div>
+                    <div>
+                        {% if orden.cliente %}
+                            <strong>{{ orden.cliente.nombre|default:"-" }}</strong>
+                            {% if orden.cliente.numero_documento %}
+                                <div style="font-size: 11px; color: #666;">
+                                    Documento: {{ orden.cliente.numero_documento|default:"—" }}
+                                </div>
+                            {% endif %}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">Vehículo:</div>
+                    <div>
+                        {% if orden.vehiculo %}
+                            <strong>{{ orden.vehiculo.marca|default:"" }} {{ orden.vehiculo.modelo|default:"" }}</strong>
+                            <div style="font-size: 11px; color: #666;">
+                                {% if orden.vehiculo.nro_chapa %}Chapa: {{ orden.vehiculo.nro_chapa }}{% endif %}
+                                {% if orden.vehiculo.nro_chasis %} | Chasis: {{ orden.vehiculo.nro_chasis }}{% endif %}
+                            </div>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </div>
+                </div>
+                {% if orden.presupuesto_origen %}
+                <div class="info-row">
+                    <div class="info-label">Presupuesto Origen:</div>
+                    <div>#{{ orden.presupuesto_origen.pk }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- COLUMNA DERECHA - FECHAS Y ESTADO -->
+        <div class="column">
+            <div class="section-title">FECHAS Y ESTADO</div>
+            <div class="info-section">
+                <div class="info-row">
+                    <div class="info-label">Fecha Creación:</div>
+                    <div>{{ orden.fecha_creacion|date:"d/m/Y" }}</div>
+                </div>
+                {% if orden.fecha_inicio %}
+                <div class="info-row">
+                    <div class="info-label">Fecha Inicio:</div>
+                    <div>{{ orden.fecha_inicio|date:"d/m/Y" }}</div>
+                </div>
+                {% endif %}
+                {% if orden.fecha_fin %}
+                <div class="info-row">
+                    <div class="info-label">Fecha Finalización:</div>
+                    <div>{{ orden.fecha_fin|date:"d/m/Y" }}</div>
+                </div>
+                {% endif %}
+                <div class="info-row">
+                    <div class="info-label">Estado:</div>
+                    <div>
+                        <strong> {{ orden.get_estado_display }}
+                        </strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- OBSERVACIONES -->
+    {% if orden.descripcion %}
+    <div class="section-title">OBSERVACIONES</div>
+    <div class="description-box">
+        {{ orden.descripcion|linebreaksbr }}
+    </div>
+    {% endif %}
+
+    <!-- SERVICIOS -->
+    <div class="section-title">SERVICIOS INCLUIDOS</div>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Servicio</th>
+                <th width="12%" class="text-center">Cantidad</th>
+                <th width="20%" class="text-right">Precio Unitario</th>
+                <th width="20%" class="text-right">Subtotal</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for os in servicios %}
+            <tr>
+                <td>
+                    <div><strong>{{ os.servicio.nombre }}</strong></div>
+                    {% if os.servicio.descripcion %}
+                        <div style="font-size: 11px; color: #666;">{{ os.servicio.descripcion|truncatewords:15 }}</div>
+                    {% endif %}
+                </td>
+                <td class="text-center">{{ os.cantidad }}</td>
+                <td class="text-right nowrap">Gs. <span class="format-miles">{{ os.precio_unitario|default:0|floatformat:0 }}</span></td>
+                <td class="text-right nowrap">Gs. <span class="format-miles">{{ os.subtotal|default:0|floatformat:0 }}</span></td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" class="text-center text-muted">Sin servicios cargados</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- RESUMEN FINANCIERO -->
+    <div class="section-title">RESUMEN FINANCIERO</div>
+    <div class="totals">
+        <div class="total-row">
+            <strong>Subtotal Servicios:</strong>
+            <span class="nowrap">Gs. <span class="format-miles">{{ orden.subtotal_servicios|default:0|floatformat:0 }}</span></span>
+        </div>
+
+        {% if orden.descuento and orden.descuento > 0 %}
+        <div class="total-row">
+            <strong>Descuento:</strong>
+            <span class="nowrap">- Gs. <span class="format-miles">{{ orden.descuento|default:0|floatformat:0 }}</span></span>
+        </div>
+        {% endif %}
+
+        <div class="total-row total-grande">
+            <strong>TOTAL:</strong>
+            <span class="nowrap">Gs. <span class="format-miles">{{ orden.total|default:0|floatformat:0 }}</span></span>
+        </div>
+    </div>
+
+    <!-- EMPLEADOS ASIGNADOS CON CONTADOR DE SERVICIOS -->
+    <div class="section-title">EMPLEADOS ASIGNADOS</div>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Empleado</th>
+                <th width="15%" class="text-center">Servicios</th>
+                <th width="20%" class="text-center">Estado</th>
+                <th width="25%" class="text-center">Asignación</th>
+                <th width="25%" class="text-center">Liberación</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in asignaciones_con_contador %}
+            {% with a=item.asignacion %}
+            <tr>
+                <td>
+                    <div><strong>{{ a.empleado.nombre }}</strong></div>
+                    {% if a.empleado.cargo %}
+                        <div style="font-size: 11px; color: #666;">{{ a.empleado.cargo|default:"Sin cargo" }}</div>
+                    {% endif %}
+                </td>
+                <td class="text-center">
+                    <span class="servicios-count">{{ item.servicios_count }}</span>
+                </td>
+                <td>
+                    <span class="fw-semibold
+                        {% if a.estado == 'asignado' %}text-secondary
+                        {% elif a.estado == 'en_ejecucion' %}text-primary
+                        {% elif a.estado == 'liberado' %}text-secondary
+                        {% else %}text-secondary{% endif %}">
+                        {{ a.get_estado_display }}
+                    </span>
+                </td>
+                <td class="nowrap">{{ a.fecha_asignacion|date:"d/m/Y H:i" }}</td>
+                <td class="nowrap">
+                    {% if a.fecha_liberacion %}
+                        {{ a.fecha_liberacion|date:"d/m/Y H:i" }}
+                    {% else %}
+                        <span style="color: #6c757d;">—</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endwith %}
+            {% empty %}
+            <tr>
+                <td colspan="5" class="text-center text-muted">Sin empleados asignados</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- INFORMACIÓN ADICIONAL AL FINAL -->
+    <div style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #ddd; font-size: 11px; color: #666;">
+        <div class="column text-right">
+            <strong>Sistema de Gestión - CarSys</strong><br>
+        </div>
+    </div>
+
+    <!-- BOTONES DE IMPRESIÓN (mismo estilo que factura y presupuesto) -->
+    <div class="no-print" style="text-align:center; margin-top:10px; padding:5px;">
+        <button onclick="window.print()" class="btn-print">
+            <i class="bi bi-printer"></i> Imprimir
+        </button>
+        <button onclick="window.close()" class="btn-close-print">
+            <i class="bi bi-x-circle"></i> Cerrar
+        </button>
+    </div>
+
+    <script>
+        function formatNumber(number) {
+            return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            const elements = document.querySelectorAll('.format-miles');
+            elements.forEach(function(element) {
+                const rawText = element.textContent.trim();
+                const number = parseFloat(rawText.replace(/[^\d]/g, ''));
+                if (!isNaN(number)) {
+                    element.textContent = formatNumber(number);
+                }
+            });
+        });
+        
+        // Auto-imprimir si viene con parámetro print=1
+        if (window.location.search.includes('print=1')) {
+            window.onload = function() { 
+                setTimeout(function() { 
+                    window.print(); 
+                }, 500); 
+            };
+        }
+    </script>
+</body>
+</html>

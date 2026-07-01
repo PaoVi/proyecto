@@ -1,0 +1,25 @@
+{
+    "factura": {
+        "numero": "001-001-0000280",
+        "fecha": "2026-06-17",
+        "timbrado": "87654321",
+        "establecimiento": "001",
+        "punto_emision": "001",
+        "estado": "ACTIVA"
+    },
+    "cliente": {
+        "nombre": "Carlos Alberto Fernández",
+        "documento": "5678901"
+    },
+    "totales": {
+        "total": 25000.0
+    },
+    "items": [
+        {
+            "tipo": "insumo",
+            "descripcion": "INSV-0096 - Lámpara H4 halógena",
+            "cantidad": 1.0,
+            "precio": 25000.0
+        }
+    ]
+}

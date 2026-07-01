@@ -1,0 +1,210 @@
+{% extends "seguridad/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-0">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-10">
+
+      <!-- HEADER CON BOTONES -->
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <h2 class="h4 mb-1">NOTA DE CRÉDITO</h2>
+        <div class="d-flex gap-2">
+          <a href="{% url 'nota_credito_lista' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i> Volver
+          </a>
+          <a href="{% url 'nota_credito_imprimir' nota.id %}" target="_blank" class="btn btn-info btn-sm">
+              <i class="bi bi-printer"></i> Imprimir
+          </a>
+        </div>
+      </div>
+
+      <!-- NOTA DE CRÉDITO -->
+      <div class="card print-area">
+        <div class="card-body p-0">
+          <div class="nota-box" style="max-width: 100%; width: 100%;">
+
+            <!-- ENCABEZADO -->
+            <div class="row nota-header">
+              <!-- LOGO + EMPRESA -->
+              <div class="col-md-6 d-flex align-items-center">
+                <img src="{% static 'seguridad/images/icono.ico' %}" alt="Logo" width="100" height="100">
+                <div>
+                  <h5 class="nota-title mb-1 text-start">{{ config.nombre_taller|default:"Taller Automotriz" }}</h5>
+                  <div class="text-start"><strong>RUC:</strong> {{ config.ruc_taller|default:"—" }}</div>
+                  <div class="text-muted text-start">
+                    {{ config.direccion_taller|default:"—" }}
+                  </div>
+                </div>
+              </div>
+
+              <!-- DATOS NOTA DE CRÉDITO -->
+              <div class="col-md-6 text-end">
+                <h4 class="nota-title text-danger">NOTA DE CRÉDITO</h4>
+                <div><strong>N°:</strong> {{ nota.numero_formateado }}</div>
+                <div><strong>Factura Original:</strong> {{ nota.factura.numero_formateado }}</div>
+                <div><strong>Fecha Emisión:</strong> {{ nota.fecha|date:"d/m/Y" }}</div>
+              </div>
+            </div>
+
+            <!-- CLIENTE -->
+            <div class="row mb-3">
+              <div class="col-md-6 text-start"><strong>Cliente:</strong> {{ nota.factura.cliente.nombre|default:"—" }}</div>
+              <div class="col-md-6 text-end"><strong>RUC/CI:</strong> {{ nota.factura.cliente.numero_documento|default:"—" }}</div>
+              <div class="col-md-6 text-start"><strong>Dirección:</strong> {{ nota.factura.cliente.direccion|default:"—" }}</div>
+              <div class="col-md-6 text-end"><strong>Condición:</strong> {{ nota.factura.condicion_venta|default:"Contado" }}</div>
+              <div class="col-md-6 text-start"><strong>Teléfono:</strong> {{ nota.factura.cliente.telefono|default:"—" }}</div>
+              <div class="col-md-6 text-end"><strong>IVA:</strong> {{ nota.factura.iva }}%</div>
+              <div class="col-md-6 text-start"><strong>Motivo:</strong> {{ nota.motivo|default:"Anulación de factura" }}</div>
+              <div class="col-md-6 text-end"> 
+                <strong>Tipo:</strong>
+                {% if es_total %}
+                  <span class="fw-semibold text-danger">TOTAL</span>
+                {% else %}
+                  <span class="fw-semibold text-primary">PARCIAL</span>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- DETALLE DE ITEMS DEVUELTOS (DE LA NOTA) -->
+            <div class="table-responsive">
+              <table class="table table-bordered nota-table">
+                <thead>
+                  <tr class="text-center">
+                    <th style="width: 8%">Cant.</th>
+                    <th style="width: 52%">Descripción</th>
+                    <th style="width: 20%">Precio Unit.</th>
+                    <th style="width: 20%">Subtotal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for detalle in nota.detalles.all %}
+                  <tr>
+                    <td class="text-center">{{ detalle.cantidad|floatformat:2 }}</td>
+                    <td>
+                      <div class="fw-semibold text-start">{{ detalle.descripcion }}</div>
+                      <small class="d-block text-start text-muted">Item devuelto</small>
+                    </td>
+                    <td class="text-end">₲ <span class="fmt">{{ detalle.precio_unitario|floatformat:0 }}</span></td>
+                    <td class="text-end">₲ <span class="fmt">{{ detalle.subtotal|floatformat:0 }}</span></td>
+                  </tr>
+                  {% empty %}
+                  <tr>
+                    <td colspan="4" class="text-center text-muted py-3">
+                      No hay detalles en esta nota de crédito
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+
+            <!-- TOTALES DE LA NOTA DE CRÉDITO -->
+            <div class="row justify-content-end mt-3">
+              <div class="col-md-5 col-lg-4">
+                <div class="nota-total">
+                  <div>Subtotal Devuelto: Gs. <span class="fmt">{{ nota.subtotal|floatformat:0 }}</span></div>
+                  <div>IVA ({{ nota.factura.iva }}%): Gs. <span class="fmt">{{ nota.total_iva|floatformat:0 }}</span></div>
+                  <div class="fs-5 mt-1 pt-1 border-top border-light fw-semibold">TOTAL CREDITADO: Gs. <span class="fmt">{{ nota.total_general|floatformat:0 }}</span></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- INFORMACIÓN ADICIONAL -->
+            <div class="mt-4 pt-3" style="border-top: 2px dashed #ccc;">
+              <div class="row">
+                <div class="col-12">
+                  <div class="text-muted small text-center">
+                    <i class="bi bi-info-circle"></i>
+                    Esta nota de crédito {% if es_total %}anula totalmente la factura{% else %}realiza una devolución parcial de la factura{% endif %} 
+                    N° {{ nota.factura.numero_formateado }} emitida el {{ nota.factura.fecha|date:"d/m/Y" }}.
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<style>
+.container-fluid { max-width: 1000px; }
+.nota-box {
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+}
+
+.nota-header {
+    border-bottom: 3px solid #dc3545;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+
+.nota-title {
+    font-weight: bold;
+    color: #0d47a1;
+}
+
+.nota-title.text-danger {
+    color: #dc3545 !important;
+}
+
+.nota-table thead {
+    background: #dc3545;
+    color: white;
+}
+
+.nota-table th, .nota-table td {
+    padding: 0.5rem 0.75rem;
+    vertical-align: middle;
+}
+
+.nota-total {
+    background: #dc3545;
+    color: white;
+    padding: 12px;
+    border-radius: 8px;
+}
+
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    .print-area, .print-area * {
+        visibility: visible;
+    }
+    .print-area {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+    }
+    .no-print {
+        display: none;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  function formatearNumero(numero) {
+    if (!numero && numero !== 0) return '0';
+    const num = parseFloat(numero);
+    if (isNaN(num)) return '0';
+    return num.toLocaleString('es-PY');
+  }
+  
+  document.querySelectorAll('.fmt').forEach(el => {
+    const raw = el.textContent.replace(/[^\d\-]/g, '');
+    const num = parseInt(raw || '0', 10);
+    el.textContent = formatearNumero(num);
+  });
+});
+</script>
+
+{% endblock %}

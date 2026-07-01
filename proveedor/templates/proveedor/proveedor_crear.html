@@ -1,0 +1,217 @@
+{% extends 'seguridad/base.html' %}
+
+{% block content %}
+<div class="container-fluid py-0">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-8">
+
+      <!-- HEADER -->
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <h2 class="h4 mb-1">REGISTRAR PROVEEDOR</h2>
+        <button type="button" onclick="window.history.back()" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-arrow-left"></i>Volver
+        </button>
+      </div>
+
+      <!-- ERRORES NO ASOCIADOS A CAMPOS -->
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger small">
+          {% for e in form.non_field_errors %}<div>{{ e }}</div>{% endfor %}
+        </div>
+      {% endif %}
+
+      <!-- FORMULARIO -->
+      <div class="card">
+        <div class="card-body">
+          <form method="post" class="needs-validation" novalidate>
+            {% csrf_token %}
+
+            <div class="row g-3">
+              <!-- RUC -->
+              <div class="col-md-6">
+                <label for="{{ form.ruc.id_for_label }}" class="form-label small">RUC</label>
+                {{ form.ruc }}
+                {% if form.ruc.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.ruc.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- RAZÓN SOCIAL -->
+              <div class="col-md-6">
+                <label for="{{ form.razon_social.id_for_label }}" class="form-label small">Razón Social</label>
+                {{ form.razon_social }}
+                {% if form.razon_social.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.razon_social.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- NOMBRE DE FANTASÍA -->
+              <div class="col-md-6">
+                <label for="{{ form.nombre_fantasia.id_for_label }}" class="form-label small">Nombre de Fantasía</label>
+                {{ form.nombre_fantasia }}
+                {% if form.nombre_fantasia.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.nombre_fantasia.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- TELÉFONO -->
+              <div class="col-md-6">
+                <label class="form-label small">Teléfono</label>
+                <div class="input-group">
+                  <span class="input-group-text">+595</span>
+                  <input
+                    type="text"
+                    name="telefono"
+                    class="form-control"
+                    placeholder="9xxxxxxx"
+                    value="{% if form.telefono.value %}{{ form.telefono.value|cut:'+595' }}{% endif %}">
+                </div>
+                {% if form.telefono.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.telefono.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- CORREO-->
+              <div class="col-md-6">
+                <label for="{{ form.email.id_for_label }}" class="form-label small">Correo Electrónico</label>
+                {{ form.email }}
+                {% if form.email.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.email.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+
+            <!-- CIUDAD -->
+              <div class="col-md-6">
+                <label for="{{ form.ciudad.id_for_label }}" class="form-label small">Ciudad</label>
+                {{ form.ciudad }}
+                {% if form.ciudad.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.ciudad.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- PERSONA DE CONTACTO -->
+              <div class="col-md-6">
+                <label for="{{ form.contacto_nombre.id_for_label }}" class="form-label small">Persona de Contacto</label>
+                {{ form.contacto_nombre }}
+                {% if form.contacto_nombre.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.contacto_nombre.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+
+
+              <!-- TELÉFONO DE CONTACTO -->
+              <div class="col-md-6">
+                <label class="form-label small">Teléfono de Contacto</label>
+                <div class="input-group">
+                  <span class="input-group-text">+595</span>
+                  <input
+                    type="text"
+                    name="contacto_telefono"
+                    class="form-control"
+                    placeholder="9xxxxxxx"
+                    value="{% if form.contacto_telefono.value %}{{ form.contacto_telefono.value|cut:'+595' }}{% endif %}">
+                </div>
+                {% if form.contacto_telefono.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.contacto_telefono.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+        
+              <!-- DIRECCIÓN -->
+              <div class="col-md-12">
+                <label for="{{ form.direccion.id_for_label }}" class="form-label small">Dirección</label>
+                {{ form.direccion }}
+                {% if form.direccion.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.direccion.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- BOTONES -->
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-center pt-3 border-top gap-2">
+              <a href="{% url 'proveedor_lista' %}" class="btn btn-outline-secondary btn-sm w-100 w-md-auto order-2 order-md-1">
+                <i class="bi bi-x-circle"></i>Cancelar
+              </a>
+              <button type="submit" class="btn btn-primary btn-sm w-100 w-md-auto order-1 order-md-2">
+                <i class="bi bi-check-circle"></i>Registrar Proveedor
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<style>
+  .container-fluid { max-width: 1000px; }
+  .form-control, .form-select {
+    border-radius: 0.375rem;
+    border: 1px solid #ced4da;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+  }
+  .form-control:focus, .form-select:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+  }
+  .btn-sm { padding: 0.375rem 0.75rem; font-size: 0.875rem; min-width: 100px; }
+</style>
+
+<script>
+// Prefijo +595 para teléfonos (proveedor y contacto)
+document.addEventListener('DOMContentLoaded', function() {
+  const formEl = document.querySelector('form');
+  const telProv = document.querySelector('input[name="telefono"]');
+  const telCont = document.querySelector('input[name="contacto_telefono"]');
+
+  function ensurePrefix(input) {
+    if (input && input.value && !input.value.startsWith('+595')) {
+      input.value = '+595' + input.value;
+    }
+  }
+
+  formEl.addEventListener('submit', function() {
+    ensurePrefix(telProv);
+    ensurePrefix(telCont);
+  });
+
+  if (telProv && !telProv.value) telProv.placeholder = '9xxxxxxx';
+  if (telCont && !telCont.value) telCont.placeholder = '9xxxxxxx';
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    const razonSocialInput = document.querySelector('input[name="razon_social"]');
+    
+    if (razonSocialInput) {
+        // Convertir a mayúsculas mientras escribe
+        razonSocialInput.addEventListener('input', function() {
+            this.value = this.value.toUpperCase();
+        });
+        
+        // También convertir al perder el foco
+        razonSocialInput.addEventListener('blur', function() {
+            this.value = this.value.toUpperCase();
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,554 @@
+/* ===== CUSTOM.CSS - PERSONALIZACIONES VISUALES ===== */
+
+/* === VARIABLES CSS (SOBREESCRIBIR BOOTSTRAP) === */
+:root {
+  --bs-primary: #033e7e;
+  --bs-primary-rgb: 3, 62, 126;
+  --bs-secondary: #6c757d;
+  --bs-success: #28a745;
+  --bs-danger: #dc3545;
+  --bs-warning: #ffc107;
+  --bs-info: #17a2b8;
+  --bs-light: #f8f9fa;
+  --bs-dark: #343a40;
+  --bs-error: #dc3545;
+  --bs-border-color: #e1e8ed;
+  --bs-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Aplicar tipografía unificada (heredada desde body) */
+body {
+  font-family: var(--bs-font-family);
+}
+
+/* === BOTONES PERSONALIZADOS === */
+.btn {
+  border-radius: 8px;
+  font-weight: 600;
+  padding: 0.2rem 0.4rem;
+  transition: all 0.3s ease;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  text-transform: none;
+  letter-spacing: 0.5px;
+  font-size: 0.75rem;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--bs-primary) 0%, #1a5ac0 100%);
+  box-shadow: 0 4px 15px rgba(3, 62, 126, 0.25);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #1a5ac0 0%, var(--bs-primary) 100%);
+  box-shadow: 0 6px 20px rgba(3, 62, 126, 0.35);
+}
+
+.btn-secondary {
+  background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+}
+
+.btn-secondary:hover {
+  background: linear-gradient(135deg, #5a6268 0%, #6c757d 100%);
+}
+
+.btn-sm {
+  padding: 0.2rem 0.4rem;
+  font-size: 0.75rem;
+}
+
+/* === FORMULARIOS PERSONALIZADOS === */
+.form-control {
+  border: 2px solid var(--bs-border-color);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  background-color: #f8f9fa;
+}
+
+.form-control:focus {
+  border-color: var(--bs-primary);
+  box-shadow: 0 0 0 0.2rem rgba(3, 62, 126, 0.15);
+  background-color: #fff;
+}
+
+.form-label {
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.form-text {
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+}
+
+/* === CARDS PERSONALIZADAS === */
+.card {
+  border: 1px solid #dee2e6;
+  border-radius: 0.375rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.card:hover {
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+ 
+.card-header {
+  background: linear-gradient(135deg, var(--bs-primary) 0%, #1a5ac0 100%);
+  color: white;
+  font-weight: 600;
+  border: none;
+  padding: 1.25rem 1.5rem;
+  font-size: 0.875rem;
+}
+
+.card-body {
+  padding: 1.5rem;
+}
+
+.card-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+/* === TABLAS PERSONALIZADAS === */
+.table {
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  font-size: 0.875rem;
+  table-layout: fixed; /* Evita que se rompa el diseño */
+}
+
+.table th {
+  background: linear-gradient(135deg, var(--bs-primary) 0%, #1a5ac0 100%);
+  color: white;
+  font-weight: 600;
+  padding: 0.5rem;
+  border: none;
+  font-size: 0.875rem;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.table td {
+  padding: 0.5rem;
+  vertical-align: middle;
+  border-color: #e9ecef;
+  font-size: 0.875rem;
+  overflow: hidden;
+}
+
+.table-hover tbody tr:hover {
+  background-color: rgba(3, 62, 126, 0.05);
+}
+
+/* Asegurar que el contenido largo no rompa el diseño */
+.table td > * {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* === NAVBAR PERSONALIZADA === */
+.navbar-dark .navbar-nav .nav-link {
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  font-size: 0.875rem;
+}
+
+.navbar-dark .navbar-nav .nav-link:hover {
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* === ALERTAS PERSONALIZADAS === */
+.alert {
+  border: none;
+  border-radius: 10px;
+  padding: 0.3rem; 
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  margin: 1rem 0;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  font-size: 0.8rem; 
+  animation: slideInAlert 0.5s ease-out; /* Animación unificada */
+}
+
+.alert-success {
+  background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, rgba(52, 182, 82, 0.1) 100%);
+  color: #28a745;
+  border-left: 3px solid #28a745;
+}
+        
+.alert-danger {
+  background: linear-gradient(135deg, rgba(220, 53, 69, 0.1) 0%, rgba(200, 35, 51, 0.1) 100%);
+  color: #dc3545;
+  border-left: 3px solid #dc3545;
+}
+        
+.alert-warning {
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(230, 173, 0, 0.1) 100%);
+  color: #ffc107;
+  border-left: 3px solid #ffc107;
+}
+        
+.alert-info {
+  background: linear-gradient(135deg, rgba(23, 162, 184, 0.1) 0%, rgba(18, 142, 161, 0.1) 100%);
+  color: #17a2b8;
+  border-left: 3px solid #17a2b8;
+}
+
+.alert-error {
+  background: linear-gradient(135deg, rgba(220, 53, 69, 0.1) 0%, rgba(200, 35, 51, 0.1) 100%);
+  color: #dc3545;
+  border-left: 3px solid #dc3545;
+}
+/* Alertas compactas (usar .alert-sm en lugar de .alert-compact) */
+.alert-sm {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+}
+
+/* Contenedor de alertas */
+.alert-container {
+  max-width: 600px; 
+  margin: 0.75rem auto; 
+  padding: 0 15px;
+}
+
+/* Iconos en alertas */
+.alert i,
+.alert-sm i {
+  font-size: 1rem;
+  margin-right: 0.5rem;
+  flex-shrink: 0;
+}
+
+/* Alertas de abajo en rojito */
+.invalid-feedback {
+    font-size: 0.75rem;
+}
+
+/* Animación para alertas */
+@keyframes slideInAlert {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* === BADGES PERSONALIZADOS === */
+.badge {
+  padding: 0.5rem 0.75rem;
+  border-radius: 20px;
+  font-weight: 500;
+  font-size: 0.7rem;
+}
+
+.badge-primary {
+  background: linear-gradient(135deg, var(--bs-primary) 0%, #1a5ac0 100%);
+}
+
+/* === DROPDOWN PERSONALIZADO === */
+.dropdown-menu {
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  padding: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.dropdown-item {
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.dropdown-item:hover {
+  background: linear-gradient(135deg, var(--bs-primary) 0%, #1a5ac0 100%);
+  color: white;
+}
+
+/* === MODAL PERSONALIZADO === */
+.modal-content {
+  border: none;
+  border-radius: 15px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+  background: linear-gradient(135deg, var(--bs-primary) 0%, #1a5ac0 100%);
+  color: white;
+  border: none;
+  border-radius: 15px 15px 0 0;
+  padding: 0.75rem 1rem;
+}
+
+.modal-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+ 
+.modal-body {
+  padding: 1rem;
+  font-size: 0.875rem;
+}
+
+/* === UTILITY CLASSES === */
+.text-gradient {
+  background: linear-gradient(135deg, var(--bs-primary) 0%, #1a5ac0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.border-gradient {
+  border: 2px solid transparent;
+  background: linear-gradient(white, white) padding-box,
+              linear-gradient(135deg, var(--bs-primary) 0%, #1a5ac0 100%) border-box;
+}
+
+/* === RESPONSIVE ADJUSTMENTS === */
+@media (max-width: 768px) {
+  .btn {
+    padding: 0.625rem 1.25rem;
+    font-size: 0.8rem;
+  }
+  
+  .form-control {
+    padding: 0.625rem 0.875rem;
+    font-size: 0.8rem;
+  }
+  
+  .card-body {
+    padding: 1.25rem;
+  }
+  
+  .table th,
+  .table td {
+    padding: 0.75rem 1rem;
+    font-size: 0.8rem;
+  }
+  
+  .alert,
+  .alert-sm {
+    font-size: 0.75rem;
+  }
+}
+
+/* === ICON STYLING === */
+.custom-icon {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--bs-primary) 0%, #1a5ac0 100%);
+  color: white;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: bold;
+}
+
+/* === MANITO AL PASAR EL MOUSE === */
+.profile-link {
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.875rem;
+}
+
+.profile-link:hover{
+  color: #495057 !important;
+  background-color: #f8f9fa !important;
+  border-radius: 5px;
+}
+
+/* === PAGINACIÓN === */
+.pagination-sm .page-link {
+  padding: 0.2rem 0.4rem;
+  font-size: 0.75rem;
+}
+
+/* === DETALLES ===*/
+.container-fluid {
+    max-width: 1400px;
+    min-height: 100vh;
+    height: auto; 
+}
+
+.text-monospace {
+    font-family: 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', monospace;
+    font-size: 0.8rem;
+}
+
+.text-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.text-muted {
+    font-size: 0.875rem;
+}
+
+/* === MENSAJES DE DJANGO === */
+.messages-container {
+  position: fixed;
+  top: 70px;
+  right: 20px;
+  z-index: 9999;
+  width: 350px;  /* Largo del mensaje */
+  max-width: 85%;
+}
+
+.django-alert {
+  position: relative;
+  margin-bottom: 8px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  animation: slideIn 0.3s ease, fadeOut 0.3s ease 5s forwards;
+  border: none;
+  font-weight: 500;
+  display: flex;
+  align-items: center; /* ← Mantenemos center por defecto */
+  font-size: 0.75rem;
+  line-height: 1.3;
+  min-height: auto;
+  word-wrap: break-word;
+  white-space: normal;
+  overflow: hidden;
+  text-overflow: unset;
+  min-width: 0;
+  max-height: none;
+}
+
+/* Ícono siempre centrado verticalmente */
+.django-alert i {
+  font-size: 0.8rem;
+  margin-right: 8px;
+  flex-shrink: 0;
+  align-self: center; /* ← Fuerza centrado vertical */
+  line-height: 1;
+}
+
+/* Contenido del mensaje con alineación flexible */
+.django-alert .message-content {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: unset;
+  white-space: normal;
+  word-wrap: break-word;
+  
+  /* Propiedades para limitar a 2 líneas */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-clamp: 2;
+  box-orient: vertical;
+  
+  /* Alineación que se adapta al contenido */
+  align-self: stretch; /* ← Ocupa toda la altura disponible */
+  display: flex;
+  align-items: center; /* ← Centrado por defecto */
+}
+
+/* Cuando el contenido tiene más de una línea, ajustamos la alineación */
+.django-alert .message-content:has(:first-line:nth-of-type(2)) {
+  align-items: flex-start; /* ← Alinea al inicio si hay múltiples líneas */
+  padding-top: 1px; /* ← Pequeño ajuste para mejor visualización */
+}
+
+/* Estilos específicos para mensajes Django */
+.django-alert-success {
+    background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, rgba(52, 182, 82, 0.1) 100%);
+    color: #28a745;
+    border-left: 2px solid #28a745;
+}
+
+.django-alert-danger {
+    background: linear-gradient(135deg, rgba(220, 53, 69, 0.1) 0%, rgba(200, 35, 51, 0.1) 100%);
+    color: #dc3545;
+    border-left: 2px solid #dc3545;
+}
+
+.django-alert-warning {
+    background: linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(230, 173, 0, 0.1) 100%);
+    color: #ffc107;
+    border-left: 2px solid #ffc107;
+}
+
+.django-alert-info {
+    background: linear-gradient(135deg, rgba(23, 162, 184, 0.1) 0%, rgba(18, 142, 161, 0.1) 100%);
+    color: #17a2b8;
+    border-left: 2px solid #17a2b8;
+}
+
+.django-alert-error {
+    background: linear-gradient(135deg, rgba(220, 53, 69, 0.1) 0%, rgba(200, 35, 51, 0.1) 100%);
+    color: #dc3545;
+    border-left: 2px solid #dc3545;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+        visibility: hidden;
+    }
+}
+
+/* Para que el contenido no se mueva cuando aparecen los mensajes */
+body {
+    min-height: 100vh;
+}
+
+/* Reducir un poco más el texto de ayuda en formularios */
+.form-text.small.text-muted {
+  font-size: 0.75rem !important; 
+  line-height: 1.2;             
+}
+
+/* Evitar bordes rojos y verdes en validación */
+.is-valid, .is-invalid {
+    border-color: #ced4da !important;
+    background-image: none !important;
+    padding-right: 0.75rem !important;
+}

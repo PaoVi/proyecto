@@ -1,0 +1,613 @@
+{% extends 'seguridad/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-0">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-10">
+
+      <!-- HEADER -->
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <div>
+          <h2 class="h4 mb-1 text-start">
+            REVISIÓN DE CALIDAD
+          </h2>
+          <p class="text-muted small mb-0">
+            Orden #{{ orden.id }} • {{ orden.vehiculo.marca }} {{ orden.vehiculo.modelo }} • {{ orden.vehiculo.nro_chapa }} • 
+            {{ orden.cliente.nombre }}
+          </p>
+        </div>
+        <div class="d-flex gap-2">
+          <button type="button" onclick="window.history.back()" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i>Volver
+          </button>
+        </div>
+      </div>
+
+      <!-- FORMULARIO DE REVISIÓN -->
+      <div class="card">
+        <div class="card-body">
+          <form method="post" id="revision-form">
+            {% csrf_token %}
+
+            <div class="table-responsive">
+              <table class="table table-bordered">
+                <thead class="table-light">
+                  <tr class="text-center">
+                    <th style="width: 5%">#</th>
+                    <th style="width: 20%">Servicio</th>
+                    <th style="width: 8%">Cantidad</th>
+                    <th style="width: 8%">Precio</th>
+                    <th style="width: 15%">Empleado(s)</th>
+                    <th style="width: 10%">Revisión</th>
+                    <th style="width: 19%">Observaciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for item in servicios_con_revision %}
+                  <tr class="{% if item.aprobado == True %}table-success{% elif item.aprobado == False %}table-danger{% endif %}"
+                      data-servicio-id="{{ item.servicio_orden.id }}">
+                    
+                    <td class="text-center fw-semibold">{{ forloop.counter }}</td>
+                    
+                    <td>
+                      <div class="fw-semibold text-start">{{ item.servicio_orden.servicio.nombre }}</div>
+                      {% if item.servicio_orden.servicio.categoria %}
+                      <div class="text-start">
+                        <small class="text-muted">{{ item.servicio_orden.servicio.categoria }}</small>
+                      </div>
+                      {% endif %}
+                      {% if item.servicio_orden.modificado_despues_rechazo %}
+                        <span class="badge bg-info mt-1 d-inline-block">Modificado después de rechazo</span>
+                      {% endif %}
+                    </td>
+                    
+                    <td class="text-center">{{ item.servicio_orden.cantidad|floatformat:2 }}</td>
+                    
+                    <td class="text-end">Gs. {{ item.servicio_orden.precio_unitario|floatformat:0 }}</td>
+                    
+                    <td>
+                      {% with asignaciones=item.servicio_orden.asignacionorden_set.all %}
+                        {% for asignacion in asignaciones %}
+                          <div class="d-flex align-items-center gap-1 mb-1">
+                            <span class="small fw-semibold">{{ asignacion.empleado.nombre }}</span>
+                          </div>
+                        {% empty %}
+                          <span class="text-muted small">Sin empleados asignados</span>
+                        {% endfor %}
+                      {% endwith %}
+                    </td>
+                    
+                    <td class="text-center">
+                      <div class="d-flex justify-content-center gap-3">
+                        <label class="d-flex align-items-center gap-1">
+                          <input type="radio" 
+                                 name="estado_{{ item.servicio_orden.id }}" 
+                                 value="aprobado"
+                                 class="form-check-input aprobado-radio"
+                                 data-servicio-id="{{ item.servicio_orden.id }}"
+                                 {% if item.aprobado == True %}checked{% endif %}>
+                          <span class="text-success">
+                            <i class="bi bi-check-circle-fill"></i> 
+                          </span>
+                        </label>
+                        <label class="d-flex align-items-center gap-1">
+                          <input type="radio" 
+                                 name="estado_{{ item.servicio_orden.id }}" 
+                                 value="rechazado"
+                                 class="form-check-input rechazado-radio"
+                                 data-servicio-id="{{ item.servicio_orden.id }}"
+                                 {% if item.aprobado == False %}checked{% endif %}>
+                          <span class="text-danger">
+                            <i class="bi bi-x-circle-fill"></i>
+                          </span>
+                        </label>
+                      </div>
+                    </td>
+                    
+                    <td>
+                      <textarea name="observaciones_{{ item.servicio_orden.id }}" 
+                                class="form-control form-control-sm observaciones"
+                                rows="2"
+                                data-servicio-id="{{ item.servicio_orden.id }}"
+                                placeholder="Opcional...">{{ item.revision.observacion|default:'' }}</textarea>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+
+            <!-- BOTONES DE ACCIÓN -->
+            <div class="d-flex justify-content-between align-items-center pt-3 border-top gap-2 mt-3">
+              <div>
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="window.history.back()">
+                  <i class="bi bi-x-circle"></i> Cancelar
+                </button>
+              </div>
+              <div class="d-flex gap-2">
+                <!-- <button type="button" id="aprobar-todos-btn" class="btn btn-success btn-sm">
+                  <i class="bi bi-check-all"></i> Aprobar Todos
+                </button>
+                <button type="button" id="rechazar-todos-btn" class="btn btn-danger btn-sm">
+                  <i class="bi bi-x-all"></i> Rechazar Todos
+                </button> -->
+                <button type="submit" name="accion" value="guardar_revision" class="btn btn-primary btn-sm" id="guardar-btn">
+                  <i class="bi bi-save"></i> Guardar Cambios
+                </button>
+              </div>
+            </div>
+
+          </form>
+        </div>
+      </div>
+
+      <!-- INFORMACIÓN DE AYUDA -->
+      <div class="card mt-2">
+        <div class="card-body py-2">
+          <div class="row">
+            <div class="col-12">
+              <small class="text-muted">
+                <i class="bi bi-info-circle"></i>
+                INFORMACIÓN DE AYUDA
+              </small>
+            </div>
+              <ul class="mt-2 mb-0 text-start">
+                <li>Si <strong>TODOS</strong> los servicios están aprobados → La orden pasará a estado <strong class="text-success">"APROBADO"</strong> y se podrá facturar.</li>
+                <li>Si <strong>AL MENOS UNO</strong> está rechazado → La orden pasará a estado <strong class="text-danger">"RECHAZADO"</strong> y luego podrá reanudarse.</li>
+                <li><strong class="text-dark">Importante:</strong> Para los servicios rechazados, es obligatorio especificar el motivo.</li>
+                <li>Los servicios aprobados quedarán bloqueados y no podrán modificarse después.</li>
+              </ul>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<style>
+  textarea.observaciones {
+    font-size: 0.8rem;
+    resize: vertical;
+  }
+  
+  .table td {
+    vertical-align: middle;
+  }
+  
+  .table-success {
+    background-color: #d1e7dd !important;
+  }
+  
+  .table-danger {
+    background-color: #f8d7da !important;
+  }
+  
+  code {
+    background-color: #f8f9fa;
+    padding: 0.2rem 0.4rem;
+    border-radius: 0.25rem;
+    font-size: 0.8rem;
+    font-family: monospace;
+  }
+  
+  .form-check-input {
+    cursor: pointer;
+    width: 1rem;
+    height: 1rem;
+    margin-right: 0.3rem;
+  }
+  
+  .form-check-input:checked[value="aprobado"] {
+    background-color: #198754;
+    border-color: #198754;
+  }
+  
+  .form-check-input:checked[value="rechazado"] {
+    background-color: #dc3545;
+    border-color: #dc3545;
+  }
+  
+  label span {
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+  
+  .btn.disabled, .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* Estilos para achicar SweetAlert2 */
+  .swal2-popup {
+    font-size: 0.85rem !important;
+    width: 28em !important;
+    max-width: 90% !important;
+    padding: 1em !important;
+  }
+
+  .swal2-title {
+    font-size: 1.2rem !important;
+    padding: 0.5em 0 0.3em !important;
+  }
+
+  .swal2-html-container {
+    font-size: 0.85rem !important;
+    margin: 0.5em 0 !important;
+  }
+
+  .swal2-actions {
+    gap: 0.5rem !important;
+    margin: 0.5em 0 0 !important;
+  }
+
+  .swal2-confirm, .swal2-cancel {
+    font-size: 0.8rem !important;
+    padding: 0.4rem 1.2rem !important;
+  }
+
+  .swal2-icon {
+    width: 3rem !important;
+    height: 3rem !important;
+    margin: 0.5em auto 0 !important;
+  }
+
+  .swal2-icon .swal2-icon-content {
+    font-size: 1.5rem !important;
+  }
+
+  /* Para los toasts (mensajes pequeños) */
+  .swal2-toast {
+    min-height: 2.5em !important;
+    padding: 0.2em 0.8em !important;
+    font-size: 0.8rem !important;
+  }
+
+  .swal2-toast .swal2-title {
+    font-size: 0.85rem !important;
+    padding: 0 !important;
+  }
+
+  .swal2-toast .swal2-html-container {
+    font-size: 0.8rem !important;
+    margin: 0 !important;
+  }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const aprobadoRadios = document.querySelectorAll('.aprobado-radio');
+  const rechazadoRadios = document.querySelectorAll('.rechazado-radio');
+  const aprobarTodosBtn = document.getElementById('aprobar-todos-btn');
+  const rechazarTodosBtn = document.getElementById('rechazar-todos-btn');
+  const form = document.getElementById('revision-form');
+  
+  // Función para actualizar colores de filas
+  function actualizarColoresFilas() {
+    aprobadoRadios.forEach(radio => {
+      const servicioId = radio.getAttribute('data-servicio-id');
+      const rechazadoRadio = document.querySelector(`.rechazado-radio[data-servicio-id="${servicioId}"]`);
+      const row = radio.closest('tr');
+      
+      if (radio.checked) {
+        row.classList.remove('table-danger');
+        row.classList.add('table-success');
+      } else if (rechazadoRadio && rechazadoRadio.checked) {
+        row.classList.remove('table-success');
+        row.classList.add('table-danger');
+      } else {
+        row.classList.remove('table-success', 'table-danger');
+      }
+    });
+  }
+  
+  // Actualizar cuando cambie cualquier radio
+  aprobadoRadios.forEach(radio => {
+    radio.addEventListener('change', function() {
+      const servicioId = this.getAttribute('data-servicio-id');
+      const rechazadoRadio = document.querySelector(`.rechazado-radio[data-servicio-id="${servicioId}"]`);
+      const textarea = document.querySelector(`textarea[data-servicio-id="${servicioId}"]`);
+      
+      if (this.checked) {
+        if (rechazadoRadio) rechazadoRadio.checked = false;
+        textarea.placeholder = "Opcional...";
+        textarea.style.backgroundColor = '';
+        textarea.required = false;
+      }
+      actualizarColoresFilas();
+    });
+  });
+  
+  rechazadoRadios.forEach(radio => {
+    radio.addEventListener('change', function() {
+      const servicioId = this.getAttribute('data-servicio-id');
+      const aprobadoRadio = document.querySelector(`.aprobado-radio[data-servicio-id="${servicioId}"]`);
+      const textarea = document.querySelector(`textarea[data-servicio-id="${servicioId}"]`);
+      
+      if (this.checked) {
+        if (aprobadoRadio) aprobadoRadio.checked = false;
+        textarea.placeholder = "⚠️ Obligatorio";
+        textarea.style.backgroundColor = '#fff3cd';
+        textarea.required = true;
+        textarea.focus();
+      } else {
+        textarea.placeholder = "Opcional...";
+        textarea.style.backgroundColor = '';
+        textarea.required = false;
+      }
+      actualizarColoresFilas();
+    });
+  });
+  
+  // Validar observaciones y procesar según el estado
+  form.addEventListener('submit', function(e) {
+    // Validar observaciones en servicios rechazados
+    let rechazosSinObservacion = [];
+    rechazadoRadios.forEach(radio => {
+      if (radio.checked) {
+        const servicioId = radio.getAttribute('data-servicio-id');
+        const textarea = document.querySelector(`textarea[data-servicio-id="${servicioId}"]`);
+        const servicioNombre = radio.closest('tr').querySelector('td:nth-child(2) .fw-semibold')?.textContent || 'Servicio';
+        if (!textarea.value.trim()) {
+          rechazosSinObservacion.push(servicioNombre);
+        }
+      }
+    });
+    
+    if (rechazosSinObservacion.length > 0) {
+      e.preventDefault();
+      
+      // Construir mensaje HTML
+      let htmlContent = `<div style="text-align: left;">
+        <p style="margin-bottom: 10px;"><strong>Servicios rechazados sin observaciones:</strong></p>
+        <ul style="margin-bottom: 10px;">`;
+      
+      rechazosSinObservacion.forEach(servicio => {
+        htmlContent += `<li>${servicio}</li>`;
+      });
+      
+      htmlContent += `</ul>
+        <p style="color: #dc3545; margin-bottom: 0;">⚠️ Es obligatorio describir el motivo del rechazo.</p>
+      </div>`;
+      
+      Swal.fire({
+        icon: 'warning',
+        title: 'Observaciones requeridas',
+        html: htmlContent,
+        confirmButtonText: 'Entendido',
+        confirmButtonColor: '#004280',
+        width: '450px'
+      });
+      return false;
+    }
+    
+    // Determinar el resultado basado en las selecciones actuales
+    let hayRechazados = false;
+    rechazadoRadios.forEach(radio => {
+      if (radio.checked) hayRechazados = true;
+    });
+    
+    let todosAprobados = true;
+    aprobadoRadios.forEach(radio => {
+      if (!radio.checked) {
+        const rechazadoRadio = document.querySelector(`.rechazado-radio[data-servicio-id="${radio.getAttribute('data-servicio-id')}"]`);
+        if (!rechazadoRadio || !rechazadoRadio.checked) todosAprobados = false;
+      }
+    });
+    
+    // Mostrar mensaje de confirmación según el caso con SweetAlert2
+    if (todosAprobados && !hayRechazados) {
+      e.preventDefault();
+      
+      Swal.fire({
+        icon: 'question',
+        title: 'Confirmar aprobación',
+        html: '<p>Al guardar, la orden pasará a estado <strong class="text-success">"APROBADO"</strong> y estará lista para facturar.</p>',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, aprobar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#198754',
+        cancelButtonColor: '#6c757d'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          form.submit();
+        }
+      });
+      return false;
+    } else if (hayRechazados) {
+      e.preventDefault();
+      
+      // Contar cuántos servicios rechazados hay
+      let rechazadosCount = 0;
+      rechazadoRadios.forEach(radio => {
+        if (radio.checked) rechazadosCount++;
+      });
+      
+      Swal.fire({
+        icon: 'warning',
+        title: 'Confirmar rechazo',
+        html: `
+               <p>Al guardar, la orden pasará a estado <strong class="text-danger">"RECHAZADO"</strong> y luego podrá reanudarse a <strong>"EN PROCESO"</strong> para corregir SOLO los servicios rechazados.</p>
+               <p class="text-muted small mt-2">Los servicios aprobados NO podrán modificarse después.</p>`,
+        showCancelButton: true,
+        confirmButtonText: 'Sí, rechazar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          form.submit();
+        }
+      });
+      return false;
+    }
+  });
+  
+  // Botón aprobar todos
+  if (aprobarTodosBtn) {
+    aprobarTodosBtn.addEventListener('click', function() {
+      let serviciosPendientes = 0;
+      let serviciosNombres = [];
+      
+      aprobadoRadios.forEach(radio => {
+        const servicioId = radio.getAttribute('data-servicio-id');
+        const rechazadoRadio = document.querySelector(`.rechazado-radio[data-servicio-id="${servicioId}"]`);
+        const servicioNombre = radio.closest('tr').querySelector('td:nth-child(2) .fw-semibold')?.textContent || 'Servicio';
+        
+        if (!radio.checked && (!rechazadoRadio || !rechazadoRadio.checked)) {
+          serviciosPendientes++;
+          serviciosNombres.push(servicioNombre);
+        }
+      });
+      
+      if (serviciosPendientes === 0) {
+        Swal.fire({
+          icon: 'info',
+          title: 'Sin cambios',
+          text: 'Todos los servicios ya están aprobados.',
+          confirmButtonText: 'Entendido',
+          confirmButtonColor: '#004280',
+          timer: 2000,
+          showConfirmButton: true
+        });
+        return;
+      }
+      
+      let htmlContent = `<p>Se aprobarán <strong>${serviciosPendientes}</strong> servicio(s):</p>
+                         <ul style="text-align: left;">`;
+      serviciosNombres.forEach(nombre => {
+        htmlContent += `<li>${nombre}</li>`;
+      });
+      htmlContent += `</ul>`;
+      
+      Swal.fire({
+        icon: 'question',
+        title: '¿Aprobar todos los servicios?',
+        html: htmlContent,
+        showCancelButton: true,
+        confirmButtonText: 'Sí, aprobar todos',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#198754',
+        cancelButtonColor: '#6c757d'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          aprobadoRadios.forEach(radio => {
+            radio.checked = true;
+            const servicioId = radio.getAttribute('data-servicio-id');
+            const rechazadoRadio = document.querySelector(`.rechazado-radio[data-servicio-id="${servicioId}"]`);
+            const textarea = document.querySelector(`textarea[data-servicio-id="${servicioId}"]`);
+            
+            if (rechazadoRadio) rechazadoRadio.checked = false;
+            textarea.placeholder = "Opcional...";
+            textarea.style.backgroundColor = '';
+            textarea.required = false;
+          });
+          actualizarColoresFilas();
+          
+          Swal.fire({
+            icon: 'success',
+            title: 'Completado',
+            text: `Se aprobaron ${serviciosPendientes} servicio(s)`,
+            timer: 1500,
+            showConfirmButton: false,
+            toast: true,
+            position: 'top-end'
+          });
+        }
+      });
+    });
+  }
+  
+  // Botón rechazar todos
+  if (rechazarTodosBtn) {
+    rechazarTodosBtn.addEventListener('click', function() {
+      let serviciosPendientes = 0;
+      let serviciosNombres = [];
+      
+      rechazadoRadios.forEach(radio => {
+        const servicioId = radio.getAttribute('data-servicio-id');
+        const aprobadoRadio = document.querySelector(`.aprobado-radio[data-servicio-id="${servicioId}"]`);
+        const servicioNombre = radio.closest('tr').querySelector('td:nth-child(2) .fw-semibold')?.textContent || 'Servicio';
+        
+        if (!radio.checked && (!aprobadoRadio || !aprobadoRadio.checked)) {
+          serviciosPendientes++;
+          serviciosNombres.push(servicioNombre);
+        }
+      });
+      
+      if (serviciosPendientes === 0 && !confirm('¿Rechazar TODOS los servicios? Esta acción marcará todos como rechazados.')) {
+        return;
+      }
+      
+      let htmlContent = `<p>⚠️ Se rechazarán <strong>${serviciosPendientes}</strong> servicio(s):</p>
+                         <ul style="text-align: left;">`;
+      serviciosNombres.forEach(nombre => {
+        htmlContent += `<li>${nombre}</li>`;
+      });
+      htmlContent += `</ul>
+                      <p class="text-danger small mt-2">Deberá especificar el motivo para cada servicio rechazado.</p>`;
+      
+      Swal.fire({
+        icon: 'warning',
+        title: '¿Rechazar todos los servicios?',
+        html: htmlContent,
+        showCancelButton: true,
+        confirmButtonText: 'Sí, rechazar todos',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          rechazadoRadios.forEach(radio => {
+            radio.checked = true;
+            const servicioId = radio.getAttribute('data-servicio-id');
+            const aprobadoRadio = document.querySelector(`.aprobado-radio[data-servicio-id="${servicioId}"]`);
+            const textarea = document.querySelector(`textarea[data-servicio-id="${servicioId}"]`);
+            
+            if (aprobadoRadio) aprobadoRadio.checked = false;
+            textarea.placeholder = "⚠️ Obligatorio";
+            textarea.style.backgroundColor = '#fff3cd';
+            textarea.required = true;
+          });
+          actualizarColoresFilas();
+          
+          Swal.fire({
+            icon: 'info',
+            title: 'Listo',
+            text: `Se marcaron ${serviciosPendientes} servicio(s) como rechazados. Recuerda agregar el motivo.`,
+            confirmButtonText: 'Entendido',
+            confirmButtonColor: '#004280'
+          });
+        }
+      });
+    });
+  }
+  
+  // Inicializar estado de textareas según radios pre-seleccionados
+  rechazadoRadios.forEach(radio => {
+    if (radio.checked) {
+      const servicioId = radio.getAttribute('data-servicio-id');
+      const textarea = document.querySelector(`textarea[data-servicio-id="${servicioId}"]`);
+      if (textarea) {
+        textarea.placeholder = "⚠️ Obligatorio";
+        textarea.style.backgroundColor = '#fff3cd';
+        textarea.required = true;
+      }
+    } else {
+      const servicioId = radio.getAttribute('data-servicio-id');
+      const textarea = document.querySelector(`textarea[data-servicio-id="${servicioId}"]`);
+      if (textarea && !textarea.value.trim()) {
+        textarea.placeholder = "Opcional...";
+        textarea.style.backgroundColor = '';
+        textarea.required = false;
+      }
+    }
+  });
+  
+  // Inicializar colores de filas
+  actualizarColoresFilas();
+});
+</script>
+
+{% endblock %}

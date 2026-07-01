@@ -1,0 +1,166 @@
+{% extends 'seguridad/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-0">
+    <div class="row justify-content-center">
+        <div class="col-12 col-xl-8">
+            
+            <!-- HEADER -->
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <div>
+                    <h2 class="h4 mb-1">DETALLES DE CONFIG</h2>
+                </div>
+                <div>
+                    <button type="button" onclick="window.history.back()" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left"></i>Volver
+                    </button>
+                    {% if configuracion.editable %}
+                        {% if perms.seguridad.editar_configuraciones %}
+                            <a href="{% url 'configuracion_editar' configuracion.id %}" class="btn btn-primary btn-sm">
+                                <i class="bi bi-pencil"></i>Editar
+                            </a>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- TARJETA DE DETALLES PRINCIPAL -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <!-- INFORMACIÓN BÁSICA -->
+                        <div class="col-md-6">
+                            <h6 class="mb-2 border-bottom pb-2 small fw-semibold text-muted">INFORMACIÓN BÁSICA</h6>
+                            
+                            <div class="mb-2">
+                                <label class="form-label small fw-semibold text-muted">Clave</label>
+                                <p class="mb-0 fw-bold">{{ configuracion.clave }}</p>
+                            </div>
+
+                            
+                            <div class="mb-2">
+                                <label class="form-label small fw-semibold text-muted">Grupo</label>
+                                <p class="mb-0">
+                                    <span class="mb-0 fw-bold">{{ configuracion.grupo }}</span>
+                                </p>
+                            </div>
+
+                            <div class="mb-2">
+                                <label class="form-label small fw-semibold text-muted">Valor</label>
+                                <div class="mb-0">
+                                    {% if configuracion.tipo == 'boolean' %}
+                                        {% if configuracion.valor == 'True' or configuracion.valor == 'true' or configuracion.valor == '1' %}
+                                            <span class="text-decoration-none text-dark">Sí</span>
+                                        {% else %}
+                                            <span class="text-decoration-none text-dark">No</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="text-monospace small">{{ configuracion.valor|truncatechars:40 }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- INFORMACIÓN DE ESTADO -->
+                        <div class="col-md-6">
+                            <h6 class="mb-2 border-bottom pb-2 small fw-semibold text-muted">ESTADO Y TIPO</h6>
+                            
+                            <div class="mb-2">
+                                <label class="form-label small fw-semibold text-muted">Tipo de Dato</label>
+                                <p class="mb-0">
+                                    <span class="text-decoration-none text-dark">{{ configuracion.get_tipo_display }}</span>
+                                </p>
+                            </div>
+                            
+                            <div class="mb-2">
+                                <label class="form-label small fw-semibold text-muted">Estado</label>
+                                <p class="mb-0">
+                                    {% if configuracion.activo %}
+                                        <span class="badge bg-success">Activo</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Inactivo</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                            
+                            <div class="mb-2">
+                                <label class="form-label small fw-semibold text-muted">Editable</label>
+                                <p class="mb-0">
+                                    {% if configuracion.editable %}
+                                        <span class="text-decoration-none text-dark">Sí</span>
+                                    {% else %}
+                                        <span class="text-decoration-none text-dark">No</span>
+                                        <span class="text-decoration-none text-dark">Solo lectura</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- DESCRIPCIÓN -->
+                    <div class="row mt-2">
+                        <div class="col-12">
+                            <h6 class="mb-2 border-bottom pb-2 small fw-semibold text-muted">DESCRIPCIÓN</h6>
+                            <div class="mb-0">
+                                <p class="mb-1 small">
+                                    {% if configuracion.descripcion %}
+                                        {{ configuracion.descripcion }}
+                                    {% else %}
+                                        <span class="text-muted">Sin descripción</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- INFORMACIÓN DEL SISTEMA -->
+                    <div class="row mt-2 pt-2">
+                        <div class="col-12">
+                            <h6 class="mb-2 small fw-semibold text-muted">INFORMACIÓN DEL SISTEMA </h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold text-muted">Creado</label>
+                                    <p class="mb-0 small">
+                                        <i class="bi bi-calendar-plus text-muted"></i>
+                                        {{ configuracion.created_at|date:"d/m/Y H:i" }}
+                                    </p>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold text-muted">Actualizado</label>
+                                    <p class="mb-0 small">
+                                        <i class="bi bi-arrow-repeat text-muted"></i>
+                                        {{ configuracion.updated_at|date:"d/m/Y H:i" }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- FOOTER DE LA TARJETA -->
+                <div class="card-footer bg-light py-1">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">
+                            <i class="bi bi-hash"></i>ID: {{ configuracion.pk }}
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.container-fluid {
+    max-width: 1000px;
+}
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+}
+.small {
+    font-size: 0.875rem;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,361 @@
+{% extends 'seguridad/base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block content %}
+
+<div class="container-fluid py-0">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-10">
+
+      <!-- HEADER CON BOTONES -->
+      <div class="d-flex justify-content-between align-items-center mb-1 no-print">
+        <h2 class="h4 mb-1">ORDEN DE COMPRA</h2>
+        <div class="d-flex gap-2">
+          <button onclick="window.history.back()" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i> Volver
+          </button>
+          <button onclick="window.print()" class="btn btn-info btn-sm">
+            <i class="bi bi-printer"></i> Imprimir
+          </button>
+        </div>
+      </div>
+
+      <!-- ORDEN DE COMPRA -->
+      <div class="card print-area">
+        <div class="card-body p-0">
+          <div class="compra-box">
+
+            <!-- SELLO DE RECHAZADA -->
+            {% if compra.estado == 'rechazado' %}
+            <div class="text-center mb-3">
+              <span class="badge bg-danger fs-5 px-3 py-2" style="border-radius: 30px;">
+                <i class="bi bi-x-circle"></i> ORDEN DE COMPRA RECHAZADA
+              </span>
+              <div class="text-danger small mt-1">
+                <i class="bi bi-chat-text"></i> {{ compra.motivo_anulacion|default:"Motivo no especificado" }}
+              </div>
+            </div>
+            {% endif %}
+
+            <!-- 🔷 ENCABEZADO -->
+            <div class="row compra-header">
+              <div class="col-md-6 d-flex align-items-center gap-3">
+                <img src="{% static 'seguridad/images/icono.ico' %}" alt="CarSys" width="70" height="70">
+                <div>
+                  <h5 class="compra-title mb-1 text-start">{{ config.nombre_taller|default:"—" }}</h5>
+                  <div class="text-muted small text-start">
+                    {{ config.direccion_taller|default:"—" }}
+                  </div>
+                  <div class="text-muted small text-start">
+                    <strong>RUC:</strong> {{ config.ruc_taller|default:"—" }}
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6 text-end">
+                <h4 class="compra-title">ORDEN DE COMPRA</h4>
+                <div><strong>N°:</strong> {{ compra.id }}</div>
+                <div><strong>Fecha Emisión:</strong> {{ compra.fecha_emision|date:"d/m/Y H:i" }}</div>
+              </div>
+            </div>
+
+            <!-- 👤 PROVEEDOR Y DATOS -->
+            <div class="row mb-4">
+              <div class="col-md-6">
+                <div class="info-line text-start">
+                  <strong>Proveedor:</strong> {{ compra.proveedor.razon_social|default:"—" }}
+                </div>
+                <div class="info-line text-start">
+                  <strong>RUC:</strong> {{ compra.proveedor.ruc|default:"—" }}
+                </div>
+                <div class="info-line text-start">
+                  <strong>Teléfono:</strong> {{ compra.proveedor.telefono|default:"—" }}
+                </div>
+                <div class="info-line text-start">
+                  <strong>Dirección:</strong> {{ compra.proveedor.direccion|default:"—" }}
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="info-line text-end">
+                  <strong>Fecha Entrega:</strong> {{ compra.fecha_entrega_esperada|date:"d/m/Y"|default:"—" }}
+                </div>
+                <div class="info-line text-end">
+                  <strong>Condición:</strong>
+                  {% if compra.condicion_pago == 'contado' %}
+                    <span class="badge bg-success">CONTADO</span>
+                  {% else %}
+                    <span class="badge bg-info">CRÉDITO</span>
+                  {% endif %}
+                </div>
+                <div class="info-line text-end">
+                  <strong>Estado:</strong>
+                  {% if compra.estado == 'pendiente' %}
+                    <span class="badge bg-secondary">PENDIENTE</span>
+                  {% elif compra.estado == 'aprobado' %}
+                    <span class="badge bg-success">APROBADO</span>
+                  {% elif compra.estado == 'recibido' %}
+                    <span class="badge bg-primary">RECIBIDO</span>
+                  {% elif compra.estado == 'rechazado' %}
+                    <span class="badge bg-danger">RECHAZADO</span>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <!-- 📝 OBSERVACIONES -->
+            {% if compra.descripcion %}
+            <div class="row mb-4">
+              <div class="col-12">
+                <div class="observaciones-box">
+                  <strong><i class="bi bi-chat-left-text"></i> Observaciones:</strong>
+                  <div class="mt-1">{{ compra.descripcion|linebreaks }}</div>
+                </div>
+              </div>
+            </div>
+            {% endif %}
+
+            <!-- 🧾 DETALLE DE PRODUCTOS -->
+            <div class="table-responsive">
+              <table class="table compra-table">
+                <thead>
+                  <tr class="text-center">
+                    <th style="width: 9%">Código</th>
+                    <th style="width: 47%">Descripción</th>
+                    <th style="width: 11%">Cantidad</th>
+                    <th style="width: 15%">Precio Unit.</th>
+                    <th style="width: 20%">Subtotal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for item in compra.detalles.all %}
+                  <tr>
+                    <td class="text-center"><code>{{ item.producto.id }}</code></td>
+                    <td>
+                      <div class="fw-semibold text-start">{{ item.producto.nombre }}</div>
+                      <small class="d-block text-start text-muted">
+                        {{ item.producto.categoria|default:"Sin categoría" }}
+                      </small>
+                    </td>
+                    <td class="text-center">{{ item.cantidad|floatformat:2 }} {{ item.producto.unidad }}</td>
+                    <td class="text-end"><span class="fmt-precio">{{ item.producto.costo_unitario|floatformat:0 }}</span></td>
+                    <td class="text-end"><span class="fmt-subtotal">{{ item.subtotal|floatformat:0 }}</span></td>
+                  </tr>
+                  {% empty %}
+                  <tr>
+                    <td colspan="5" class="text-center text-muted py-4">
+                      <i class="bi bi-inbox"></i> No hay productos cargados
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+
+            <!-- 💰 TOTALES -->
+            <div class="row justify-content-end mt-4">
+              <div class="col-md-5 col-lg-4">
+                <div class="compra-total">
+                  <div class="total-line text-start">
+                    <span>Subtotal Productos:</span>
+                    <span>Gs. <span class="fmt-total">{{ compra.subtotal_productos|floatformat:0 }}</span></span>
+                  </div>
+                  {% if compra.descuento > 0 %}
+                  <div class="total-line text-start text-danger">
+                    <span>Descuento:</span>
+                    <span>- Gs. <span class="fmt-total">{{ compra.descuento|floatformat:0 }}</span></span>
+                  </div>
+                  {% endif %}
+                  <div class="total-line text-start">
+                    <span>Base Imponible:</span>
+                    <span>Gs. <span class="fmt-total">{{ compra.base_imponible|floatformat:0 }}</span></span>
+                  </div>
+                  <div class="total-line text-start">
+                    <span>IVA ({{ compra.iva_porcentaje|floatformat:0 }}%):</span>
+                    <span>Gs. <span class="fmt-total">{{ compra.iva_monto|floatformat:0 }}</span></span>
+                  </div>
+                  <div class="total-line total-final">
+                    <span>TOTAL GENERAL:</span>
+                    <span>Gs. <span class="fmt-total">{{ compra.total|floatformat:0 }}</span></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ✍️ FIRMAS -->
+            <div class="row mt-5 pt-3">
+              <div class="col-md-4 text-center">
+                <div class="firma-line">
+                  <div class="text-muted small">ENTREGÓ CONFORME</div>
+                  <div class="fw-semibold mt-2">{{ compra.proveedor.razon_social|default:"_________________________"|truncatechars:35 }}</div>
+                </div>
+              </div>
+              <div class="col-md-4 text-center">
+                <div class="firma-line">
+                  <div class="text-muted small">RECIBIÓ CONFORME</div>
+                  <div class="fw-semibold mt-2">_________________________</div>
+                </div>
+              </div>
+              <div class="col-md-4 text-center">
+                <div class="firma-line">
+                  <div class="text-muted small">AUTORIZÓ</div>
+                  <div class="fw-semibold mt-2">_________________________</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 📄 FOOTER -->
+            <div class="text-center mt-4 pt-3 compra-footer">
+              <div class="small text-muted">
+                Este documento es una representación gráfica de la Orden de Compra
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+<style>
+.container-fluid { max-width: 1000px; }
+
+/* Ocultar botones en impresión */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body * {
+    visibility: hidden;
+  }
+  .print-area, .print-area * {
+    visibility: visible;
+  }
+  .print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+  .card {
+    border: none !important;
+    box-shadow: none !important;
+  }
+}
+
+/* Estilos del documento (igual que factura) */
+.compra-box {
+  background: white;
+  padding: 25px;
+  border-radius: 10px;
+}
+
+.compra-header {
+  border-bottom: 3px solid #0d47a1;
+  padding-bottom: 10px;
+  margin-bottom: 15px;
+}
+
+.compra-title {
+  font-weight: bold;
+  color: #0d47a1;
+}
+
+.info-line {
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+.observaciones-box {
+  background: #fefce8;
+  border-left: 4px solid #eab308;
+  border-radius: 8px;
+  padding: 10px 15px;
+}
+
+/* Tabla de productos (igual que factura) */
+.compra-table thead {
+  background: #0d47a1;
+  color: white;
+}
+
+.compra-table th, 
+.compra-table td {
+  padding: 0.5rem 0.75rem;
+  vertical-align: middle;
+  font-size: 13px;
+}
+
+.compra-table th {
+  font-weight: 600;
+}
+
+.compra-table tbody tr:hover {
+  background: #f8f9fa;
+}
+
+/* Caja de totales (igual que factura) */
+.compra-total {
+  background: #0d47a1;
+  color: white;
+  padding: 12px;
+  border-radius: 8px;
+}
+
+.compra-total div {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+
+.compra-total .border-top {
+  border-top: 1px solid rgba(255,255,255,0.3) !important;
+}
+
+.compra-footer {
+  border-top: 1px solid #e9ecef;
+}
+
+/* Badges */
+.badge {
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .compra-box {
+    padding: 15px;
+  }
+  .compra-table th,
+  .compra-table td {
+    font-size: 11px;
+    padding: 6px 4px;
+  }
+  .info-line {
+    font-size: 12px;
+  }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  function formatearNumero(numero) {
+    if (!numero && numero !== 0) return '0';
+    const num = parseFloat(numero);
+    if (isNaN(num)) return '0';
+    return num.toLocaleString('es-PY');
+  }
+  
+  document.querySelectorAll('.fmt').forEach(el => {
+    const raw = el.textContent.replace(/[^\d\-]/g, '');
+    const num = parseInt(raw || '0', 10);
+    el.textContent = formatearNumero(num);
+  });
+});
+</script>
+
+{% endblock %}

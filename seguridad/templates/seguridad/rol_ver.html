@@ -1,0 +1,231 @@
+{% extends 'seguridad/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-0">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-8">
+
+      <!-- HEADER -->
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <div>
+          <h2 class="h4 mb-1">DETALLES DEL ROL</h2>
+        </div>
+        <div>
+          <button type="button" onclick="window.history.back()" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i>Volver
+          </button>
+          {% if perms.seguridad.editar_roles %}
+            <a href="{% url 'rol_editar' grupo.id %}" class="btn btn-primary btn-sm">
+              <i class="bi bi-pencil"></i>Editar
+            </a>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- TARJETA PRINCIPAL -->
+      <div class="card">
+        <div class="card-body">
+
+          <!-- INFORMACIÓN BÁSICA -->
+          <div class="row g-3">
+            <div class="col-md-6">
+              <h6 class="mb-2 border-bottom pb-2 small fw-semibold text-muted">INFORMACIÓN DEL ROL</h6>
+              <div class="mb-2">
+                <label class="form-label small fw-semibold text-muted">Nombre</label>
+                <p class="mb-0 fs-5 fw-semibold">{{ grupo.name }}</p>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <h6 class="mb-2 border-bottom pb-2 small fw-semibold text-muted">INFORMACIÓN DEL SISTEMA</h6>
+              <div class="mb-2">
+                <label class="form-label small fw-semibold text-muted">Estado</label>
+                <p class="mb-0">
+                  {% if grupo.activo %}
+                    <span class="badge bg-success">Activo</span>
+                  {% else %}
+                    <span class="badge bg-secondary">Inactivo</span>
+                  {% endif %}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- PERMISOS Y USUARIOS EN DOS COLUMNAS -->
+          <div class="row mt-1 g-2">
+            
+            <!-- PERMISOS -->
+            <div class="col-md-6">
+              <h6 class="mb-2 border-bottom pb-2 small fw-semibold text-muted">
+                PERMISOS ASIGNADOS
+                <small class="text-muted ms-1">({{ grupo.permissions.count }})</small>
+              </h6>
+
+              {% if grupo.permissions.all %}
+                <div class="scroll-area">
+                  {% regroup grupo.permissions.all by content_type.app_label as permisos_agrupados %}
+                  {% for app in permisos_agrupados %}
+                    <div class="perm-group">
+                      <div class="perm-group-title">
+                        <i class="bi bi-shield-check"></i>{{ app.grouper|title }}
+                        <span class="count-badge">{{ app.list|length }}</span>
+                      </div>
+                      <div class="perm-chips">
+                        {% for permiso in app.list %}
+                          <span class="perm-chip" title="{{ permiso.codename }}">
+                            <i class="bi bi-check2-circle"></i>{{ permiso.name }}
+                          </span>
+                        {% endfor %}
+                      </div>
+                    </div>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <div class="empty-state">
+                  <i class="bi bi-shield-slash"></i>
+                  <span>Este rol no tiene permisos asignados</span>
+                </div>
+              {% endif %}
+            </div>
+
+            <!-- USUARIOS -->
+            <div class="col-md-6">
+              <h6 class="mb-2 border-bottom pb-2 small fw-semibold text-muted">
+                USUARIOS ASIGNADOS
+                <small class="text-muted ms-1">({{ grupo.seguridad_usuario_set.count }})</small>
+              </h6>
+
+              {% if usuarios %}
+                <div class="scroll-area">
+                  <div class="user-grid">
+                    {% for usuario in usuarios %}
+                      <div class="user-item">
+                        <div class="avatar">
+                          {{ usuario.get_full_name|default:usuario.username|slice:":1"|upper }}
+                        </div>
+                        <div class="user-meta">
+                          <div class="user-name" title="{{ usuario.get_full_name|default:usuario.username }}">
+                            {{ usuario.get_full_name|default:usuario.username }}
+                          </div>
+
+                          <div class="user-empleado"
+                              title="{% if usuario.empleado %}{{ usuario.empleado.nombre }}{% else %}No vinculado{% endif %}">
+                            {% if usuario.empleado %}
+                              {{ usuario.empleado.nombre }}
+                            {% else %}
+                              <span class="text-secondary">No vinculado</span>
+                            {% endif %}
+                          </div>
+                        </div>
+                      </div>
+                    {% endfor %}
+                  </div>
+                </div>
+              {% else %}
+                <div class="empty-state">
+                  <i class="bi bi-person-x"></i>
+                  <span>Ningún usuario tiene este rol</span>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        <!-- FOOTER DE LA TARJETA -->
+        <div class="card-footer bg-light py-1">
+            <div class="d-flex justify-content-between align-items-center">
+                <small class="text-muted">
+                    <i class="bi bi-hash"></i>ID: {{ grupo.pk }}
+                </small>
+            </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.container-fluid { 
+    max-width: 1000px; 
+}
+.small {
+    font-size: 0.875rem;
+}
+
+/* Áreas con scroll */
+.scroll-area {
+  max-height: 320px;
+  overflow: auto;
+  padding-right: .25rem;
+  border: 1px solid #e9ecef;
+  border-radius: .5rem;
+  padding: .5rem;
+  background: #fff;
+}
+
+/* Permisos */
+.perm-group { margin-bottom: 1rem; }
+.perm-group-title {
+  font-size: .8rem; font-weight: 600; color: #0d6efd;
+  display: flex; align-items: center; gap: .35rem; margin-bottom: .4rem;
+}
+.count-badge {
+  margin-left: .25rem;
+  background: #e9f2ff; color: #0d6efd; font-size: .7rem;
+  padding: .05rem .4rem; border-radius: 999px;
+}
+.perm-chips {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: .4rem;
+}
+.perm-chip {
+  display: inline-flex; align-items: center; gap: .35rem;
+  padding: .25rem .55rem;
+  font-size: .78rem; line-height: 1.2;
+  background: #f8f9fa;
+  border: 1px solid #eceff2;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.perm-chip i { font-size: .9rem; }
+
+/* Usuarios en grilla */
+.user-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: .5rem;
+}
+.user-item {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  align-items: center;
+  gap: .5rem;
+  padding: .2em .6rem;
+  border: 1px solid #eceff2;
+  border-radius: .5rem;
+  background: #fff;
+}
+.user-item:hover { background: #f9fbff; border-color: #e3ecff; }
+.avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: linear-gradient(135deg, var(--bs-primary) 0%, #1a5ac0 100%);
+  color: #fff; font-weight: 700; font-size: .85rem;
+}
+.user-meta { min-width: 0; }
+.user-name {
+  font-size: .85rem; font-weight: 600; color: #2c3e50;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.user-empleado {
+  font-size: .78rem; color: #6c757d;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* Estados vacíos */
+.empty-state {
+  text-align: center; padding: 1.25rem 0; color: #6c757d;
+}
+.empty-state i { font-size: 1.75rem; display: block; margin-bottom: .35rem; }
+</style>
+{% endblock %}

@@ -1,0 +1,489 @@
+{% extends 'seguridad/base.html' %}
+
+{% block content %}
+<div class="container-fluid py-0">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-8">
+
+      <!-- HEADER -->
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <div>
+          <h2 class="h4 mb-1">EDITAR VEHÍCULO</h2>
+        </div>
+        <button type="button" onclick="window.history.back()" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-arrow-left"></i>Volver
+        </button>
+      </div>
+
+      <!-- ERRORES NO ASOCIADOS A CAMPOS -->
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger alert-sm mb-3">
+          <i class="bi bi-exclamation-circle"></i>
+          {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+        </div>
+      {% endif %}
+
+      <!-- FORMULARIO -->
+      <div class="card">
+        <div class="card-body">
+          <form method="post" novalidate>
+            {% csrf_token %}
+
+            <div class="row g-3">
+              <!-- IZQUIERDA -->
+              <div class="col-md-6">
+                <div class="mb-2">
+                  <label class="form-label small fw-semibold text-muted">Marca</label>
+                  {{ form.marca }}
+                  {% if form.marca.errors %}<div class="invalid-feedback d-block">{% for e in form.marca.errors %}{{ e }}{% endfor %}</div>{% endif %}
+                </div>
+
+                <div class="mb-2">
+                  <label class="form-label small fw-semibold text-muted">Año</label>
+                  {{ form.anio }}
+                  {% if form.anio.errors %}<div class="invalid-feedback d-block">{% for e in form.anio.errors %}{{ e }}{% endfor %}</div>{% endif %}
+                </div>
+
+                <div class="mb-2">
+                  <label class="form-label small fw-semibold text-muted">N° de Chapa</label>
+                  {{ form.nro_chapa }}
+                  {% if form.nro_chapa.errors %}<div class="invalid-feedback d-block">{% for e in form.nro_chapa.errors %}{{ e }}{% endfor %}</div>{% endif %}
+                </div>
+
+                <div class="mb-2">
+                  <label class="form-label small fw-semibold text-muted">Uso</label>
+                  {{ form.uso }}
+                  {% if form.uso.errors %}<div class="invalid-feedback d-block">{% for e in form.uso.errors %}{{ e }}{% endfor %}</div>{% endif %}
+                </div>
+
+                <div class="mb-2">
+                  <label class="form-label small fw-semibold text-muted">Cantidad de Puertas</label>
+                  {{ form.cantidad_puerta }}
+                  {% if form.cantidad_puerta.errors %}<div class="invalid-feedback d-block">{% for e in form.cantidad_puerta.errors %}{{ e }}{% endfor %}</div>{% endif %}
+                </div>
+              </div>
+
+              <!-- DERECHA -->
+              <div class="col-md-6">
+                <div class="mb-2">
+                  <label class="form-label small fw-semibold text-muted">Modelo</label>
+                  {{ form.modelo }}
+                  {% if form.modelo.errors %}<div class="invalid-feedback d-block">{% for e in form.modelo.errors %}{{ e }}{% endfor %}</div>{% endif %}
+                </div>
+
+                <div class="mb-2">
+                  <label class="form-label small fw-semibold text-muted">Color</label>
+                  {{ form.color }}
+                  {% if form.color.errors %}<div class="invalid-feedback d-block">{% for e in form.color.errors %}{{ e }}{% endfor %}</div>{% endif %}
+                </div>
+
+                <div class="mb-2">
+                  <label class="form-label small fw-semibold text-muted">N° de Chasis</label>
+                  {{ form.nro_chasis }}
+                  {% if form.nro_chasis.errors %}<div class="invalid-feedback d-block">{% for e in form.nro_chasis.errors %}{{ e }}{% endfor %}</div>{% endif %}
+                </div>
+
+                <div class="mb-2">
+                  <label class="form-label small fw-semibold text-muted">Tipo de Combustible</label>
+                  {{ form.tipo_combustible }}
+                  {% if form.tipo_combustible.errors %}<div class="invalid-feedback d-block">{% for e in form.tipo_combustible.errors %}{{ e }}{% endfor %}</div>{% endif %}
+                </div>
+
+                <div class="mb-2">
+                  <label class="form-label small fw-semibold text-muted">Motor / Cilindrada</label>
+                  {{ form.motor_cilindrada }}
+                  {% if form.motor_cilindrada.errors %}<div class="invalid-feedback d-block">{% for e in form.motor_cilindrada.errors %}{{ e }}{% endfor %}</div>{% endif %}
+                </div>
+              </div>
+            </div>
+
+            <!-- COMPLEMENTARIOS -->
+            <div class="row g-3 mt-1">
+              <div class="col-md-4">
+                <label class="form-label small fw-semibold text-muted">Tipo de Transmisión</label>
+                {{ form.tipo_transmision }}
+                {% if form.tipo_transmision.errors %}<div class="invalid-feedback d-block">{% for e in form.tipo_transmision.errors %}{{ e }}{% endfor %}</div>{% endif %}
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small fw-semibold text-muted">Vía de Importación</label>
+                {{ form.via_importacion }}
+                {% if form.via_importacion.errors %}<div class="invalid-feedback d-block">{% for e in form.via_importacion.errors %}{{ e }}{% endfor %}</div>{% endif %}
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small fw-semibold text-muted">Procedencia</label>
+                {{ form.procedencia }}
+                {% if form.procedencia.errors %}<div class="invalid-feedback d-block">{% for e in form.procedencia.errors %}{{ e }}{% endfor %}</div>{% endif %}
+              </div>
+            </div>
+
+            <!-- SWITCHES -->
+            <div class="row g-3 mt-1">
+              <div class="col-md-4">
+                <label class="form-label small fw-semibold text-muted d-block">Cédula Verde</label>
+                <div class="form-check form-switch">
+                  {{ form.cedula_verde }}
+                  <label class="form-check-label small" for="{{ form.cedula_verde.id_for_label }}">Sí / No</label>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small fw-semibold text-muted d-block">Alarma</label>
+                <div class="form-check form-switch">
+                  {{ form.alarma }}
+                  <label class="form-check-label small" for="{{ form.alarma.id_for_label }}">Sí / No</label>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small fw-semibold text-muted d-block">GPS</label>
+                <div class="form-check form-switch">
+                  {{ form.gps }}
+                  <label class="form-check-label small" for="{{ form.gps.id_for_label }}">Sí / No</label>
+                </div>
+              </div>
+            </div>
+
+            <!-- PROPIETARIO / POSEEDOR 
+            <div class="row mt-2">
+              <div class="col-6">
+                <div class="mb-1">
+                  <label class="form-label small text-muted">Propietario</label>
+                  <p class="mb-0 fw-semibold">
+                    {% if vehiculo.propietario %}
+                      <div class="d-flex align-items-center gap-2">
+                        <a href="{% url 'cliente_ver' vehiculo.propietario.id %}"
+                          class="btn btn-outline fw-semibold flex-grow-1 text-start">
+                          <i class="bi bi-person"></i> {{ vehiculo.propietario.nombre }}
+                        </a>
+                        <button type="button" class="btn btn-outline-danger btn-sm" 
+                                data-bs-toggle="modal" data-bs-target="#eliminarPropietarioModal"
+                                data-vehiculo-id="{{ vehiculo.pk }}"
+                                data-propietario-nombre="{{ vehiculo.propietario.nombre }}"
+                                title="Eliminar propietario">
+                          <i class="bi bi-x"></i>
+                        </button>
+                      </div>
+                    {% else %}
+                      <a href="{% url 'vehiculo_vincular_cliente' vehiculo.pk %}">
+                        <span class="btn btn-outline fw-semibold">
+                          <i class="bi bi-person-x"></i> Vincular propietario
+                        </span>
+                      </a>
+                    {% endif %}
+                  </p>
+                </div>
+              </div>
+
+              <div class="col-6">
+                <div class="mb-1">
+                  <label class="form-label small text-muted">Poseedor/Responsable</label>
+                  <p class="mb-0 fw-semibold">
+                    {% if vehiculo.poseedor %}
+                      <div class="d-flex align-items-center gap-2">
+                        <a href="{% url 'cliente_ver' vehiculo.poseedor.id %}"
+                          class="btn btn-outline fw-semibold flex-grow-1 text-start">
+                          <i class="bi bi-person"></i> {{ vehiculo.poseedor.nombre }}
+                        </a>
+                        <button type="button" class="btn btn-outline-danger btn-sm" 
+                                data-bs-toggle="modal" data-bs-target="#eliminarPoseedorModal"
+                                data-vehiculo-id="{{ vehiculo.pk }}"
+                                data-poseedor-nombre="{{ vehiculo.poseedor.nombre }}"
+                                title="Eliminar poseedor">
+                          <i class="bi bi-x"></i>
+                        </button>
+                      </div>
+                    {% else %}
+                      <a href="{% url 'vehiculo_vincular_cliente' vehiculo.pk %}">
+                        <span class="btn btn-outline fw-semibold">
+                          <i class="bi bi-person-x"></i> Vincular Poseedor
+                        </span>
+                      </a>
+                    {% endif %}
+                  </p>
+                </div>
+              </div>
+            </div>-->
+
+            <!-- ESTADO -->
+            {% if form.fields.estado %}
+            <div class="row mt-1">
+              <div class="col-12">
+                <div class="mb-1">
+                  <label class="form-label small fw-semibold text-muted">Estado</label>
+                  <div class="form-check form-switch mt-1">
+                    {% if puede_desactivar_vehiculos %}
+                      {{ form.estado }}
+                      <label class="form-check-label small fw-semibold text-muted" for="{{ form.estado.id_for_label }}">
+                        Activo / Inactivo
+                      </label>
+                    {% else %}
+                      <input type="checkbox"
+                             id="{{ form.estado.id_for_label }}"
+                             class="form-check-input"
+                             {% if form.instance.estado %}checked{% endif %}
+                             disabled>
+                      <label class="form-check-label small fw-semibold text-muted" for="{{ form.estado.id_for_label }}">
+                        Activo / Inactivo
+                      </label>
+                      <input type="hidden" name="{{ form.estado.name }}" value="{% if form.instance.estado %}True{% else %}False{% endif %}">
+                      <div class="form-text small text-muted mt-1">
+                        <i class="bi bi-info-circle me-1"></i>
+                        No tienes permisos para cambiar el estado de vehículos.
+                      </div>
+                    {% endif %}
+                  </div>
+                  {% if form.estado.errors %}<div class="invalid-feedback d-block">{% for e in form.estado.errors %}{{ e }}{% endfor %}</div>{% endif %}
+                </div>
+              </div>
+            </div>
+            {% endif %}
+
+            <!-- BOTONES -->
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-center pt-3 border-top gap-2">
+              <a href="{% url 'vehiculo_lista' %}" class="btn btn-outline-secondary btn-sm w-100 w-md-auto order-2 order-md-1">
+                <i class="bi bi-x-circle"></i>Cancelar
+              </a>
+              <button type="submit" class="btn btn-primary btn-sm w-100 w-md-auto order-1 order-md-2">
+                <i class="bi bi-check-circle"></i>Guardar Cambios
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MODALES PARA ELIMINAR PROPIETARIO / POSEEDOR -->
+<div class="modal fade" id="eliminarPropietarioModal" tabindex="-1" aria-labelledby="eliminarPropietarioModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title" id="eliminarPropietarioModalLabel">Eliminar Propietario</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <p>¿Eliminar propietario <strong id="propietarioNombreEliminar"></strong>?</p>
+        <p class="small text-muted mt-1">Esta acción no elimina al cliente, solo lo desvincula del vehículo.</p>
+      </div>
+      <div class="modal-footer">
+        <form method="post" action="" id="eliminarPropietarioForm">
+          {% csrf_token %}
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="eliminarPoseedorModal" tabindex="-1" aria-labelledby="eliminarPoseedorModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title" id="eliminarPoseedorModalLabel">Eliminar Poseedor</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <p>¿Eliminar poseedor <strong id="poseedorNombreEliminar"></strong>?</p>
+        <p class="small text-muted mt-1">Esta acción no elimina al cliente, solo lo desvincula del vehículo.</p>
+      </div>
+      <div class="modal-footer">
+        <form method="post" action="" id="eliminarPoseedorForm">
+          {% csrf_token %}
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.container-fluid { max-width: 1000px; }
+.form-control, .form-select { border-radius: 0.375rem; border: 1px solid #ced4da; padding: 0.375rem 0.75rem; font-size: 0.875rem; }
+.form-control:focus, .form-select:focus { border-color: #86b7fe; box-shadow: 0 0 0 0.2rem rgba(13,110,253,.25); }
+.btn-sm { padding: .375rem .75rem; font-size: .875rem; min-width: 100px; }
+.form-switch .form-check-input { width: 2.5em; margin-right: .5rem; }
+/* quitar flechas del number (WebKit) */
+#id_anio::-webkit-outer-spin-button,
+#id_anio::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+/* Estilos para los botones de eliminar vinculación */
+.d-flex.align-items-center.gap-2 {
+    gap: 0.5rem;
+}
+
+.btn-outline-danger.btn-sm {
+    padding: 0.25rem 0.5rem;
+    min-width: auto;
+    flex-shrink: 0;
+}
+
+.btn-outline.fw-semibold.flex-grow-1 {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Estilos para los modales de eliminación */
+#eliminarPropietarioModal .modal-dialog,
+#eliminarPoseedorModal .modal-dialog {
+  max-width: 300px;
+  width: 90%;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  min-height: calc(100% - 2rem);
+}
+#eliminarPropietarioModal .modal-content,
+#eliminarPoseedorModal .modal-content {
+  min-height: 50px;
+}
+#eliminarPropietarioModal .modal-title,
+#eliminarPoseedorModal .modal-title,
+#eliminarPropietarioModal .modal-body,
+#eliminarPoseedorModal .modal-body {
+  text-align: center;
+}
+#eliminarPropietarioModal .modal-footer,
+#eliminarPoseedorModal .modal-footer {
+  justify-content: center;
+  gap: .5rem;
+}
+#eliminarPropietarioModal .modal-footer .btn,
+#eliminarPoseedorModal .modal-footer .btn {
+  padding: 0.45rem 0.9rem;
+  font-size: 0.75rem;
+  min-width: 120px;
+  line-height: 1.15;
+  border-radius: 8px;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const hasErrors = {{ form.errors|yesno:"true,false" }};
+  if (hasErrors) {
+    const initial = {
+      marca: "{{ form.instance.marca|default_if_none:''|escapejs }}",
+      modelo: "{{ form.instance.modelo|default_if_none:''|escapejs }}",
+      anio: "{{ form.instance.anio|default_if_none:'' }}",
+      color: "{{ form.instance.color|default_if_none:''|escapejs }}",
+      nro_chapa: "{{ form.instance.nro_chapa|default_if_none:''|escapejs }}",
+      nro_chasis: "{{ form.instance.nro_chasis|default_if_none:''|escapejs }}",
+      tipo_combustible: "{{ form.instance.tipo_combustible|default_if_none:''|escapejs }}",
+      uso: "{{ form.instance.uso|default_if_none:''|escapejs }}",
+      via_importacion: "{{ form.instance.via_importacion|default_if_none:''|escapejs }}",
+      procedencia: "{{ form.instance.procedencia|default_if_none:''|escapejs }}",
+      tipo_transmision: "{{ form.instance.tipo_transmision|default_if_none:''|escapejs }}",
+      motor_cilindrada: "{{ form.instance.motor_cilindrada|default_if_none:''|escapejs }}",
+    };
+
+    const requiredNames = [
+      'marca','modelo','anio','color',
+      'nro_chasis', 'uso',
+      'tipo_combustible', 'via_importacion',
+      'procedencia','tipo_transmision'
+    ];
+
+    requiredNames.forEach(name => {
+      const el = document.querySelector(`[name="${name}"]`);
+      if (!el) return;
+      if (!(el.value || '').trim()) {
+        el.value = initial[name] || '';
+      }
+    });
+  }
+
+  // ---- Motor/Cilindrada con formato "x.xxx cc" ----
+  const cc = document.getElementById('id_motor_cilindrada');
+  const form = document.querySelector('form');
+
+  function fmtCC(n) {
+    if (!n) return '';
+    const d = String(n).replace(/\D/g, '');
+    if (!d) return '';
+    return Number(d).toLocaleString('es-PY') + ' cc';
+  }
+
+  function unfmtCC(txt) {
+    if (!txt) return '';
+    return String(txt)
+      .replace(/\s*cc$/i, '')
+      .replace(/\./g, '')
+      .replace(/,/g, '')
+      .replace(/\D/g, '');
+  }
+
+  if (cc) {
+    // Inicial: mostrarlo formateado al cargar
+    if (cc.value) {
+      cc.value = fmtCC(cc.value);
+    }
+
+    // Al escribir: mantener formato con sufijo cc
+    cc.addEventListener('input', () => {
+      const raw = unfmtCC(cc.value);
+      cc.value = fmtCC(raw);
+    });
+
+    // Antes de enviar: dejar solo números
+    form?.addEventListener('submit', () => {
+      cc.value = unfmtCC(cc.value);
+    });
+  }
+
+  // MODALES PARA ELIMINAR PROPIETARIO Y POSEEDOR
+  const eliminarPropietarioModal = document.getElementById('eliminarPropietarioModal');
+  if (eliminarPropietarioModal) {
+      eliminarPropietarioModal.addEventListener('show.bs.modal', function(event) {
+          const button = event.relatedTarget;
+          const id = button.getAttribute('data-vehiculo-id');
+          const nombre = button.getAttribute('data-propietario-nombre') || '';
+          document.getElementById('propietarioNombreEliminar').textContent = nombre;
+          document.getElementById('eliminarPropietarioForm').action =
+              "{% url 'vehiculo_eliminar_cliente' 0 %}".replace('0', id);
+      });
+  }
+
+  const eliminarPoseedorModal = document.getElementById('eliminarPoseedorModal');
+  if (eliminarPoseedorModal) {
+      eliminarPoseedorModal.addEventListener('show.bs.modal', function(event) {
+          const button = event.relatedTarget;
+          const id = button.getAttribute('data-vehiculo-id');
+          const nombre = button.getAttribute('data-poseedor-nombre') || '';
+          document.getElementById('poseedorNombreEliminar').textContent = nombre;
+          document.getElementById('eliminarPoseedorForm').action =
+              "{% url 'vehiculo_eliminar_cliente' 0 %}".replace('0', id);
+      });
+  }
+});
+
+document.addEventListener('DOMContentLoaded', function () {
+    // Asegurar que los campos de selección muestren el valor actual
+    const selectFields = [
+        'id_tipo_combustible',
+        'id_uso', 
+        'id_via_importacion',
+        'id_procedencia',
+        'id_tipo_transmision'
+    ];
+    
+    selectFields.forEach(fieldId => {
+        const select = document.getElementById(fieldId);
+        if (select) {
+            // El valor ya debería estar seleccionado, pero forzamos una verificación
+            const currentValue = select.getAttribute('data-current-value') || select.value;
+            if (currentValue) {
+                for (let option of select.options) {
+                    if (option.value === currentValue) {
+                        option.selected = true;
+                        break;
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+
+{% endblock %}

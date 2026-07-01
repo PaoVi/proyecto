@@ -1,0 +1,1431 @@
+{% extends 'seguridad/base.html' %}
+{% load humanize %}
+
+{% block content %}
+<div class="container-fluid py-0"> 
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-10">
+
+      <!-- HEADER -->
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <h2 class="h4 mb-1">EDITAR ORDEN DE TRABAJO #{{ orden.id }}</h2>
+        <button type="button" onclick="window.history.back()" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-arrow-left"></i>Volver
+        </button>
+      </div>
+
+      <!-- FORMULARIO -->
+      <div class="card">
+        <div class="card-body">
+          <form method="post" class="needs-validation" novalidate id="orden-form">
+            {% csrf_token %}
+        
+            <!-- ERRORES GENERALES DEL FORMULARIO -->
+            {% if form.non_field_errors %}
+              <div class="alert alert-danger small">
+                {% for error in form.non_field_errors %}
+                  <div>{{ error }}</div>
+                {% endfor %}
+              </div>
+            {% endif %}
+
+            <!-- INFORMACIÓN BÁSICA -->
+            <div class="row g-3">
+              <!-- CLIENTE (SOLO LECTURA EN EDICIÓN) -->
+              <div class="col-md-6">
+                <label class="form-label small">Cliente</label>
+                <div class="form-control bg-light">
+                  {{ orden.cliente.nombre }} - {{ orden.cliente.numero_documento }}
+                </div>
+              </div>
+
+              <!-- VEHÍCULO (SOLO LECTURA EN EDICIÓN) -->
+              <div class="col-md-6">
+                <label class="form-label small">Vehículo</label>
+                <div class="form-control bg-light">
+                  {{ orden.vehiculo.marca }} {{ orden.vehiculo.modelo }} - {{ orden.vehiculo.nro_chapa|default:"Sin chapa" }} - {{ orden.vehiculo.nro_chasis }}
+                </div>
+              </div>
+
+              <!-- DESCRIPCIÓN -->
+              <div class="col-12">
+                <label for="{{ form.descripcion.id_for_label }}" class="form-label small">Descripción del Trabajo</label>
+                {{ form.descripcion }}
+                {% if form.descripcion.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.descripcion.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- SECCIÓN SERVICIOS CON EMPLEADOS -->
+            <div class="row mt-4"> 
+              <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <label class="form-label small fw-semibold mb-0">Servicios a Realizar</label>
+                  <span class="badge bg-primary" id="contador-servicios">{{ orden.ordenservicio_set.count }} servicios</span>
+                </div>             
+                
+                <!-- SERVICIOS AGREGADOS -->
+                <div id="servicios-container" class="mb-3">
+                  <!-- Servicios existentes se cargarán aquí -->
+                  {% for item in servicios_con_empleados %}
+                  {% with servicio=item.servicio_orden %}
+                  <div class="card servicio-item mb-2" 
+                      data-servicio-id="{{ servicio.servicio.id }}" 
+                      data-servicio-orden-id="{{ servicio.id }}"
+                      data-servicio-existente="true"
+                      data-precio="{{ servicio.precio_unitario }}"
+                      data-cantidad="{{ servicio.cantidad }}"
+                      data-tiempo="{{ servicio.servicio.tiempo_min_estimado }}">
+                    <div class="card-body py-2">
+                      <div class="row align-items-center">
+                        <div class="col-md-5"> 
+                          <div class="small fw-semibold text-start">({{ servicio.servicio.id }}) {{ servicio.servicio.nombre }}</div>
+                          <div class="text-muted small text-start">{{ servicio.servicio.categoria|default:"Sin categoría" }} • <span class="tiempo-hhmm" data-minutos="{{ servicio.servicio.tiempo_min_estimado }}"></span> c/u</div>
+                        </div> 
+                        <!-- CANTIDAD (EDITABLE) -->
+                        <div class="col-md-2">
+                          <div class="d-flex flex-column align-items-center">
+                            <label class="small text-muted mb-1">Cantidad</label>
+                            <input type="number" 
+                                  class="form-control form-control-sm cantidad-editable text-center" 
+                                  value="{{ servicio.cantidad|stringformat:'.2f' }}"
+                                  step="0.01" 
+                                  min="0.01"
+                                  data-servicio-orden-id="{{ servicio.id }}"
+                                  data-precio-unitario="{{ servicio.precio_unitario }}"
+                                  style="width: 85px; height: 28px;">
+                          </div>
+                        </div>
+                        <!-- EMPLEADOS ASIGNADOS (EDITABLES) -->
+                        <div class="col-md-3">
+                          <div class="small mb-1">Empleados asignados:</div>
+                          <div class="empleados-list" id="empleados-list-{{ servicio.id }}">
+                            {% for empleado in item.empleados %}
+                            <div class="empleado-item d-flex align-items-center justify-content-between mb-1" 
+                                 data-empleado-id="{{ empleado.pk }}">
+                              <span class="fw-semibold">• {{ empleado.nombre }}</span>
+                              <button type="button" 
+                                      class="btn btn-outline-danger small btn-quitar-empleado mt-1"
+                                      data-servicio-orden-id="{{ servicio.id }}"
+                                      data-empleado-id="{{ empleado.pk }}">
+                                <i class="bi bi-x"></i>
+                              </button>
+                            </div>
+                            {% empty %}
+                            <div class="text-muted small">Sin empleados asignados</div>
+                            {% endfor %}
+                          </div>
+                          
+                          <!-- SELECT PARA AGREGAR NUEVOS EMPLEADOS -->
+                          <select class="form-select form-select-sm mt-1 agregar-empleado-select" 
+                                  data-servicio-orden-id="{{ servicio.id }}"
+                                  style="font-size: 0.75rem;">
+                            <option value="">Agregar empleado...</option>
+                            {% for empleado in empleados_disponibles %}
+                              {% if empleado not in item.empleados %}
+                              <option value="{{ empleado.pk }}">{{ empleado.nombre }}</option>
+                              {% endif %}
+                            {% endfor %}
+                          </select>
+                        </div>
+
+                        <div class="col-md-2 text-end">
+                          <div class="small">Subtotal: <strong class="js-gs" data-precio="{{ servicio.subtotal }}">Gs. {{ servicio.subtotal|floatformat:0|intcomma }}</strong></div>
+                          <button type="button" class="btn btn-outline-danger small eliminar-servicio-existente mt-1">
+                            <i class="bi bi-trash"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {% endwith %}
+                  {% endfor %}
+                  
+                  <!-- Nuevos servicios se agregarán aquí dinámicamente -->
+                </div>
+
+                <!-- FORMULARIO PARA AGREGAR SERVICIO -->
+                <div class="card border">
+                  <div class="card-body py-2">
+                    <div class="row g-2 align-items-center">
+                      <div class="col-md-2">
+                        <label class="form-label small">Cantidad</label>
+                        <input type="number" id="servicio-cantidad" class="form-control form-control-sm" 
+                              value="1" step="0.01" min="0.01" placeholder="1.00">
+                        <div id="cantidad-error" class="invalid-feedback d-block small" style="display: none;"></div>
+                      </div>
+                      
+                      <div class="col-md-5">
+                        <label class="form-label small">Servicio</label>
+                        <select id="servicio-select" class="form-select form-select-sm">
+                          <option value="">Seleccionar servicio...</option>
+                          {% for servicio in servicios_disponibles %}
+                          <option value="{{ servicio.id }}" 
+                                  data-precio="{{ servicio.precio_base }}" 
+                                  data-tiempo="{{ servicio.tiempo_min_estimado }}"
+                                  data-categoria="{{ servicio.categoria|default:'Sin categoría' }}">
+                            ({{ servicio.id }}) {{ servicio.nombre }} - Gs. <span class="total-valor">{{ servicio.precio_base|floatformat:0 }}</span> (<span class="tiempo-hhmm" data-minutos="{{ servicio.tiempo_min_estimado }}"></span>)
+                          </option>
+                          {% endfor %}
+                        </select>
+                        <div id="servicio-error" class="invalid-feedback d-block small" style="display: none;"></div>
+                      </div>
+
+                      <!-- EMPLEADOS PARA EL SERVICIO -->
+                      <div class="col-md-4">
+                        <label class="form-label small">Empleado(s)</label>
+                        <select id="empleado-select" class="form-select form-select-sm" multiple>
+                          {% for empleado in empleados_disponibles %}
+                          <option value="{{ empleado.pk }}">{{ empleado.nombre }}</option>
+                          {% endfor %}
+                        </select>
+                        <div id="empleado-error" class="invalid-feedback d-block small" style="display: none;"></div>
+                      </div>
+                      
+                      <!-- BOTÓN + -->
+                      <div class="col-md-1 d-flex align-items-center justify-content-center">
+                        <button 
+                          type="button" 
+                          id="agregar-servicio-btn" 
+                          class="btn btn-success btn-small w-100" 
+                          style="padding: 0.35rem 0.8rem; margin-top: 1.25rem;"
+                          title="Agregar servicio">
+                          <i class="bi bi-plus-circle" style="font-size: 0.9rem;"></i>
+                        </button>
+                      </div> 
+                    </div>
+                  </div>
+                </div>
+
+                <!-- RESUMEN DE SERVICIOS -->
+                <div class="card border-primary mt-3">
+                  <div class="card-body py-2">
+                    <div class="row text-center">
+                      <div class="col-md-6">
+                        <div class="small text-muted">Total Servicios</div>
+                        <div class="h6 mb-0 js-gs" id="total-servicios-display" data-precio="{{ orden.subtotal_servicios }}">Gs. {{ orden.subtotal_servicios|floatformat:0 }}</div>
+                      </div>
+                      <div class="col-md-6">
+                        <div class="small text-muted">Tiempo Estimado (hh:mm)</div>
+                        <div class="h6 mb-0" id="tiempo-total-display">{{ orden.tiempo_total_estimado }}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- SERVICIOS OCULTOS PARA ENVÍO -->
+                <div id="servicios-hidden-fields">
+                    <!-- Campos para servicios eliminados manualmente -->
+                    <input type="hidden" name="servicios_eliminados[]" id="servicios-eliminados-base" value="0">
+                    
+                    <!-- Campos para servicios existentes -->
+                    {% for item in servicios_con_empleados %}
+                    {% with servicio=item.servicio_orden %}
+                    <input type="hidden" name="servicios_existentes[{{ servicio.id }}][servicio_id]" value="{{ servicio.servicio.id }}">
+                    <input type="hidden" 
+                          name="servicios_existentes[{{ servicio.id }}][cantidad]" 
+                          value="{{ servicio.cantidad|stringformat:'.2f' }}"
+                          id="hidden-cantidad-{{ servicio.id }}">
+                    <input type="hidden" 
+                          name="servicios_existentes[{{ servicio.id }}][eliminar]" 
+                          value="false" 
+                          id="eliminar-{{ servicio.id }}">
+
+                    <!-- Contenedor para empleados EXISTENTES (que no se eliminarán) -->
+                    <div id="empleados-existentes-{{ servicio.id }}">
+                        {% for empleado in item.empleados %}
+                        <input type="hidden" 
+                              name="servicios_existentes[{{ servicio.id }}][empleados_existentes][]" 
+                              value="{{ empleado.pk }}"
+                              class="empleado-existente"
+                              data-empleado-id="{{ empleado.pk }}">
+                        {% endfor %}
+                    </div>
+
+                    <!-- Contenedor para empleados NUEVOS (agregados en esta edición) -->
+                    <div id="nuevos-empleados-{{ servicio.id }}"></div>
+
+                    <!-- Contenedor para empleados ELIMINADOS (quitados en esta edición) -->
+                    <div id="empleados-eliminados-{{ servicio.id }}"></div>
+                    {% endwith %}
+                    {% endfor %}
+                    
+                    <!-- Los campos hidden para los nuevos servicios se generarán aquí dinámicamente -->
+                </div>
+              </div>
+            </div>
+
+            <!-- BOTONES -->
+            <div class="d-flex justify-content-between align-items-center pt-3 border-top gap-2">
+              <a href="{% url 'orden_trabajo_ver' orden.id %}" class="btn btn-outline-secondary btn-sm flex-grow-1">
+                <i class="bi bi-x-circle"></i>Cancelar
+              </a>
+              <button type="submit" class="btn btn-primary btn-sm flex-grow-1" id="submit-btn">
+                <i class="bi bi-check-circle"></i>Actualizar Orden
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- INFORMACIÓN DE AYUDA -->
+      <div class="card">
+        <div class="card-body py-2">
+          <div class="row">
+            <div class="col-12">
+              <small class="text-muted">
+                <i class="bi bi-info-circle"></i>
+                La orden debe tener al menos un servicio. Cada servicio puede tener uno o más empleados asignados.
+              </small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Incluir Select2 CSS y JS -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+<style>
+.container-fluid { max-width: 1000px; }
+.form-control, .form-select {
+  border-radius: 0.375rem;
+  border: 1px solid #ced4da;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+}
+.form-control:focus, .form-select:focus {
+  border-color: #86b7fe;
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+.btn-sm { padding: 0.375rem 0.75rem; font-size: 0.875rem; min-width: 100px; }
+.servicio-item { border-left: 3px solid #0d6efd; }
+.empleados-list { font-size: 0.75rem; }
+
+/* ESTILOS SIMPLIFICADOS PARA SELECT2 */
+.select2-container--default .select2-selection--single {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    height: 38px;
+    background-color: #fff;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    color: #212529;
+    line-height: 1.5;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 30px;
+    right: 8px;
+}
+
+.select2-container--default .select2-selection--multiple {
+    min-height: 38px;
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+}
+
+.select2-container--default .select2-selection--multiple .select2-selection__choice {
+    background-color: #e9ecef;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    margin-top: 4px;
+}
+
+/* DROPDOWN SIMPLIFICADO - FONDO BLANCO */
+.select2-container--default .select2-dropdown {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    background: white;
+    box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+}
+
+/* RESULTADOS SIMPLES - FONDO BLANCO, TEXTO OSCURO */
+.select2-container--default .select2-results__option {
+    padding: 0.5rem 0.75rem;
+    background: white;
+    color: #212529;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+.select2-container--default .select2-results__option:last-child {
+    border-bottom: none;
+}
+
+/* RESALTADO AL PASAR MOUSE */
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background-color: #e9ecef;
+    color: #00264dff;
+}
+
+/* ELEMENTO SELECCIONADO */
+.select2-container--default .select2-results__option[aria-selected=true] {
+    background-color: #f8f9fa;
+    color: #212529;
+}
+
+/* CAMPO DE BÚSQUEDA */
+.select2-container--default .select2-search--dropdown .select2-search__field {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+    background: white;
+    color: #212529;
+}
+
+/* ESTILOS PERSONALIZADOS PARA LOS RESULTADOS */
+.select2-result-item {
+    padding: 0.15rem 0;
+}
+
+.select2-result-cliente .nombre {
+    font-size: 0.875rem;
+    color: #212529;
+    font-weight: 500;
+    display: block;
+}
+
+.select2-result-cliente .documento {
+    font-size: 0.75rem;
+    color: #033e7e;
+    display: block;
+}
+
+.select2-result-vehiculo .marca-modelo {
+    font-size: 0.875rem;
+    color: #212529;
+    font-weight: 500;
+    display: block;
+}
+
+.select2-result-vehiculo .chapa {
+    font-size: 0.75rem;
+    color: #097241ff;
+    display: block;
+}
+
+/* ESTILOS PARA MENSAJES "NO SE ENCONTRARON..." */
+.select2-container--default .select2-results__option--disabled {
+    font-size: 0.1rem !important;
+    color: #6c757d !important;
+    background-color: transparent !important;
+    padding: 0.375rem 0.75rem;
+    text-align: center;
+}
+
+/* OCULTAR MENSAJES DE CARÁCTER MÍNIMO */
+.select2-container--default .select2-results__option--load-more,
+.select2-container--default .select2-results__option--loading {
+    display: none !important;
+}
+
+/* BÚSQUEDA INMEDIATA - SIN MENSAJES */
+.select2-container--default .select2-search--dropdown {
+    padding: 0.5rem;
+}
+/* ESTILOS MÁS PEQUEÑOS SOLO PARA EMPLEADOS */
+.select2-container--default .select2-results__option--empleado {
+    font-size: 0.7rem !important;
+    padding: 0.3rem 0.6rem !important;
+    line-height: 1.2 !important;
+}
+
+/* Los badges de empleados en los servicios agregados también más pequeños */
+.empleados-list .badge {
+    font-size: 0.65rem !important;
+    padding: 0.2rem 0.4rem !important;
+}
+/* TEXTO MÁS PEQUEÑO SOLO PARA LOS RESULTADOS DEL DROPDOWN DE EMPLEADOS */
+.select2-container--default .select2-results__option {
+    font-size: 0.75rem !important;
+    padding: 0.4rem 0.75rem !important;
+}
+/* ESTILOS PARA EMPLEADOS UNO SOBRE OTRO */
+.empleados-list div {
+    margin-bottom: 0.1rem;
+    font-size: 0.8rem;
+    text-align: left !important;
+}
+
+/* BOTÓN QUITAR MÁS PEQUEÑO */
+.eliminar-servicio {
+    font-size: 0.7rem !important;
+    padding: 0.15rem 0.4rem !important;
+}
+
+/* SELECT DE SERVICIOS */
+#servicio-select + .select2-container--default .select2-selection--single {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    height: 38px;
+    background-color: #fff;
+}
+
+#servicio-select + .select2-container--default .select2-selection--single .select2-selection__rendered {
+    color: #212529;
+    line-height: 1.5;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.8rem;
+}
+
+#servicio-select + .select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 30px;
+    right: 8px;
+}
+
+/* Estilo para las opciones en el dropdown */
+.select2-container--default .select2-results__option--servicio {
+    font-size: 0.8rem;
+    padding: 0.4rem 0.75rem;
+}
+
+/* Contenedor principal del servicio */
+.select2-container--default .select2-results__option .servicio-item {
+    line-height: 1;
+}
+
+/* Nombre del servicio en negrita */
+.select2-container--default .select2-results__option .servicio-nombre {
+    font-weight: 600;
+    color: #212529;
+    margin-left: 2px;
+}
+
+/* Detalles (precio y tiempo) más pequeños en nueva línea */
+.select2-container--default .select2-results__option .servicio-detalle {
+    font-size: 0.8rem;
+    color: #6c757d;
+    display: block;
+    margin-top: 2px;
+    margin-left: 0;
+}
+
+/* ICONOS en SweetAlert2 - WARNING (modal) */
+.swal2-icon.swal2-warning {
+    width: 2.5em !important;
+    height: 2.5em !important;
+    margin: 0.5em auto 0.3em !important;
+}
+
+.swal2-popup {
+    border-radius: 20px !important;
+}
+
+.swal2-icon.swal2-warning .swal2-icon-content {
+    font-size: 1.8em !important;
+}
+
+/* TOAST DE ÉXITO */
+.swal2-toast {
+    min-height: 2.5em !important;  
+    padding: 0.2em 0.8em !important;  
+    display: flex !important;
+    align-items: center !important;
+    border-radius: 25px !important;  
+    max-width: fit-content !important;    /* Se ajusta al contenido */
+    width: auto !important;                /* Ancho automático */
+}
+
+.swal2-toast .swal2-icon.swal2-success {
+    width: 0.5em !important;        
+    height: 1.1em !important;       
+    margin: 0 0.2em 0 0 !important;  
+    flex-shrink: 0 !important;
+    border-width: 2px !important;
+    font-size: 0.7em !important;   /* Controla el tamaño relativo */
+    align-self: center !important;    /* Asegura alineación vertical */
+    transform: translateY(-3px) !important; 
+}
+
+.swal2-toast .swal2-icon.swal2-success .swal2-icon-content {
+    font-size: 0.7em !important;    /* Ajustado para que el check se vea bien */
+    line-height: 1 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.swal2-toast .swal2-title {
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1.3em !important;
+    font-size: 0.9em !important;
+    font-weight: 500 !important;
+}
+
+/* NOMBRE DEL INSUMO - MÁS GRANDE Y NEGRITA */
+.swal2-html-container p strong {
+    font-size: 1.2em !important;
+}
+
+.swal2-html-container div[style*="font-weight: 500;"] {
+    font-size: 1.1em !important;
+    font-weight: 600 !important;
+    color: #000000 !important;
+    margin-bottom: 8px !important;
+}
+
+/* Ajuste para el contenedor del insumo */
+.swal2-html-container div[style*="background: #f8f9fa;"] {
+    padding: 8px !important;
+    border-radius: 1px !important;
+}
+
+/* Reducir espacio entre icono y título en modal */
+.swal2-title {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+    line-height: 1.4 !important;
+}
+
+.swal2-header {
+    padding-bottom: 0 !important;
+}
+</style>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // ========== INICIALIZACIÓN BÁSICA ==========
+    let servicioCounter = 0;
+    const serviciosContainer = document.getElementById('servicios-container');
+    const hiddenFieldsContainer = document.getElementById('servicios-hidden-fields');
+    const agregarBtn = document.getElementById('agregar-servicio-btn');
+    const contadorServicios = document.getElementById('contador-servicios');
+    const totalServiciosDisplay = document.getElementById('total-servicios-display');
+    const tiempoTotalDisplay = document.getElementById('tiempo-total-display');
+
+    // Inicializar Select2 para múltiples empleados
+    $('#empleado-select').select2({
+        placeholder: 'Seleccionar empleado(s)...',
+        width: '100%',
+        closeOnSelect: false
+    });
+
+    // Inicializar Select2 para Servicios (búsqueda local)
+    $('#servicio-select').select2({
+        placeholder: 'Buscar servicio por nombre o ID...',
+        allowClear: false,
+        width: '100%',
+        language: {
+            noResults: function() {
+                return "No se encontraron servicios";
+            },
+            searching: function() {
+                return "Buscando...";
+            }
+        },
+        matcher: function(params, data) {
+            if ($.trim(params.term) === '') {
+                return data;
+            }
+            var term = params.term.toLowerCase();
+            var text = data.text.toLowerCase();
+            
+            // Buscar por ID exacto
+            if (!isNaN(term)) {
+                var idMatch = data.text.match(/^\((\d+)\)/);
+                if (idMatch && idMatch[1] === term) {
+                    return data;
+                }
+            }
+            
+            // Búsqueda normal por texto
+            if (text.indexOf(term) > -1) {
+                return data;
+            }
+            return null;
+        },
+        templateResult: function(data) {
+            if (data.loading || !data.id) {
+                return data.text;
+            }
+            
+            // Extraer ID, nombre, precio y tiempo del texto
+            var texto = data.text;
+            var idMatch = texto.match(/^\((\d+)\)/);
+            var id = idMatch ? idMatch[1] : '';
+            
+            var nombreMatch = texto.replace(/^\(\d+\)\s*/, '').match(/(.+?)\s+-\s+Gs\./);
+            var nombre = nombreMatch ? nombreMatch[1] : texto;
+            
+            var precioMatch = texto.match(/Gs\.\s*([\d,.]+)/);
+            var precio = precioMatch ? precioMatch[1] : '';
+            
+            var tiempoMatch = texto.match(/\((\d{2}:\d{2})\)/);
+            var tiempo = tiempoMatch ? tiempoMatch[1] : '';
+            
+            var $container = $(
+                '<div class="select2-results__option--servicio">' +
+                    '<div class="servicio-item">' +
+                        '<span class="servicio-nombre">' + nombre + '</span>' +
+                        '<span class="servicio-detalle">Gs. ' + precio + ' • ' + tiempo + '</span>' +
+                    '</div>' +
+                '</div>'
+            );
+            
+            return $container;
+        },
+        templateSelection: function(data) {
+            if (!data.id) {
+                return data.text;
+            }
+            
+            // Extraer solo (ID) Nombre del texto original
+            var texto = data.text;
+            var match = texto.match(/^\((\d+)\)\s*([^(]+)/);
+            if (match) {
+                return '(' + match[1] + ') ' + match[2].trim();
+            }
+            
+            return data.text;
+        }
+    });
+
+    // ========== FUNCIONES BÁSICAS ==========
+    function formatearNumero(numero) {
+      if (!numero && numero !== 0) return '';
+      const numeroLimpio = numero.toString().replace(/\./g, '');
+      if (isNaN(numeroLimpio)) return numero;
+      return numeroLimpio.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    }
+
+    function formatearGs(valorNum) { 
+      if (valorNum === null || valorNum === '' || isNaN(valorNum)) return 'Gs. 0';
+      const n = Math.floor(Number(valorNum));
+      return 'Gs. ' + formatearNumero(n);
+    }
+
+    function actualizarContadorServicios() {
+        const serviciosVisibles = document.querySelectorAll('#servicios-container .servicio-item:not([style*="display: none"])').length;
+        contadorServicios.textContent = `${serviciosVisibles} servicio${serviciosVisibles !== 1 ? 's' : ''}`;
+    }
+
+    function actualizarTotalesVisuales() {
+        let subtotal = 0;
+        let tiempoTotal = 0;
+        
+        // Calcular subtotal y tiempo total de servicios existentes visibles
+        const serviciosExistentes = document.querySelectorAll('#servicios-container .servicio-item[data-servicio-existente="true"]:not([style*="display: none"])');
+        serviciosExistentes.forEach(item => {
+            const precio = parseFloat(item.getAttribute('data-precio')) || 0;
+            const cantidad = parseFloat(item.getAttribute('data-cantidad')) || 0;
+            const tiempo = parseFloat(item.getAttribute('data-tiempo')) || 0;
+            subtotal += precio * cantidad;
+            tiempoTotal += tiempo * cantidad;
+        });
+        
+        // Calcular subtotal y tiempo total de servicios nuevos
+        const serviciosNuevos = document.querySelectorAll('#servicios-container .servicio-item:not([data-servicio-existente="true"]):not([style*="display: none"])');
+        serviciosNuevos.forEach(item => {
+            const precio = parseFloat(item.getAttribute('data-precio')) || 0;
+            const cantidad = parseFloat(item.getAttribute('data-cantidad')) || 0;
+            const tiempo = parseFloat(item.getAttribute('data-tiempo')) || 0;
+            subtotal += precio * cantidad;
+            tiempoTotal += tiempo * cantidad;
+        });
+        
+        // Actualizar displays
+        totalServiciosDisplay.textContent = formatearGs(subtotal);
+        totalServiciosDisplay.setAttribute('data-precio', subtotal);
+        tiempoTotalDisplay.textContent = minutosToHHMM(Math.round(tiempoTotal));
+    }
+
+    function mostrarError(campoId, mensaje) {
+        const errorDiv = document.getElementById(campoId);
+        errorDiv.textContent = mensaje;
+        errorDiv.style.display = 'block';
+        
+        const campo = campoId === 'cantidad-error' ? document.getElementById('servicio-cantidad') : 
+                     campoId === 'empleado-error' ? document.getElementById('empleado-select') :
+                     document.getElementById('servicio-select');
+        campo.classList.add('is-invalid');
+    }
+
+    function limpiarErrores() {
+        const errores = ['cantidad-error', 'servicio-error', 'empleado-error'];
+        errores.forEach(errorId => {
+            const errorDiv = document.getElementById(errorId);
+            errorDiv.style.display = 'none';
+            errorDiv.textContent = '';
+            
+            const campo = errorId === 'cantidad-error' ? document.getElementById('servicio-cantidad') : 
+                         errorId === 'empleado-error' ? document.getElementById('empleado-select') :
+                         document.getElementById('servicio-select');
+            campo.classList.remove('is-invalid');
+        });
+    }
+
+    // FUNCIÓN PARA FORMATEAR A HH:MM 
+    function minutosToHHMM(minutos) {
+        if (!minutos || isNaN(minutos)) return '00:00';
+        const totalMin = parseInt(minutos, 10);
+        const horas = Math.floor(totalMin / 60);
+        const min = totalMin % 60;
+        return `${String(horas).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+    }
+    
+    // ========== Actualizar Select de Empleados ==========
+    function actualizarSelectEmpleados(servicioOrdenId) {
+        const select = document.querySelector(`.agregar-empleado-select[data-servicio-orden-id="${servicioOrdenId}"]`);
+        
+        if (!select) return;
+        
+        // Obtener todos los empleados disponibles
+        const todosEmpleados = [];
+        {% for empleado in empleados_disponibles %}
+        todosEmpleados.push({
+            id: {{ empleado.pk }},
+            nombre: "{{ empleado.nombre|escapejs }}"
+        });
+        {% endfor %}
+        
+        // Obtener empleados ya asignados a este servicio (no eliminados)
+        const empleadosAsignados = new Set();
+        
+        // 1. Empleados existentes que NO están marcados para eliminar
+        const empleadosExistentesNoEliminados = document.querySelectorAll(
+            `#empleados-list-${servicioOrdenId} .empleado-item:not([data-empleado-nuevo]):not([data-marcado-eliminar])`
+        );
+        empleadosExistentesNoEliminados.forEach(item => {
+            const empId = item.getAttribute('data-empleado-id');
+            if (empId) empleadosAsignados.add(empId);
+        });
+        
+        // 2. Empleados nuevos (agregados durante esta edición)
+        const empleadosNuevos = document.querySelectorAll(
+            `#empleados-list-${servicioOrdenId} .empleado-item[data-empleado-nuevo="true"]`
+        );
+        empleadosNuevos.forEach(item => {
+            const empId = item.getAttribute('data-empleado-id');
+            if (empId) empleadosAsignados.add(empId);
+        });
+        
+        // Limpiar y actualizar select
+        select.innerHTML = '<option value="">Agregar empleado...</option>';
+        
+        todosEmpleados.forEach(empleado => {
+            if (!empleadosAsignados.has(empleado.id.toString())) {
+                const option = document.createElement('option');
+                option.value = empleado.id;
+                option.textContent = empleado.nombre;
+                select.appendChild(option);
+            }
+        });
+    }
+    
+    // ========== MANEJO DE CAMBIOS EN CANTIDADES ==========
+    document.addEventListener('input', function(e) {
+        if (e.target.classList.contains('cantidad-editable')) {
+            const input = e.target;
+            const servicioOrdenId = input.getAttribute('data-servicio-orden-id');
+            const precioUnitario = parseFloat(input.getAttribute('data-precio-unitario')) || 0;
+            const nuevaCantidad = parseFloat(input.value) || 0;
+            
+            // Validar que la cantidad sea válida
+            if (nuevaCantidad <= 0 || isNaN(nuevaCantidad)) {
+                input.classList.add('is-invalid');
+                return;
+            }
+            
+            input.classList.remove('is-invalid');
+            
+            // Calcular nuevo subtotal
+            const nuevoSubtotal = precioUnitario * nuevaCantidad;
+            
+            // Actualizar el display del subtotal
+            const servicioItem = input.closest('.servicio-item');
+            const subtotalElement = servicioItem.querySelector('.subtotal-servicio');
+            
+            if (subtotalElement) {
+                subtotalElement.textContent = formatearGs(nuevoSubtotal);
+                subtotalElement.setAttribute('data-precio', nuevoSubtotal);
+            }
+            
+            // Actualizar el campo hidden correspondiente
+            const hiddenCantidad = document.getElementById(`hidden-cantidad-${servicioOrdenId}`);
+            if (hiddenCantidad) {
+                hiddenCantidad.value = nuevaCantidad;
+            }
+            
+            // Actualizar el atributo data-cantidad en el item
+            servicioItem.setAttribute('data-cantidad', nuevaCantidad);
+            
+            // Actualizar totales
+            actualizarTotalesVisuales();
+        }
+    });
+
+    // También agregar un event listener para cuando se pierde el foco
+    document.addEventListener('blur', function(e) {
+        if (e.target.classList.contains('cantidad-editable')) {
+            const input = e.target;
+            const valor = parseFloat(input.value) || 0;
+            
+            if (valor <= 0) {
+                input.value = '1.00';
+                // Forzar la actualización
+                const event = new Event('input', { bubbles: true });
+                input.dispatchEvent(event);
+            }
+        }
+    }, true);
+
+    // ========== MANEJO DE ELIMINACIÓN DE EMPLEADOS ==========
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.btn-quitar-empleado')) {
+            e.preventDefault();
+            const btn = e.target.closest('.btn-quitar-empleado');
+            const servicioOrdenId = btn.getAttribute('data-servicio-orden-id');
+            const empleadoId = btn.getAttribute('data-empleado-id');
+            const empleadoItem = btn.closest('.empleado-item');
+            
+            if (!servicioOrdenId || !empleadoId) return;
+            
+            const esEmpleadoNuevo = empleadoItem.hasAttribute('data-empleado-nuevo');
+            
+            if (esEmpleadoNuevo) {
+                // EMPLEADO NUEVO: eliminar campo hidden CORRECTAMENTE
+                // Buscar todos los campos de empleados nuevos para este servicio
+                const empleadoFields = document.querySelectorAll(
+                    `#nuevos-empleados-${servicioOrdenId} input[name^="servicios_existentes[${servicioOrdenId}][empleados_nuevos]"][value="${empleadoId}"]`
+                );
+                empleadoFields.forEach(field => field.remove());
+                
+                // También eliminar el campo correspondiente en el índice correcto
+                const allNuevosFields = document.querySelectorAll(
+                    `#nuevos-empleados-${servicioOrdenId} input[name^="servicios_existentes[${servicioOrdenId}][empleados_nuevos]"]`
+                );
+                
+                // Reindexar los campos restantes
+                allNuevosFields.forEach((field, index) => {
+                    const regex = /\[empleados_nuevos\]\[(\d+)\]\[empleado_id\]/;
+                    const match = field.name.match(regex);
+                    if (match) {
+                        field.name = `servicios_existentes[${servicioOrdenId}][empleados_nuevos][${index}][empleado_id]`;
+                    }
+                });
+                
+            } else {
+                // EMPLEADO EXISTENTE: agregar a lista de eliminados
+                const eliminarContainer = document.getElementById(`empleados-eliminados-${servicioOrdenId}`);
+                if (!eliminarContainer) {
+                    // Crear contenedor si no existe
+                    const nuevoContainer = document.createElement('div');
+                    nuevoContainer.id = `empleados-eliminados-${servicioOrdenId}`;
+                    hiddenFieldsContainer.appendChild(nuevoContainer);
+                }
+                
+                // Verificar si ya existe en eliminados
+                const existeEnEliminados = document.querySelector(
+                    `#empleados-eliminados-${servicioOrdenId} input[value="${empleadoId}"]`
+                );
+                
+                if (!existeEnEliminados) {
+                    // Crear input hidden para empleado eliminado
+                    const inputEliminado = document.createElement('input');
+                    inputEliminado.type = 'hidden';
+                    inputEliminado.name = `servicios_existentes[${servicioOrdenId}][empleados_eliminados][]`;
+                    inputEliminado.value = empleadoId;
+                    inputEliminado.className = 'empleado-eliminado';
+                    
+                    document.getElementById(`empleados-eliminados-${servicioOrdenId}`).appendChild(inputEliminado);
+                    
+                    // También quitar del contenedor de empleados existentes
+                    const existenteField = document.querySelector(
+                        `#empleados-existentes-${servicioOrdenId} input.empleado-existente[value="${empleadoId}"]`
+                    );
+                    if (existenteField) {
+                        existenteField.remove();
+                    }
+                }
+                
+                // Marcar visualmente como eliminado
+                empleadoItem.setAttribute('data-marcado-eliminar', 'true');
+                empleadoItem.style.opacity = '0.5';
+                empleadoItem.style.textDecoration = 'line-through';
+                
+                // Opcional: remover visualmente después de un breve tiempo
+                setTimeout(() => {
+                    if (empleadoItem.parentNode) {
+                        empleadoItem.remove();
+                    }
+                }, 500);
+            }
+            
+            // Actualizar select de empleados disponibles
+            actualizarSelectEmpleados(servicioOrdenId);
+        }
+    });
+
+    // ========== AGREGAR NUEVO EMPLEADO A SERVICIO EXISTENTE ==========
+    document.addEventListener('change', function(e) {
+        if (e.target.classList.contains('agregar-empleado-select')) {
+            const select = e.target;
+            const servicioOrdenId = select.getAttribute('data-servicio-orden-id');
+            const empleadoId = select.value;
+            
+            if (!empleadoId || !servicioOrdenId) return;
+            
+            const empleadoNombre = select.options[select.selectedIndex].text;
+            
+            // Verificar si ya existe (no eliminado)
+            const empleadoExistente = document.querySelector(
+                `#empleados-list-${servicioOrdenId} .empleado-item[data-empleado-id="${empleadoId}"]:not([data-marcado-eliminar])`
+            );
+            
+            if (empleadoExistente) {
+                alert('Este empleado ya está asignado a este servicio');
+                select.value = '';
+                return;
+            }
+            
+            // Crear elemento visual
+            const empleadosList = document.getElementById(`empleados-list-${servicioOrdenId}`);
+            const empleadoItem = document.createElement('div');
+            empleadoItem.className = 'empleado-item d-flex align-items-center justify-content-between';
+            empleadoItem.setAttribute('data-empleado-id', empleadoId);
+            empleadoItem.setAttribute('data-empleado-nuevo', 'true');
+            empleadoItem.setAttribute('data-servicio-orden-id', servicioOrdenId);
+            empleadoItem.innerHTML = `
+                <span class="fw-semibold">• ${empleadoNombre}</span>
+                <button type="button" 
+                        class="btn btn-outline-danger small btn-quitar-empleado mt-1"
+                        data-servicio-orden-id="${servicioOrdenId}"
+                        data-empleado-id="${empleadoId}">
+                    <i class="bi bi-x"></i>
+                </button>
+            `;
+            empleadosList.appendChild(empleadoItem);
+            
+            // Crear campo hidden con formato CORRECTO
+            const nuevosContainer = document.getElementById(`nuevos-empleados-${servicioOrdenId}`);
+            if (!nuevosContainer) {
+                const container = document.createElement('div');
+                container.id = `nuevos-empleados-${servicioOrdenId}`;
+                hiddenFieldsContainer.appendChild(container);
+            }
+            
+            // Obtener el índice para el nuevo empleado
+            const existingNuevos = document.querySelectorAll(
+                `#nuevos-empleados-${servicioOrdenId} input[name^="servicios_existentes[${servicioOrdenId}][empleados_nuevos]"]`
+            ).length;
+            
+            // Crear el campo hidden
+            const nuevoEmpleadoField = document.createElement('input');
+            nuevoEmpleadoField.type = 'hidden';
+            nuevoEmpleadoField.name = `servicios_existentes[${servicioOrdenId}][empleados_nuevos][${existingNuevos}][empleado_id]`;
+            nuevoEmpleadoField.value = empleadoId;
+            nuevoEmpleadoField.className = 'empleado-nuevo';
+            
+            document.getElementById(`nuevos-empleados-${servicioOrdenId}`).appendChild(nuevoEmpleadoField);
+            
+            // Resetear select
+            select.value = '';
+            
+            // Actualizar select (remover empleado agregado)
+            actualizarSelectEmpleados(servicioOrdenId);
+        }
+    });
+
+    
+    // ========== FUNCIÓN PARA AGREGAR SERVICIO NUEVO ==========
+    function agregarServicio() {
+        limpiarErrores();
+        
+        const cantidadInput = document.getElementById('servicio-cantidad');
+        const servicioSelect = document.getElementById('servicio-select');
+        const empleadoSelect = document.getElementById('empleado-select');
+        const selectedServicio = servicioSelect.options[servicioSelect.selectedIndex];
+        
+        const cantidad = parseFloat(cantidadInput.value);
+        const servicioId = servicioSelect.value;
+        
+        const servicioPrecio = selectedServicio.getAttribute('data-precio');
+        const servicioTiempo = selectedServicio.getAttribute('data-tiempo');
+        const servicioCategoria = selectedServicio.getAttribute('data-categoria');
+        
+        const optionText = selectedServicio.textContent;
+        const match = optionText.match(/(.+?)\s+-\s+Gs\./);
+        const servicioNombre = match ? match[1].trim() : optionText.split(' - ')[0];
+        
+        const empleadosSeleccionados = Array.from(empleadoSelect.selectedOptions).map(opt => ({
+            id: opt.value,
+            nombre: opt.text
+        }));
+
+        let hayErrores = false;
+
+        if (!servicioId) {
+            mostrarError('servicio-error', 'Seleccione un servicio');
+            hayErrores = true;
+        }
+
+        if (!cantidad || cantidad <= 0 || isNaN(cantidad)) {
+            mostrarError('cantidad-error', 'Cantidad debe ser mayor a 0.00');
+            hayErrores = true;
+        }
+
+        if (empleadosSeleccionados.length === 0) {
+            mostrarError('empleado-error', 'Seleccione al menos un empleado');
+            hayErrores = true;
+        }
+
+        if (hayErrores) return;
+
+        // Verificar si el servicio ya fue agregado
+        const todosLosServicios = document.querySelectorAll('[data-servicio-id]');
+        for (let item of todosLosServicios) {
+            if (item.getAttribute('data-servicio-id') === servicioId) {
+                mostrarError('servicio-error', 'Este servicio ya fue agregado a la orden');
+                return;
+            }
+        }
+
+        const subtotalServicio = cantidad * parseFloat(servicioPrecio);
+
+        // Crear HTML del servicio con empleados
+        const servicioItem = document.createElement('div');
+        servicioItem.className = 'card servicio-item mb-2';
+        servicioItem.setAttribute('data-servicio-id', servicioId);
+        servicioItem.setAttribute('data-precio', servicioPrecio);
+        servicioItem.setAttribute('data-cantidad', cantidad);
+        servicioItem.setAttribute('data-tiempo', servicioTiempo);
+        
+        let empleadosHTML = '';
+        empleadosSeleccionados.forEach(emp => {
+            empleadosHTML += `<div class="empleado-item d-flex align-items-center justify-content-between" 
+                            data-empleado-id="${emp.id}">
+                <span class="fw-semibold">• ${emp.nombre}</span>
+                <button type="button" 
+                        class="btn btn-outline-danger small btn-quitar-empleado mt-1"
+                        data-servicio-orden-id="nuevo_${servicioCounter}"
+                        data-empleado-id="${emp.id}">
+                    <i class="bi bi-x"></i>
+                </button>
+            </div>`;
+        });
+
+        const tiempoFormateado = minutosToHHMM(servicioTiempo);
+        
+        servicioItem.innerHTML = `
+        <div class="card-body py-2">
+            <div class="row align-items-center">
+                <div class="col-md-4"> 
+                    <div class="small fw-semibold text-start">${servicioNombre}</div>
+                    <div class="text-muted small text-start">${servicioCategoria} • ${tiempoFormateado} c/u</div>
+                </div>
+                <div class="col-md-2">
+                    <div class="small">Cantidad: <strong>${cantidad}</strong></div>
+                </div>
+                <div class="col-md-4">
+                    <div class="small d-flex align-items-center justify-content-between mb-1">Empleados:</div> 
+                    <div class="empleados-list">${empleadosHTML}</div>
+                </div>
+                <div class="col-md-2 text-end">
+                    <div class="small">Subtotal: <strong class="js-gs" data-precio="${subtotalServicio}"></strong></div>
+                    <button type="button" class="btn btn-outline-danger small eliminar-servicio-nuevo mt-1">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        `;
+
+        // Crear campos hidden para el servicio y empleados
+        const servicioIndex = servicioCounter;
+        
+        // Campo para servicio
+        const servicioField = document.createElement('input');
+        servicioField.type = 'hidden';
+        servicioField.name = `servicios_nuevos[${servicioIndex}][servicio_id]`;
+        servicioField.value = servicioId;
+        
+        // Campo para cantidad
+        const cantidadField = document.createElement('input');
+        cantidadField.type = 'hidden';
+        cantidadField.name = `servicios_nuevos[${servicioIndex}][cantidad]`;
+        cantidadField.value = cantidad;
+
+        // Campos para cada empleado asignado
+        empleadosSeleccionados.forEach((emp, empIndex) => {
+            const empleadoField = document.createElement('input');
+            empleadoField.type = 'hidden';
+            empleadoField.name = `servicios_nuevos[${servicioIndex}][empleados][${empIndex}][empleado_id]`;
+            empleadoField.value = emp.id;
+            empleadoField.className = 'empleado-nuevo-servicio';
+            hiddenFieldsContainer.appendChild(empleadoField);
+        });
+
+        serviciosContainer.appendChild(servicioItem);
+        hiddenFieldsContainer.appendChild(servicioField);
+        hiddenFieldsContainer.appendChild(cantidadField);
+
+        // Formatear precio
+        servicioItem.querySelector('.js-gs').textContent = formatearGs(subtotalServicio);
+
+        // Evento para eliminar servicio nuevo
+        servicioItem.querySelector('.eliminar-servicio-nuevo').addEventListener('click', function() {
+            servicioItem.remove();
+            servicioField.remove();
+            cantidadField.remove();
+            // También eliminar campos hidden de empleados de este servicio
+            document.querySelectorAll(`input[name^="servicios_nuevos[${servicioIndex}][empleados]"]`).forEach(field => field.remove());
+            actualizarTotalesVisuales();
+            actualizarContadorServicios();
+        });
+
+        // Agregar event listeners a los botones de quitar empleado
+        servicioItem.querySelectorAll('.btn-quitar-empleado').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const empleadoId = btn.getAttribute('data-empleado-id');
+                const empleadoItem = btn.closest('.empleado-item');
+                
+                // Encontrar y eliminar el campo hidden correspondiente
+                const empleadoField = document.querySelector(
+                    `input[name^="servicios_nuevos[${servicioIndex}][empleados]"][value="${empleadoId}"]`
+                );
+                if (empleadoField) {
+                    empleadoField.remove();
+                }
+                
+                // Remover elemento visual
+                empleadoItem.remove();
+            });
+        });
+
+        // ===== VERIFICAR STOCK CON SWEETALERT2 (IGUAL QUE EN PRESUPUESTO) =====
+        console.log('Verificando stock para servicio ID:', servicioId, 'cantidad:', cantidad);
+
+        fetch(`/verificar-stock-servicio/${servicioId}/?cantidad=${cantidad}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Error HTTP: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Datos recibidos:', data);
+                if (data.insumos_faltantes && data.insumos_faltantes.length > 0) {
+                    // Construir mensaje HTML compacto
+                    let htmlContent = `
+                        <div style="text-align: left; font-size: 0.8rem;">
+                            <p style="margin: 0 0 10px 0;"><strong>${servicioNombre}</strong> [x${cantidad}]</p>
+                    `;
+                    
+                    data.insumos_faltantes.forEach(insumo => {
+                        htmlContent += `
+                            <div style="margin-bottom: 8px; padding: 6px; background: #f8f9fa; border-radius: 4px;">
+                                <div style="font-weight: 500;">• ${insumo.nombre}</div>
+                                <div style="color: #000000;">❌ Necesitas: ${insumo.necesario} ${insumo.unidad}</div>
+                                <div style="color: #036320;">📦 Disponible: ${insumo.disponible} ${insumo.unidad}</div>
+                                <div style="color: #dc3545; font-weight: 500;">⚠️ Faltan: ${insumo.faltante} ${insumo.unidad}</div>
+                            </div>
+                        `;
+                    });
+                    
+                    htmlContent += `<p style="margin: 4px 0 0 0; color: #6c757d; font-size: 0.8rem;">Obs: El servicio se agregó igualmente.</p></div>`;
+                    
+                    // Mostrar SweetAlert2 compacto
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'STOCK INSUFICIENTE',
+                        text: '————————————————————',
+                        html: htmlContent,
+                        confirmButtonText: 'Entendido',
+                        confirmButtonColor: '#004280',
+                        width: '400px',
+                    });
+                } else {
+                    // Stock suficiente - mensaje pequeño opcional
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'STOCK OK',
+                        timer: 1500,
+                        showConfirmButton: false,
+                        toast: true,
+                        position: 'top-end'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error verificando stock:', error);
+            });
+
+        // Resetear formulario de agregar
+        cantidadInput.value = '1';
+        servicioSelect.value = '';
+        $('#empleado-select').val(null).trigger('change');
+        servicioCounter++;
+        actualizarTotalesVisuales();
+        actualizarContadorServicios();
+    }
+
+    // ========== MANEJO DE SERVICIOS ELIMINADOS ==========
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.eliminar-servicio-existente')) {
+            const servicioItem = e.target.closest('.servicio-item');
+            const servicioOrdenId = servicioItem.getAttribute('data-servicio-orden-id');
+            
+            if (servicioOrdenId) {
+                // Agregar a la lista de servicios eliminados
+                const hiddenField = document.createElement('input');
+                hiddenField.type = 'hidden';
+                hiddenField.name = 'servicios_eliminados[]';
+                hiddenField.value = servicioOrdenId;
+                document.getElementById('servicios-hidden-fields').appendChild(hiddenField);
+                
+                // También marcar el campo "eliminar" como true
+                const eliminarField = document.getElementById(`eliminar-${servicioOrdenId}`);
+                if (eliminarField) {
+                    eliminarField.value = 'true';
+                }
+            }
+            
+            // Ocultar el servicio visualmente
+            servicioItem.style.display = 'none';
+            actualizarTotalesVisuales();
+            actualizarContadorServicios();
+        }
+    });
+
+    // ========== PREPARAR DATOS ANTES DE ENVIAR ==========
+    document.getElementById('orden-form').addEventListener('submit', function(e) {
+        // Asegurarse de que todas las cantidades estén actualizadas
+        document.querySelectorAll('.cantidad-editable').forEach(input => {
+            const servicioOrdenId = input.getAttribute('data-servicio-orden-id');
+            const hiddenCantidad = document.getElementById(`hidden-cantidad-${servicioOrdenId}`);
+            if (hiddenCantidad) {
+                hiddenCantidad.value = input.value;
+            }
+        });
+        
+        // Validar que cada servicio tenga al menos un empleado
+        let errores = [];
+        let totalEmpleados = 0;
+        
+        document.querySelectorAll('#servicios-container .servicio-item:not([style*="display: none"])').forEach(item => {
+            const servicioNombre = item.querySelector('.fw-semibold').textContent;
+            const empleadosCount = item.querySelectorAll('.empleado-item:not([data-marcado-eliminar])').length;
+            
+            if (empleadosCount === 0) {
+                errores.push(`El servicio "${servicioNombre}" no tiene empleados asignados`);
+            } else {
+                totalEmpleados += empleadosCount;
+            }
+        });
+        
+        // Validar cantidad total de servicios
+        const serviciosCount = document.querySelectorAll('#servicios-container .servicio-item:not([style*="display: none"])').length;
+        
+        if (serviciosCount === 0) {
+            errores.push('Debe haber al menos un servicio en la orden.');
+        }
+        
+        if (totalEmpleados === 0) {
+            errores.push('Debe asignar al menos un empleado a los servicios.');
+        }
+        
+        if (errores.length > 0) {
+            e.preventDefault();
+            alert('Errores encontrados:\n\n' + errores.join('\n'));
+            return false;
+        }
+    });
+
+    // ========== EVENT LISTENERS ==========
+    agregarBtn.addEventListener('click', agregarServicio);
+    document.getElementById('servicio-cantidad').addEventListener('input', limpiarErrores);
+    document.getElementById('servicio-select').addEventListener('change', limpiarErrores);
+    document.getElementById('empleado-select').addEventListener('change', limpiarErrores);
+
+    // Permitir agregar servicio con Enter en cantidad
+    document.getElementById('servicio-cantidad').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            agregarServicio();
+        }
+    });
+
+    // ========== INICIALIZACIÓN ==========
+    // Inicializar selects de empleados para servicios existentes
+    document.querySelectorAll('.servicio-item[data-servicio-existente="true"]').forEach(item => {
+        const servicioId = item.getAttribute('data-servicio-orden-id');
+        if (servicioId) {
+            // Crear contenedores si no existen
+            if (!document.getElementById(`nuevos-empleados-${servicioId}`)) {
+                const container = document.createElement('div');
+                container.id = `nuevos-empleados-${servicioId}`;
+                hiddenFieldsContainer.appendChild(container);
+            }
+            
+            if (!document.getElementById(`empleados-eliminados-${servicioId}`)) {
+                const container = document.createElement('div');
+                container.id = `empleados-eliminados-${servicioId}`;
+                hiddenFieldsContainer.appendChild(container);
+            }
+            
+            actualizarSelectEmpleados(servicioId);
+        }
+    });
+
+    // ========== FORMATEAR TIEMPOS EN EL SELECT ==========
+    function formatearTiemposEnSelect() {
+        document.querySelectorAll('#servicio-select option .tiempo-hhmm').forEach(span => {
+            const minutos = span.getAttribute('data-minutos');
+            if (minutos) {
+                span.textContent = minutosToHHMM(minutos);
+            }
+        });
+    }
+
+    // ========== FORMATEAR TIEMPOS EN SERVICIOS EXISTENTES ==========
+    function formatearTiemposServiciosExistentes() {
+        document.querySelectorAll('#servicios-container .servicio-item .tiempo-hhmm').forEach(span => {
+            const minutos = span.getAttribute('data-minutos');
+            if (minutos) {
+                span.textContent = minutosToHHMM(minutos);
+            }
+        });
+    }
+
+
+    // Aplicar formato a precios
+    function aplicarFormatoMilesSelect() {
+      const servicioOptions = document.querySelectorAll('#servicio-select option');
+      servicioOptions.forEach(function(option) {
+        if (option.value) {
+          const texto = option.textContent;
+          const match = texto.match(/Gs\.\s*(\d+)/);
+          if (match) {
+            const precioSinFormato = match[1];
+            const precioFormateado = formatearNumero(precioSinFormato);
+            option.textContent = texto.replace(
+              /Gs\.\s*\d+/,
+              `Gs. ${precioFormateado}`
+            );
+          }
+        }
+      });
+    }
+
+    formatearTiemposEnSelect();
+    formatearTiemposServiciosExistentes();
+    aplicarFormatoMilesSelect();
+    actualizarTotalesVisuales();
+    actualizarContadorServicios();
+});
+</script>
+
+{% endblock %}

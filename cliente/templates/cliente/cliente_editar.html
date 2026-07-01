@@ -1,0 +1,446 @@
+{% extends 'seguridad/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-0">
+    <div class="row justify-content-center">
+        <div class="col-12 col-xl-8">
+            
+            <!-- HEADER -->
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <div>
+                    <h2 class="h4 mb-1">EDITAR CLIENTE</h2>
+                </div>
+                <button type="button" onclick="window.history.back()" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left"></i>Volver
+                </button>
+            </div>
+            <!-- FORMULARIO -->
+            <div class="card">
+                <div class="card-body">
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger alert-sm mb-3">
+                            <i class="bi bi-exclamation-circle"></i>
+                            {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+                        </div>
+                        {% endif %}
+                        
+                        <div class="row g-3">
+                            <!-- COLUMNA IZQUIERDA -->
+                            <div class="col-md-6">
+
+                                <div class="mb-2">
+                                    <label for="{{ form.tipo_cliente.id_for_label }}" class="form-label small fw-semibold text-muted">Tipo de Cliente</label>
+                                    {{ form.tipo_cliente }}
+                                    {% if form.tipo_cliente.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.tipo_cliente.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="mb-2">
+                                    <label for="{{ form.tipo_documento.id_for_label }}" class="form-label small fw-semibold text-muted">Tipo de Documento</label>
+                                    {{ form.tipo_documento }}
+                                    {% if form.tipo_documento.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.tipo_documento.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="mb-2">
+                                    <label for="{{ form.numero_documento.id_for_label }}" class="form-label small fw-semibold text-muted">N° de Documento</label>
+                                    {{ form.numero_documento }}
+                                    {% if form.numero_documento.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.numero_documento.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+
+                                <!-- FECHA DE NACIMIENTO (FÍSICA) -->
+                                <div class="mb-2" id="wrap-fecha-nac">
+                                    <label for="{{ form.fecha_nacimiento.id_for_label }}" class="form-label small fw-semibold text-muted">Fecha de Nacimiento</label>
+                                    {{ form.fecha_nacimiento }}
+                                    {% if form.fecha_nacimiento.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.fecha_nacimiento.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <!-- FECHA DE CONSTITUCIÓN (JURÍDICA) -->
+                                <div class="mb-2" id="wrap-fecha-const">
+                                    <label for="{{ form.fecha_constitucion.id_for_label }}" class="form-label small fw-semibold text-muted">Fecha de Constitución</label>
+                                    {{ form.fecha_constitucion }}
+                                    {% if form.fecha_constitucion.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.fecha_constitucion.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+
+                            </div>
+                            
+                            <!-- COLUMNA DERECHA -->
+                            <div class="col-md-6">
+                                <div class="mb-2">
+                                    <label for="{{ form.nombre.id_for_label }}" class="form-label small fw-semibold text-muted">Nombre Completo/Razón Social</label>
+                                    {{ form.nombre }}
+                                    {% if form.nombre.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.nombre.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="mb-2">
+                                    <label for="{{ form.email.id_for_label }}" class="form-label small fw-semibold text-muted">Correo electrónico</label>
+                                    {{ form.email }}
+                                    {% if form.email.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.email.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="mb-2">
+                                    <label for="{{ form.telefono.id_for_label }}" class="form-label small fw-semibold text-muted">Teléfono</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">+595</span>
+                                        <input type="text" name="telefono" class="form-control" 
+                                               placeholder="9xxxxxxx" 
+                                               value="{% if form.telefono.value %}{{ form.telefono.value|cut:'+595' }}{% endif %}">
+                                    </div>
+                                    {% if form.telefono.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.telefono.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="mb-2">
+                                    <label for="{{ form.direccion.id_for_label }}" class="form-label small fw-semibold text-muted">Dirección</label>
+                                    {{ form.direccion }}
+                                    {% if form.direccion.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.direccion.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+
+                            </div>
+                        </div>
+                        
+                        <!-- ESTADO -->
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="mb-3">
+                                    <label for="{{ form.is_active.id_for_label }}" class="form-label small fw-semibold text-muted">Estado</label>
+                                    <div class="form-check form-switch mt-1">
+                                        {% if puede_desactivar_clientes %}
+                                            {{ form.is_active }}
+                                            <label class="form-check-label small fw-semibold text-muted" for="{{ form.is_active.id_for_label }}">
+                                                Estado (Activo/Inactivo)
+                                            </label>
+                                        {% else %}
+                                            <input type="checkbox" 
+                                                id="{{ form.is_active.id_for_label }}"  
+                                                class="form-check-input" 
+                                                {% if form.is_active.value %}checked{% endif %} 
+                                                disabled>
+                                            <label class="form-check-label small fw-semibold text-muted" for="{{ form.is_active.id_for_label }}">
+                                                Estado (Activo/Inactivo)
+                                            </label>
+                                            <input type="hidden" name="{{ form.is_active.name }}" value="{% if form.is_active.value %}True{% else %}False{% endif %}">
+                                        {% endif %} 
+                                    </div>
+                                    {% if not puede_desactivar_clientes %}
+                                        <div class="form-text small text-muted mt-1">
+                                            <i class="bi bi-info-circle"></i>
+                                            No tienes permisos para cambiar el estado de clientes.
+                                        </div>
+                                    {% endif %}
+                                    {% if form.is_active.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.is_active.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- VEHÍCULOS 
+                            <div class="col-12">
+                                <div class="mb-1">
+                                    <label class="form-label small fw-semibold text-muted">Vehículos Vinculados</label>
+                                    
+                                    {% if vehiculos|length %}
+                                        {% for v in vehiculos %}
+                                            <div class="d-flex align-items-center gap-2 mb-2">
+                                                <a class="btn btn-outline fw-semibold flex-grow-1 text-start" href="{% url 'vehiculo_ver' v.pk %}">
+                                                    <i class="bi bi-car-front"></i>{{ v.marca }} {{ v.modelo }} ({{ v.nro_chapa }})
+                                                    {% if v.propietario_id == cliente.pk and v.poseedor_id == cliente.pk %}
+                                                        <small class="text-semibold">Propietario y Poseedor</small>
+                                                    {% elif v.propietario_id == cliente.pk %}
+                                                        <small class="text-semibold">Propietario</small>
+                                                    {% elif v.poseedor_id == cliente.pk %}
+                                                        <small class="text-semibold">Poseedor</small>
+                                                    {% endif %}
+                                                </a>
+                                                <button type="button" class="btn btn-outline-danger btn-sm" 
+                                                        data-bs-toggle="modal" data-bs-target="#eliminarVehiculoModal"
+                                                        data-cliente-id="{{ cliente.pk }}"
+                                                        data-vehiculo-id="{{ v.pk }}"
+                                                        data-vehiculo-info="{{ v.marca }} {{ v.modelo }} ({{ v.nro_chapa }})"
+                                                        data-tipo-vinculacion="{% if v.propietario_id == cliente.pk and v.poseedor_id == cliente.pk %}ambos{% elif v.propietario_id == cliente.pk %}propietario{% else %}poseedor{% endif %}"
+                                                        title="Desvincular vehículo">
+                                                    <i class="bi bi-x"></i>
+                                                </button>
+                                            </div>
+                                        {% endfor %}
+                                    {% else %}
+                                        <div class="text-muted small">
+                                            <a href="{% url 'cliente_vincular_vehiculo' cliente.pk %}">
+                                                <span class="btn btn-outline fw-semibold"> 
+                                                    <i class="bi bi-car-front"></i>Vincular vehículo
+                                                </span>
+                                            </a>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>-->
+                        </div>
+
+                        <!-- BOTONES -->
+                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-center pt-3 border-top gap-2">
+                            <a href="{% url 'cliente_lista' %}" class="btn btn-outline-secondary btn-sm w-100 w-md-auto order-2 order-md-1">
+                                <i class="bi bi-x-circle"></i>Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary btn-sm w-100 w-md-auto order-1 order-md-2">
+                                <i class="bi bi-check-circle"></i>Guardar Cambios
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL PARA ELIMINAR VEHÍCULO -->
+<div class="modal fade" id="eliminarVehiculoModal" tabindex="-1" aria-labelledby="eliminarVehiculoModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title" id="eliminarVehiculoModalLabel">Desvincular Vehículo</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <p>¿Desvincular vehículo <strong id="vehiculoInfoEliminar"></strong>?</p>
+        <p class="small text-muted mt-1" id="tipoVinculacionInfo"></p>
+        <p class="small text-muted">Esta acción no elimina el vehículo, solo lo desvincula de este cliente.</p>
+      </div>
+      <div class="modal-footer">
+        <form method="post" action="" id="eliminarVehiculoForm">
+          {% csrf_token %}
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-danger btn-sm">Desvincular</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.container-fluid { max-width: 1000px; }
+.form-control, .form-select { border-radius: 0.375rem; border: 1px solid #ced4da; padding: 0.375rem 0.75rem; font-size: 0.875rem; }
+.form-control:focus, .form-select:focus { border-color: #86b7fe; box-shadow: 0 0 0 0.2rem rgba(13,110,253,.25); }
+.btn-sm { padding: .375rem .75rem; font-size: .875rem; min-width: 100px; }
+.form-switch .form-check-input { width: 2.5em; margin-right: .5rem; }
+.input-group-text { border-top-right-radius: .375rem; border-bottom-right-radius: .375rem; }
+
+/* Estilos para los botones de eliminar vinculación */
+.d-flex.align-items-center.gap-2 {
+    gap: 0.5rem;
+}
+
+.btn-outline-danger.btn-sm {
+    padding: 0.25rem 0.5rem;
+    min-width: auto;
+    flex-shrink: 0;
+}
+
+.btn-outline.fw-semibold.flex-grow-1 {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Estilos para los modales de eliminación */
+#eliminarVehiculoModal .modal-dialog {
+  max-width: 300px;
+  width: 90%;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  min-height: calc(100% - 2rem);
+}
+#eliminarVehiculoModal .modal-content {
+  min-height: 50px;
+}
+#eliminarVehiculoModal .modal-title,
+#eliminarVehiculoModal .modal-body {
+  text-align: center;
+}
+#eliminarVehiculoModal .modal-footer {
+  justify-content: center;
+  gap: .5rem;
+}
+#eliminarVehiculoModal .modal-footer .btn {
+  padding: 0.45rem 0.9rem;
+  font-size: 0.75rem;
+  min-width: 120px;
+  line-height: 1.15;
+  border-radius: 8px;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const form = document.querySelector('form');
+  const tel  = form.querySelector('input[name="telefono"]');
+  const tipo = document.getElementById('id_tipo_cliente');
+  const nacW = document.getElementById('wrap-fecha-nac');
+  const conW = document.getElementById('wrap-fecha-const');
+
+  // --- Mostrar solo la fecha que corresponde ---
+  function toggleFechas() {
+    if (!tipo) return;
+    if (tipo.value === 'fisica') { 
+        if(nacW) nacW.style.display=''; 
+        if(conW) conW.style.display='none'; 
+    }
+    else if (tipo.value === 'juridica') { 
+        if(nacW) nacW.style.display='none'; 
+        if(conW) conW.style.display=''; 
+    }
+    else { 
+        if(nacW) nacW.style.display=''; 
+        if(conW) conW.style.display=''; 
+    }
+  }
+  toggleFechas();
+  if (tipo) tipo.addEventListener('change', toggleFechas);
+
+  // --- Separador dd/mm/aaaa (no cambia tu formato) ---
+  const fechas = ['id_fecha_nacimiento','id_fecha_constitucion']
+    .map(id => document.getElementById(id)).filter(Boolean);
+
+  function fmt(v){
+    if(!v) return v;
+    const m=v.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if(m) return `${m[3]}/${m[2]}/${m[1]}`;
+    const d=v.replace(/\D/g,'');
+    return d.length===8 ? `${d.slice(0,2)}/${d.slice(2,4)}/${d.slice(4)}` : v;
+  }
+  fechas.forEach(i=>{
+    i.placeholder='dd/mm/aaaa';
+    i.value = fmt(i.value);
+    i.addEventListener('input', ()=>{
+      const d=i.value.replace(/\D/g,'').slice(0,8);
+      i.value = d.length>=5 ? `${d.slice(0,2)}/${d.slice(2,4)}/${d.slice(4)}`
+           : d.length>=3 ? `${d.slice(0,2)}/${d.slice(2)}`
+           : d;
+    });
+  });
+
+  // --- Prefijo +595 justo antes de enviar (sin bloquear el submit) ---
+  form.addEventListener('submit', function () {
+    if (tel && tel.value && !tel.value.startsWith('+595')) {
+      tel.value = '+595' + tel.value;
+    }
+  });
+
+  // --- Si el form vuelve con errores del servidor, reponer valores originales en obligatorios vacíos ---
+  const hasErrors = {{ form.errors|yesno:"true,false" }};
+  if (hasErrors) {
+    const initial = {
+      tipo_cliente: "{{ form.instance.tipo_cliente|default_if_none:'' }}",
+      tipo_documento: "{{ form.instance.tipo_documento|default_if_none:'' }}",
+      numero_documento: "{{ form.instance.numero_documento|default_if_none:'' }}",
+      nombre: "{{ form.instance.nombre|default_if_none:''|escapejs }}",
+      email: "{{ form.instance.email|default_if_none:'' }}",
+      telefono: "{{ form.instance.telefono|default_if_none:'' }}",
+      direccion: "{{ form.instance.direccion|default_if_none:''|escapejs }}",
+      fecha_nacimiento: "{% if form.instance.fecha_nacimiento %}{{ form.instance.fecha_nacimiento|date:'d/m/Y' }}{% endif %}",
+      fecha_constitucion: "{% if form.instance.fecha_constitucion %}{{ form.instance.fecha_constitucion|date:'d/m/Y' }}{% endif %}",
+    };
+
+    const required = ['tipo_cliente','tipo_documento','numero_documento','nombre','email','telefono','direccion'];
+    if (tipo && tipo.value === 'fisica') required.push('fecha_nacimiento');
+    if (tipo && tipo.value === 'juridica') required.push('fecha_constitucion');
+
+    required.forEach(name=>{
+      const el = form.elements[name];
+      if (!el) return;
+      if (!(el.value||'').trim()) {
+        let val = initial[name] || '';
+        if (name==='telefono') val = val.replace(/^\+595/,''); // tu input visible sin prefijo
+        el.value = val;
+      }
+    });
+
+    // Focus en el primer campo con error
+    const firstErr = document.querySelector('.invalid-feedback.d-block');
+    if (firstErr) {
+      const field = firstErr.previousElementSibling?.querySelector('[name]') ||
+                    firstErr.parentElement.querySelector('[name]');
+      if (field) field.focus();
+    }
+  }
+
+  if (tel && !tel.value) tel.placeholder = '9xxxxxxx';
+
+  // MODAL PARA ELIMINAR VEHÍCULO
+  const eliminarVehiculoModal = document.getElementById('eliminarVehiculoModal');
+  if (eliminarVehiculoModal) {
+      eliminarVehiculoModal.addEventListener('show.bs.modal', function(event) {
+          const button = event.relatedTarget;
+          const clienteId = button.getAttribute('data-cliente-id');
+          const vehiculoId = button.getAttribute('data-vehiculo-id');
+          const vehiculoInfo = button.getAttribute('data-vehiculo-info') || '';
+          const tipoVinculacion = button.getAttribute('data-tipo-vinculacion') || '';
+          
+          document.getElementById('vehiculoInfoEliminar').textContent = vehiculoInfo;
+          
+          // Mostrar información del tipo de vinculación
+          const tipoInfo = document.getElementById('tipoVinculacionInfo');
+          if (tipoVinculacion === 'ambos') {
+              tipoInfo.textContent = 'El cliente es tanto propietario como poseedor. Se desvinculará de ambos roles.';
+          } else if (tipoVinculacion === 'propietario') {
+              tipoInfo.textContent = 'El cliente es propietario del vehículo.';
+          } else if (tipoVinculacion === 'poseedor') {
+              tipoInfo.textContent = 'El cliente es poseedor del vehículo.';
+          } else {
+              tipoInfo.textContent = '';
+          }
+          
+          // Determinar qué URL usar según el tipo de vinculación
+          let actionUrl;
+          if (tipoVinculacion === 'ambos' || tipoVinculacion === 'propietario') {
+              // Para ambos casos o solo propietario, eliminar como propietario
+              actionUrl = "{% url 'cliente_eliminar_vehiculo' 0 1 %}".replace('0', clienteId).replace('1', vehiculoId);
+          } else {
+              // Solo poseedor
+              actionUrl = "{% url 'cliente_eliminar_vehiculo' 0 1 %}".replace('0', clienteId).replace('1', vehiculoId);
+          }
+          
+          document.getElementById('eliminarVehiculoForm').action = actionUrl;
+      });
+  }
+});
+</script>
+{% endblock %}

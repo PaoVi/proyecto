@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Presupuesto #{{ presupuesto.id }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <style>
+        @media print {
+            body {
+                margin: 0;
+                padding: 15px;
+            }
+            .no-print {
+                display: none;
+            }
+            @page {
+                margin: 1.5cm;
+            }
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+        }
+        
+        .info-section {
+            margin-bottom: 15px;
+        }
+        
+        .info-row {
+            display: flex;
+            margin-bottom: 5px;
+        }
+        
+        .info-label {
+            width: 120px;
+            font-weight: bold;
+        }
+        
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        
+        .table th, .table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        
+        .table th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+        
+        .totals {
+            margin-top: 20px;
+            text-align: right;
+            border-top: 2px solid #333;
+            padding-top: 10px;
+        }
+        
+        .total-grande {
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        
+        .total-row {
+            margin: 5px 0;
+        }
+        
+        .text-right {
+            text-align: right;
+        }
+        
+        .nowrap {
+            white-space: nowrap;
+        }
+        
+        .description-box {
+            margin: 15px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+        }
+        
+        /* Botones de impresión */
+        .btn-print {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .btn-print:hover {
+            background-color: #0056b3;
+        }
+        
+        .btn-close-print {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .btn-close-print:hover {
+            background-color: #5a6268;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>PRESUPUESTO #{{ presupuesto.id }}</h2>
+        <!-- FECHA ACTUAL AL MOMENTO DE IMPRIMIR -->
+        <p><strong>Fecha de impresión:</strong> {% now "d/m/Y H:i" %}</p>
+    </div>
+
+    <div class="info-section">
+        <div class="info-row">
+            <div class="info-label">Cliente:</div>
+            <div>{{ presupuesto.cliente.nombre }}</div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">Vehículo:</div>
+            <div>{{ presupuesto.vehiculo.marca }} {{ presupuesto.vehiculo.modelo }} - Chapa: {{ presupuesto.vehiculo.nro_chapa }}</div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">Estado:</div>
+            <div>{{ presupuesto.get_estado_display }}</div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">Fecha creación:</div>
+            <div> {{ presupuesto.fecha_creacion|date:"d/m/Y" }}</div>
+        </div>      
+        <div class="info-row">
+            <div class="info-label">Fecha vencimiento:</div>
+            <div>{{ presupuesto.fecha_vencimiento|date:"d/m/Y" }}</div>
+        </div>
+    </div>
+
+    {% if presupuesto.descripcion %}
+    <div class="description-box">
+        <div class="info-row">
+            <div class="info-label">Descripción:</div>
+            <div style="flex: 1;">{{ presupuesto.descripcion|linebreaksbr }}</div>
+        </div>
+    </div>
+    {% endif %}
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Servicio</th>
+                <th width="15%">Cantidad</th>
+                <th width="20%" class="text-right">Precio Unitario</th>
+                <th width="20%" class="text-right">Subtotal</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for servicio in servicios_presupuesto %}
+            <tr>
+                <td>{{ servicio.servicio.nombre }}</td>
+                <td>{{ servicio.cantidad }}</td>
+                <td class="text-right nowrap"><span class="format-miles">{{ servicio.servicio.precio_base|floatformat:0 }}</span></td>
+                <td class="text-right nowrap"><span class="format-miles">{{ servicio.subtotal|floatformat:0 }}</span></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="totals">
+        <div class="total-row">
+            <strong>Subtotal:</strong> 
+            <span class="nowrap">Gs. <span class="format-miles">{{ presupuesto.subtotal_servicios|floatformat:0 }}</span></span>
+        </div>
+        
+        {% if presupuesto.descuento > 0 %}
+        <div class="total-row">
+            <strong>Descuento:</strong> 
+            <span class="nowrap">- Gs. <span class="format-miles">{{ presupuesto.descuento|floatformat:0 }}</span></span>
+        </div>
+        {% endif %}
+        
+        <div class="total-row">
+            <strong>Base Imponible:</strong> 
+            <span class="nowrap">Gs. <span class="format-miles">{{ presupuesto.base_imponible|floatformat:0 }}</span></span>
+        </div>
+        
+        <div class="total-row">
+            <strong>IVA ({{ presupuesto.iva_porcentaje|floatformat:0 }}%):</strong> 
+            <span class="nowrap">Gs. <span class="format-miles">{{ presupuesto.iva_monto|floatformat:0 }}</span></span>
+        </div>
+        
+        <div class="total-row total-grande">
+            <strong>TOTAL:</strong> 
+            <span class="nowrap">Gs. <span class="format-miles">{{ presupuesto.total|floatformat:0 }}</span></span>
+        </div>
+    </div>
+
+    <div style="margin-top: 30px; padding-top: 15px; border-top: 1px solid #ddd; font-size: 11px; color: #666;">
+        <div class="text-right">
+            <strong>Sistema de Gestión - CarSys</strong><br>
+        </div>
+    </div>
+
+    <!-- BOTONES DE IMPRESIÓN (mismo estilo que factura) -->
+    <div class="no-print" style="text-align:center; margin-top:10px; padding:5px;">
+        <button onclick="window.print()" class="btn-print">
+            <i class="bi bi-printer"></i> Imprimir
+        </button>
+        <button onclick="window.close()" class="btn-close-print">
+            <i class="bi bi-x-circle"></i> Cerrar
+        </button>
+    </div>
+
+    <script>
+        // Función para formatear números con separador de miles
+        function formatNumber(number) {
+            return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        }
+
+        // Aplicar formato a todos los elementos con clase 'format-miles'
+        document.addEventListener('DOMContentLoaded', function() {
+            const elements = document.querySelectorAll('.format-miles');
+            elements.forEach(function(element) {
+                // Limpiar el texto y convertir a número
+                const rawText = element.textContent.trim();
+                const number = parseFloat(rawText.replace(/[^\d]/g, ''));
+                
+                if (!isNaN(number)) {
+                    element.textContent = formatNumber(number);
+                }
+            });
+        });
+
+        // Auto-imprimir si viene con parámetro print=1
+        if (window.location.search.includes('print=1')) {
+            window.onload = function() { 
+                setTimeout(function() { 
+                    window.print(); 
+                }, 500); 
+            };
+        }
+    </script>
+</body>
+</html>

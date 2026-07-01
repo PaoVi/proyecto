@@ -1,0 +1,551 @@
+{% extends 'seguridad/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-0">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-8">
+
+      <!-- HEADER -->
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <h2 class="h4 mb-1">EDITAR EMPLEADO</h2>
+
+        <button type="button" onclick="window.history.back()" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-arrow-left"></i>Volver
+        </button>
+      </div>
+
+      <!-- FORMULARIO -->
+      <div class="card">
+        <div class="card-body">
+          <form method="post" novalidate>
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger alert-sm mb-3">
+              <i class="bi bi-exclamation-circle"></i>
+              {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- NOMBRE Y APELLIDO -->
+            <div class="row g-3">
+              <div class="col-12">
+                <label class="form-label small fw-semibold text-muted">Nombre y Apellido</label>
+                <div class="row g-2">
+                  <div class="col-md-12">
+                    {{ form.nombre }}
+                    {% if form.nombre.errors %}
+                      <div class="invalid-feedback d-block">
+                        {% for error in form.nombre.errors %}{{ error }}{% endfor %}
+                      </div>
+                    {% endif %}
+                  </div>
+                  <div class="col-md-6">
+                    {{ form.apellido }}
+                    {% if form.apellido.errors %}
+                      <div class="invalid-feedback d-block">
+                        {% for error in form.apellido.errors %}{{ error }}{% endfor %}
+                      </div>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- DOS COLUMNAS -->
+            <div class="row g-3">
+              <!-- COLUMNA IZQUIERDA -->
+              <div class="col-md-6">
+
+                <!-- CÉDULA/RUC -->
+                <div class="mb-1">
+                  <label for="{{ form.cedula_ruc.id_for_label }}" class="form-label small fw-semibold text-muted">Cédula / RUC</label>
+                  {{ form.cedula_ruc }}
+                  {% if form.cedula_ruc.errors %}
+                    <div class="invalid-feedback d-block">
+                      {% for error in form.cedula_ruc.errors %}{{ error }}{% endfor %}
+                    </div>
+                  {% endif %}
+                </div>
+
+                <!-- CORREO -->
+                <div class="mb-1">
+                  <label for="{{ form.correo_electronico.id_for_label }}" class="form-label small fw-semibold text-muted">Correo Electrónico</label>
+                  {{ form.correo_electronico }}
+                  {% if form.correo_electronico.errors %}
+                    <div class="invalid-feedback d-block">
+                      {% for error in form.correo_electronico.errors %}{{ error }}{% endfor %}
+                    </div>
+                  {% endif %}
+                </div>
+
+                <!-- FECHA DE NACIMIENTO -->
+                <div class="mb-1">
+                  <label for="{{ form.fecha_nacimiento.id_for_label }}" class="form-label small fw-semibold text-muted">Fecha de Nacimiento</label>
+                  {{ form.fecha_nacimiento }}
+                  {% if form.fecha_nacimiento.errors %}
+                    <div class="invalid-feedback d-block">
+                      {% for error in form.fecha_nacimiento.errors %}{{ error }}{% endfor %}
+                    </div>
+                  {% endif %}
+                </div>
+
+                <!-- FECHA DE INGRESO -->
+                <div class="mb-1">
+                  <label for="{{ form.fecha_ingreso.id_for_label }}" class="form-label small fw-semibold text-muted">Fecha de Ingreso</label>
+                  {{ form.fecha_ingreso }}
+                  {% if form.fecha_ingreso.errors %}
+                    <div class="invalid-feedback d-block">
+                      {% for error in form.fecha_ingreso.errors %}{{ error }}{% endfor %}
+                    </div>
+                  {% endif %}
+                </div>
+
+              </div>
+
+              <!-- COLUMNA DERECHA -->
+              <div class="col-md-6">
+
+                <!-- TELÉFONO -->
+                <div class="mb-1">
+                  <label class="form-label small fw-semibold text-muted">Teléfono</label>
+                  <div class="input-group">
+                    <span class="input-group-text">+595</span>
+                    <input type="text" name="telefono" class="form-control"
+                           placeholder="9xxxxxxx"
+                           value="{% if form.telefono.value %}{{ form.telefono.value|cut:'+595' }}{% endif %}">
+                  </div>
+                  {% if form.telefono.errors %}
+                    <div class="invalid-feedback d-block">
+                      {% for error in form.telefono.errors %}{{ error }}{% endfor %}
+                    </div>
+                  {% endif %}
+                </div>
+
+                <!-- CIUDAD -->
+                <div class="mb-1">
+                  <label for="{{ form.ciudad.id_for_label }}" class="form-label small fw-semibold text-muted">Ciudad</label>
+                  {{ form.ciudad }}
+                  {% if form.ciudad.errors %}
+                    <div class="invalid-feedback d-block">
+                      {% for error in form.ciudad.errors %}{{ error }}{% endfor %}
+                    </div>
+                  {% endif %}
+                </div>
+
+                <!-- CARGO -->
+                <div class="mb-1">
+                  <label for="{{ form.cargo.id_for_label }}" class="form-label small fw-semibold text-muted">Cargo</label>
+                  {{ form.cargo }}
+                  {% if form.cargo.errors %}
+                    <div class="invalid-feedback d-block">
+                      {% for error in form.cargo.errors %}{{ error }}{% endfor %}
+                    </div>
+                  {% endif %}
+                </div>
+
+                <!-- SALARIO BASE -->
+                <div class="mb-1">
+                  <label class="form-label small fw-semibold text-muted">Salario Base</label>
+
+                  {# oculto numérico: guardo valor y también una semilla en data-seed #}
+                  <input type="hidden"
+                        name="salario_base"
+                        id="id_salario_base"
+                        value="{{ form.salario_base.value|default:form.initial.salario_base|default:empleado.salario_base }}"
+                        data-seed="{{ form.salario_base.value|default:form.initial.salario_base|default:empleado.salario_base }}">
+
+                  {# visible sin valor; el JS lo completa y formatea #}
+                  <input type="text" id="id_salario_base_display" class="form-control" placeholder="Gs. 0">
+
+                  {% if form.salario_base.errors %}
+                    <div class="invalid-feedback d-block">
+                      {% for error in form.salario_base.errors %}{{ error }}{% endfor %}
+                    </div>
+                  {% endif %}
+                </div>
+
+              </div>
+
+              <!-- DIRECCIÓN -->
+              <div class="col-12">
+                <label for="{{ form.direccion.id_for_label }}" class="form-label small fw-semibold text-muted">Dirección</label>
+                {{ form.direccion }}
+                {% if form.direccion.errors %}
+                  <div class="invalid-feedback d-block">
+                    {% for error in form.direccion.errors %}{{ error }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- ESTADO -->
+            <div class="row mt-1">
+              <div class="col-12">
+                <div class="mb-1">
+                  <label class="form-label small fw-semibold text-muted">Estado</label>
+                  <div class="form-check form-switch mt-1">
+                    {% if perms.empleado.desactivar_empleados %}
+                      {{ form.estado }}
+                      <label class="form-check-label small fw-semibold text-muted" for="{{ form.estado.id_for_label }}">
+                        Estado (Activo/Inactivo)
+                      </label>
+                    {% else %}
+                      <input type="checkbox"
+                             id="{{ form.estado.id_for_label }}"
+                             class="form-check-input"
+                             {% if form.estado.value %}checked{% endif %}
+                             disabled
+                             title="No tienes permisos para cambiar el estado de empleados">
+                      <label class="form-check-label small fw-semibold text-muted" for="{{ form.estado.id_for_label }}">
+                        Estado (Activo/Inactivo)
+                      </label>
+                      <input type="hidden" name="{{ form.estado.name }}" value="{% if form.estado.value %}True{% else %}False{% endif %}">
+                    {% endif %}
+                  </div>
+                  {% if not puede_desactivar_empleados %}
+                    <div class="form-text small text-muted mt-1">
+                      <i class="bi bi-info-circle"></i>
+                        No tienes permisos para cambiar el estado de empleados.
+                    </div>
+                  {% endif %}
+                  {% if form.estado.errors %}
+                    <div class="invalid-feedback d-block">
+                      {% for error in form.estado.errors %}{{ error }}{% endfor %}
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
+
+              <!-- ASIGNAR USUARIO 
+              <div class="col-6">
+                  <label class="form-label small text-muted">Usuario asignado</label>
+                  <p class="mb-0 fw-semibold">
+                      {% if empleado.user %}
+                          <div class="d-flex align-items-center gap-2">
+                              <a href="{% url 'usuario_ver' empleado.user.id %}"
+                                  class="btn btn-outline fw-semibold flex-grow-1 text-start">
+                                  <i class="bi bi-person"></i> {{ empleado.user.username }}
+                              </a>
+                              <button type="button" class="btn btn-outline-danger btn-sm" 
+                                      data-bs-toggle="modal" data-bs-target="#eliminarUsuarioModal"
+                                      data-empleado-id="{{ empleado.pk }}"
+                                      data-usuario-nombre="{{ empleado.user.username }}"
+                                      title="Desvincular usuario">
+                                  <i class="bi bi-x"></i>
+                              </button>
+                          </div>
+                      {% else %}
+                          <div class="text-muted small">
+                              <a href="{% url 'empleado_asignar_usuario' empleado.pk %}">
+                                  <span class="btn btn-outline fw-semibold">
+                                      <i class="bi bi-person-x"></i> Asignar usuario
+                                  </span>
+                              </a>
+                          </div>
+                      {% endif %}
+                  </p>
+              </div>-->
+
+            <!-- BOTONES -->
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-center pt-2 border-top gap-2">
+              <a href="{% url 'empleado_lista' %}" class="btn btn-outline-secondary btn-sm w-100 w-md-auto order-2 order-md-1">
+                <i class="bi bi-x-circle"></i>Cancelar
+              </a>
+              <button type="submit" class="btn btn-primary btn-sm w-100 w-md-auto order-1 order-md-2">
+                <i class="bi bi-check-circle"></i>Guardar Cambios
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- MODAL PARA ELIMINAR USUARIO -->
+<div class="modal fade" id="eliminarUsuarioModal" tabindex="-1" aria-labelledby="eliminarUsuarioModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title" id="eliminarUsuarioModalLabel">Desvincular Usuario</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <p>¿Desvincular usuario <strong id="usuarioNombreEliminar"></strong>?</p>
+        <p class="small text-muted mt-1">Esta acción no elimina el usuario del sistema, solo lo desvincula de este empleado.</p>
+      </div>
+      <div class="modal-footer">
+        <form method="post" action="" id="eliminarUsuarioForm">
+          {% csrf_token %}
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-danger btn-sm">Desvincular</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.container-fluid { max-width: 1000px; }
+.form-control, .form-select {
+  border-radius: 0.375rem; border: 1px solid #ced4da;
+  padding: 0.375rem 0.75rem; font-size: 0.875rem;
+}
+.form-control:focus, .form-select:focus {
+  border-color: #86b7fe; box-shadow: 0 0 0 0.2rem rgba(13,110,253,.25);
+}
+.btn-sm { padding: .375rem .75rem; font-size: .875rem; min-width: 100px; }
+.form-switch .form-check-input { width: 2.5em; margin-right: .5rem; }
+.input-group-text { border-top-right-radius: .375rem; border-bottom-right-radius: .375rem; }
+/* Estilos para los botones de eliminar vinculación */
+.d-flex.align-items-center.gap-2 {
+    gap: 0.5rem;
+}
+
+.btn-outline-danger.btn-sm {
+    padding: 0.25rem 0.5rem;
+    min-width: auto;
+    flex-shrink: 0;
+}
+
+.btn-outline.fw-semibold.flex-grow-1 {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Estilos para los modales de eliminación */
+#eliminarUsuarioModal .modal-dialog {
+  max-width: 300px;
+  width: 90%;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  min-height: calc(100% - 2rem);
+}
+#eliminarUsuarioModal .modal-content {
+  min-height: 50px;
+}
+#eliminarUsuarioModal .modal-title,
+#eliminarUsuarioModal .modal-body {
+  text-align: center;
+}
+#eliminarUsuarioModal .modal-footer {
+  justify-content: center;
+  gap: .5rem;
+}
+#eliminarUsuarioModal .modal-footer .btn {
+  padding: 0.45rem 0.9rem;
+  font-size: 0.75rem;
+  min-width: 120px;
+  line-height: 1.15;
+  border-radius: 8px;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const form = document.querySelector('form');
+  if (!form) return;
+
+  // ----------- 1) Prefijo +595 para teléfono en submit -----------
+  const tel = form.querySelector('input[name="telefono"]');
+  form.addEventListener('submit', function () {
+    if (tel && tel.value && !tel.value.startsWith('+595')) {
+      tel.value = '+595' + tel.value;
+    }
+    // sincronizar salario visible -> oculto
+    const hidden = document.getElementById('id_salario_base');
+    const vis = document.getElementById('id_salario_base_display');
+    if (hidden && vis) hidden.value = desformatearGs(vis.value);
+  });
+  if (tel && !tel.value) tel.placeholder = '9xxxxxxx';
+
+  // ----------- 2) Máscara dd/mm/aaaa para fechas -----------
+  const fechas = ['id_fecha_nacimiento', 'id_fecha_ingreso']
+    .map(id => document.getElementById(id)).filter(Boolean);
+
+  function normalizarFecha(v){
+    if(!v) return v;
+    const m=v.match(/^(\d{4})-(\d{2})-(\d{2})$/); // YYYY-MM-DD -> dd/mm/aaaa
+    if(m) return `${m[3]}/${m[2]}/${m[1]}`;
+    const d=v.replace(/\D/g,'');
+    return d.length===8 ? `${d.slice(0,2)}/${d.slice(2,4)}/${d.slice(4)}` : v;
+  }
+  fechas.forEach(i=>{
+    i.placeholder='dd/mm/aaaa';
+    i.value = normalizarFecha(i.value);
+    i.addEventListener('input', ()=>{
+      const d=i.value.replace(/\D/g,'').slice(0,8);
+      i.value = d.length>=5 ? `${d.slice(0,2)}/${d.slice(2,4)}/${d.slice(4)}`
+           : d.length>=3 ? `${d.slice(0,2)}/${d.slice(2)}`
+           : d;
+    });
+  });
+
+  // ----------- 3) Salario Base: visible "Gs. x.xxx.xxx" / oculto numérico -----------
+  const hiddenSal  = document.getElementById('id_salario_base');
+  const visibleSal = document.getElementById('id_salario_base_display');
+
+  // 1) Parsear monto PYG respetando miles y decimales locales.
+  //    - "2.500.000,00" -> "2500000"
+  //    - "2,500,000.50" -> "2500000"
+  //    - "2500000"      -> "2500000"
+  function limpiarNumeroPositivo(v) {
+    if (v === null || v === undefined) return '';
+    let s = String(v).trim();
+    if (s === '' || s.toLowerCase() === 'none') return '';
+
+    // Dejar solo dígitos, puntos y comas para analizar
+    s = s.replace(/[^\d.,]/g, '');
+
+    // Si termina con separador decimal y 1-2 dígitos, quito esa parte
+    // (ignoramos decimales en PYG)
+    const m = s.match(/([.,])(\d{1,2})$/);
+    if (m) {
+      s = s.slice(0, -m[0].length); // corta ",00" o ".50" del final
+    }
+
+    // Quitar todos los separadores de miles restantes
+    const digits = s.replace(/\D/g, ''); // deja solo dígitos
+    return digits; // '' si no queda nada
+  }
+
+  function formatearGs(val) {
+    const raw = limpiarNumeroPositivo(val);
+    if (!raw) return '';
+    const n = parseInt(raw, 10);
+    if (isNaN(n)) return '';
+    return 'Gs. ' + n.toLocaleString('es-PY');
+  }
+
+  function desformatearGs(txt) {
+    if (txt === null || txt === undefined) return '';
+    // extrae solo dígitos (sin decimales)
+    return String(txt)
+      .replace(/^Gs\.?\s*/i,'')
+      .replace(/\D/g,'')
+      .trim();
+  }
+
+  if (hiddenSal && visibleSal) {
+    // 1) intento con el value del oculto
+    let seed = hiddenSal.value;
+
+    // 2) si está vacío/None, pruebo con data-seed (del server)
+    if (!seed || seed === 'None') seed = hiddenSal.dataset.seed || '';
+
+    // 3) si aún vacío, última chance: variables del servidor (por si acaso)
+    if (!seed || seed === 'None') {
+      const salarioForm     = "{{ form.salario_base.value|default:'' }}";
+      const salarioInicial  = "{{ form.initial.salario_base|default:'' }}";
+      const salarioEmpleado = "{{ empleado.salario_base|default:'' }}";
+      seed = salarioForm || salarioInicial || salarioEmpleado || '';
+    }
+
+    // sembrar ambos campos (aunque el valor sea "0")
+    const limpio = limpiarNumeroPositivo(seed);
+    hiddenSal.value  = limpio;
+    visibleSal.value = formatearGs(limpio);
+
+    // Al escribir, mantener formato y sincronizar oculto
+    visibleSal.addEventListener('input', () => {
+      const raw = desformatearGs(visibleSal.value);
+      hiddenSal.value  = raw;
+      visibleSal.value = formatearGs(raw);
+    });
+
+    // En submit, asegurá que vaya el número crudo
+    form.addEventListener('submit', function() {
+      const raw = desformatearGs(visibleSal.value);
+      hiddenSal.value = raw;
+    });
+  }
+
+  // ----------- 4) Reponer valores originales si el server devolvió errores -----------
+  const hasErrors = {{ form.errors|yesno:"true,false" }};
+  if (hasErrors) {
+    // Valores iniciales desde la instancia del form (y empleado para salario)
+    const initial = {
+      nombre: "{{ form.instance.nombre|default_if_none:''|escapejs }}",
+      apellido: "{{ form.instance.apellido|default_if_none:''|escapejs }}",
+      cedula_ruc: "{{ form.instance.cedula_ruc|default_if_none:''|escapejs }}",
+      correo_electronico: "{{ form.instance.correo_electronico|default_if_none:''|escapejs }}",
+      telefono: "{{ form.instance.telefono|default_if_none:''|escapejs }}",
+      ciudad: "{{ form.instance.ciudad|default_if_none:''|escapejs }}",
+      cargo: "{{ form.instance.cargo|default_if_none:''|escapejs }}",
+      direccion: "{{ form.instance.direccion|default_if_none:''|escapejs }}",
+      fecha_nacimiento: "{% if form.instance.fecha_nacimiento %}{{ form.instance.fecha_nacimiento|date:'d/m/Y' }}{% endif %}",
+      fecha_ingreso: "{% if form.instance.fecha_ingreso %}{{ form.instance.fecha_ingreso|date:'d/m/Y' }}{% endif %}",
+      salario_base: "{{ form.instance.salario_base|default:form.initial.salario_base|default:empleado.salario_base|default:'' }}"
+    };
+
+    // Campos que querés “reparar” si quedaron vacíos
+    const required = [
+      'nombre','apellido','cedula_ruc','correo_electronico',
+      'telefono','fecha_nacimiento','fecha_ingreso',
+      'ciudad','cargo','direccion'
+    ];
+
+    required.forEach(name=>{
+      const el = form.elements[name];
+      if (!el) return;
+
+      const cur = (el.value||'').trim();
+      if (!cur) {
+        let val = initial[name] || '';
+        if (name === 'telefono') val = val.replace(/^\+595/,''); // visible sin prefijo
+        // setear valor según sea input normal o select
+        if (el.tagName === 'SELECT') {
+          // buscar option que coincida con val
+          const opt = [...el.options].find(o => o.value == val || o.text == val);
+          if (opt) el.value = opt.value;
+        } else {
+          el.value = val;
+        }
+      }
+    });
+
+    // reparar fechas visibles si quedaron vacías
+    fechas.forEach(i=>{
+      if (i && !i.value) {
+        const name = i.getAttribute('name');
+        if (name && initial[name]) i.value = initial[name];
+      }
+    });
+
+    // reparar salario si visible quedó vacío
+    if (visibleSal && !desformatearGs(visibleSal.value) && initial.salario_base) {
+      visibleSal.value = formatearGs(initial.salario_base);
+      if (hiddenSal) hiddenSal.value = limpiarNumeroPositivo(initial.salario_base);
+    }
+
+    // Focus en el primer campo con error
+    const firstErr = document.querySelector('.invalid-feedback.d-block');
+    if (firstErr) {
+      const field = firstErr.previousElementSibling?.querySelector('[name]') ||
+                    firstErr.parentElement.querySelector('[name]');
+      if (field) field.focus();
+    }
+  }
+
+  // MODAL PARA ELIMINAR USUARIO
+  const eliminarUsuarioModal = document.getElementById('eliminarUsuarioModal');
+  if (eliminarUsuarioModal) {
+      eliminarUsuarioModal.addEventListener('show.bs.modal', function(event) {
+          const button = event.relatedTarget;
+          const empleadoId = button.getAttribute('data-empleado-id');
+          const usuarioNombre = button.getAttribute('data-usuario-nombre') || '';
+          
+          document.getElementById('usuarioNombreEliminar').textContent = usuarioNombre;
+          
+          // Configurar la acción del formulario
+          document.getElementById('eliminarUsuarioForm').action =
+              "{% url 'empleado_eliminar_usuario' 0 %}".replace('0', empleadoId);
+      });
+  }
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,406 @@
+{% extends 'seguridad/base.html' %}
+
+{% block content %}
+<div class="container-fluid py-0">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-12"> 
+
+      <!-- HEADER -->
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <div>
+          <h2 class="h4 mb-1">GESTIÓN DE INSUMOS-REPUESTOS</h2>
+        </div>
+        <div class="d-flex gap-2">
+          <div class="btn-group">
+              <a href="{% url 'subinsumo_lista' %}" class="btn btn-info">
+                  <i class="bi bi-boxes me"></i>Ver Sub-Insumos
+              </a>
+          </div>
+          <a href="{% url 'stock_control' %}" class="btn btn-success btn-sm">
+              <i class="bi bi-box-seam"></i>Control de Stock
+          </a>
+
+          {% if perms.seguridad.agregar_insumos %}
+          <a href="{% url 'insumo_crear' %}" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-circle me"></i>Nuevo Insumo
+          </a>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- FILTROS -->
+      <div class="card mb-2">
+        <div class="card-body p-2">
+          <form method="get" class="row g-2 align-items-end">
+
+            <!-- CÓDIGO / NOMBRE -->
+            <div class="col-md-4">
+              <label class="form-label small">CÓDIGO / NOMBRE </label>
+              <input type="text" name="q" value="{{ request.GET.q }}" class="form-control form-control-sm" style="height: 33px;"
+                     placeholder="Ej.: Filtro de aceite, lubricante, bujía">
+            </div> 
+
+            <!-- CATEGORÍA -->
+            <div class="col-md-2">
+              <label class="form-label small">CATEGORÍA</label>
+              {% if categorias %}
+                <select name="categoria" class="form-select form-select-sm">
+                  <option value="">Todas</option>
+                  {% for val, lab in categorias %}
+                    <option value="{{ val }}" {% if request.GET.categoria == val %}selected{% endif %}>{{ lab }}</option>
+                  {% endfor %}
+                </select>
+              {% else %}
+                <input type="text" name="categoria" value="{{ request.GET.categoria }}" class="form-control form-control-sm" style="height: 33px;" placeholder="Lubricantes, Filtros, Frenos, Motor">
+              {% endif %}
+            </div>
+
+            <!-- UNIDAD -->
+            <div class="col-md-2">
+              <label class="form-label small">UNIDAD DE MEDIDA</label>
+              {% if unidades %}
+                <select name="unidad" class="form-select form-select-sm">
+                  <option value="">Todas</option>
+                  {% for val, lab in unidades %}
+                    <option value="{{ val }}" {% if request.GET.unidad == val %}selected{% endif %}>{{ lab }}</option>
+                  {% endfor %}
+                </select>
+              {% else %}
+                <input type="text" name="unidad" value="{{ request.GET.unidad }}" class="form-control form-control-sm" placeholder="UN, KG, LT...">
+              {% endif %}
+            </div>
+
+            <!-- ESTADO -->
+            <div class="col-md-2">
+              <label class="form-label small">ESTADO</label>
+              <select name="estado" class="form-select form-select-sm">
+                <option value="">Todos</option>
+                <option value="activo"   {% if request.GET.estado == 'activo' %}selected{% endif %}>Activo</option>
+                <option value="inactivo" {% if request.GET.estado == 'inactivo' %}selected{% endif %}>Inactivo</option>
+              </select>
+            </div>
+
+            <!-- BOTONES FILTRO -->
+            <div class="col-md-1">
+              <label class="form-label small">&nbsp;</label>
+              <button type="submit" class="btn btn-outline-primary w-100 btn-sm" style="height: 33px;">
+                <i class="bi bi-search"></i>Buscar
+              </button>
+            </div>
+
+            <div class="col-md-1">
+              <label class="form-label small">&nbsp;</label>
+              <a href="{% url 'insumo_lista' %}" class="btn btn-outline-secondary w-100 btn-sm" style="height: 33px;">
+                <i class="bi bi-arrow-clockwise"></i> Limpiar
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- LISTA -->
+      <div class="card">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <th style="width: 8%">Código</th>
+                <th style="width: 27%">Nombre</th>
+                <th style="width: 14%">Categoría</th>
+                <th style="width: 10%">Unidad</th>
+                <th style="width: 10%">Cantidad</th>
+                <th style="width: 15%">Costo Unitario</th>
+                <th style="width: 8%">Estado</th>
+                <th style="width: 11%" class="text-center">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for i in insumos %}
+              <tr class="{% if not i.is_active %}table-secondary{% endif %}">
+                <!-- CÓDIGO -->
+                <td>
+                  <div class="fw-semibold text-center">
+                    {% if i.es_subinsumo %}
+                      <span class="text-primary small">{{ i.codigo_completo }}</span>
+                    {% else %}
+                      {{ i.codigo_completo }}
+                    {% endif %}
+                  </div>
+                </td>
+                <!-- NOMBRE -->
+                <td>
+                  <div class="fw-semibold text-start">
+                    {{ i.nombre }}
+                  </div>
+                  {% if i.descripcion %}
+                    <div class="text-muted small text-start text-truncate" style="max-width: 520px;">
+                      {{ i.descripcion }}
+                    </div>
+                  {% endif %}
+                </td>
+
+                <!-- CATEGORÍA -->
+                <td>
+                  {{ i.categoria|default:"—" }}
+                </td>
+
+                <!-- UNIDAD -->
+                <td>
+                  {{ i.get_unidad_display|default:i.unidad|default:"—" }}
+                </td>
+
+                <!-- CANTIDAD -->
+                <td class="text-center">
+                  {% if i.cantidad is not None %}
+                    {{ i.cantidad|floatformat:2 }}
+                  {% else %} — {% endif %}
+                </td>
+
+                <!-- COSTO UNITARIO -->
+                <td class="text-center costo-unitario">
+                  {% if i.costo_unitario is not None %}
+                    ₲ <span class="costo-valor">{{ i.costo_unitario|floatformat:0 }}</span>
+                  {% else %} — {% endif %}
+                </td>
+
+                <!-- ESTADO -->
+                <td>
+                  {% if i.is_active or i.activo %}
+                    <span class="badge bg-success">Activo</span>
+                  {% else %}
+                    <span class="badge bg-secondary">Inactivo</span>
+                  {% endif %}
+                </td>
+
+                <!-- ACCIONES -->
+                <td class="text-center">
+                  <div class="btn-group btn-group-sm">
+                    {% if perms.seguridad.ver_insumos %}
+                      <a href="{% url 'insumo_ver' i.id %}" class="btn btn-outline-info btn-sm" title="Ver">
+                        <i class="bi bi-eye"></i>
+                      </a>
+                    {% endif %}
+
+                    {% if perms.seguridad.editar_insumos %}
+                      <a href="{% url 'insumo_editar' i.id %}" class="btn btn-outline-primary btn-sm" title="Editar">
+                        <i class="bi bi-pencil"></i>
+                      </a>
+                    {% endif %}
+                    <!-- BOTÓN PARA CREAR SUBINSUMOS-->
+                    {% if not i.es_subinsumo and i.is_active and i.stock_actual > 0 and perms.seguridad.agregar_insumos %}
+                      <a href="{% url 'insumo_crear_subinsumos' i.id %}" 
+                        class="btn btn-outline-success btn-sm" 
+                        title="Crear Sub-Insumos">
+                        <i class="bi bi-plus-lg"></i>
+                      </a>
+                    {% endif %}
+                    {% if perms.seguridad.desactivar_insumos %}
+                      {% if i.is_active %}
+                        <button type="button"
+                                class="btn btn-outline-danger btn-sm"
+                                title="Desactivar"
+                                data-bs-toggle="modal"
+                                data-bs-target="#deactivateModal"
+                                data-insumo-id="{{ i.id }}"
+                                data-insumo-nombre="{{ i.nombre }}">
+                          <i class="bi bi-x-circle"></i>
+                        </button>
+                      {% else %}
+                        <button type="button"
+                                class="btn btn-outline-success btn-sm"
+                                title="Activar"
+                                data-bs-toggle="modal"
+                                data-bs-target="#activateModal"
+                                data-insumo-id="{{ i.id }}"
+                                data-insumo-nombre="{{ i.nombre }}">
+                          <i class="bi bi-check-circle"></i>
+                        </button>
+                      {% endif %}
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="7" class="text-center py-4 text-muted">No se encontraron insumos</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- PAGINACIÓN -->
+        {% if insumos.has_other_pages %}
+        <div class="card-body pt-2">
+          <div class="d-flex justify-content-between align-items-center">
+            <small class="text-muted">
+              Mostrando {{ insumos.start_index }}–{{ insumos.end_index }} de {{ insumos.paginator.count }}
+            </small>
+            <ul class="pagination pagination-sm mb-0">
+              {% if insumos.has_previous %}
+                <li class="page-item">
+                  <a class="page-link" href="?page=1{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">«</a>
+                </li>
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ insumos.previous_page_number }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">‹</a>
+                </li>
+              {% else %}
+                <li class="page-item disabled"><span class="page-link">«</span></li>
+                <li class="page-item disabled"><span class="page-link">‹</span></li>
+              {% endif %}
+
+              {% for i in insumos.paginator.page_range %}
+                {% if i == insumos.number %}
+                  <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+                {% elif i >= insumos.number|add:'-2' and i <= insumos.number|add:'2' %}
+                  <li class="page-item">
+                    <a class="page-link" href="?page={{ i }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">{{ i }}</a>
+                  </li>
+                {% endif %}
+              {% endfor %}
+
+              {% if insumos.has_next %}
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ insumos.next_page_number }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">›</a>
+                </li>
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ insumos.paginator.num_pages }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">»</a>
+                </li>
+              {% else %}
+                <li class="page-item disabled"><span class="page-link">›</span></li>
+                <li class="page-item disabled"><span class="page-link">»</span></li>
+              {% endif %}
+            </ul>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DESACTIVAR -->
+<div class="modal fade" id="deactivateModal" tabindex="-1" aria-labelledby="deactivateModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title" id="deactivateModalLabel">Desactivar Insumo</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>¿Desactivar insumo <strong id="insumoNombreDeactivate"></strong>?</p>
+      </div>
+      <div class="modal-footer">
+        <form method="post" action="" id="deactivateForm">
+          {% csrf_token %}
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-danger btn-sm">Desactivar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ACTIVAR -->
+<div class="modal fade" id="activateModal" tabindex="-1" aria-labelledby="activateModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title" id="activateModalLabel">Activar Insumo</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>¿Activar insumo <strong id="insumoNombreActivate"></strong>?</p>
+      </div>
+      <div class="modal-footer">
+        <form method="post" action="" id="activateForm">
+          {% csrf_token %}
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-success btn-sm">Activar</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+#deactivateModal .modal-dialog,
+#activateModal .modal-dialog {
+  max-width: 300px;
+  width: 90%;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  min-height: calc(100% - 2rem);
+}
+#deactivateModal .modal-content,
+#activateModal .modal-content,
+#subinsumoModal .modal-content { min-height: 50px; }
+#deactivateModal .modal-title,
+#activateModal .modal-title,
+#subinsumoModal .modal-title,
+#deactivateModal .modal-body,
+#activateModal .modal-body,
+#subinsumoModal .modal-body { text-align: center; }
+#deactivateModal .modal-footer,
+#activateModal .modal-footer,
+#subinsumoModal .modal-footer { justify-content: center; gap: .5rem; }
+#deactivateModal .modal-footer .btn,
+#activateModal .modal-footer .btn,
+#subinsumoModal .modal-footer .btn {
+  padding: 0.45rem 0.9rem;
+  font-size: 0.75rem;
+  min-width: 120px;
+  line-height: 1.15;
+  border-radius: 8px;
+}
+
+/* NUEVO ESTILO PARA SUBINSUMOS */
+.table-warning {
+  background-color: rgba(255, 193, 7, 0.1);
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const deactivateModal = document.getElementById('deactivateModal');
+  const activateModal   = document.getElementById('activateModal');
+
+  if (deactivateModal) {
+    deactivateModal.addEventListener('show.bs.modal', function(event) {
+      const button = event.relatedTarget;
+      const id     = button.getAttribute('data-insumo-id');
+      const nombre = button.getAttribute('data-insumo-nombre');
+      document.getElementById('insumoNombreDeactivate').textContent = nombre;
+      document.getElementById('deactivateForm').action =
+        "{% url 'insumo_desactivar' 0 %}".replace('0', id);
+    });
+  }
+
+  if (activateModal) {
+    activateModal.addEventListener('show.bs.modal', function(event) {
+      const button = event.relatedTarget;
+      const id     = button.getAttribute('data-insumo-id');
+      const nombre = button.getAttribute('data-insumo-nombre');
+      document.getElementById('insumoNombreActivate').textContent = nombre;
+      document.getElementById('activateForm').action =
+        "{% url 'insumo_desactivar' 0 %}".replace('0', id);
+    });
+  }
+
+  // FUNCIÓN PARA FORMATEAR NÚMEROS CON SEPARADOR DE MILES
+  function formatearNumero(numero) {
+    return numero.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  }
+
+  // APLICAR FORMATEO A LOS COSTOS UNITARIOS
+  const costos = document.querySelectorAll('.costo-valor');
+  costos.forEach(function(costo) {
+    const valor = costo.textContent.trim();
+    if (valor && !isNaN(valor)) {
+      costo.textContent = formatearNumero(valor);
+    }
+  });
+});
+</script>
+
+{% endblock %}

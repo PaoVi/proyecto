@@ -1,0 +1,331 @@
+{% extends 'seguridad/base.html' %}
+
+{% block content %}
+<div class="container-fluid py-0"> 
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-10">
+
+      <!-- HEADER -->
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <h2 class="h4 mb-1">EMITIR NOTA DE CRÉDITO</h2>
+        <button type="button" onclick="window.history.back()" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-arrow-left"></i>Volver
+        </button>
+      </div>
+
+      <!-- INFORMACIÓN DE LA FACTURA -->
+      <div class="card mb-2">
+        <div class="card-body p-2">
+          <div class="row">
+            <div class="col-12">
+              <h6 class="border-bottom pb-1 mb-2">Información de la Factura</h6>
+            </div>
+            <div class="col-md-3">
+              <div class="small text-muted">N° Factura</div>
+              <div class="fw-semibold">{{ factura.numero_formateado }}</div>
+            </div>
+            <div class="col-md-3">
+              <div class="small text-muted">Cliente</div>
+              <div class="fw-semibold">{{ factura.cliente_nombre|default:factura.cliente.nombre|default:"CONSUMIDOR FINAL" }}</div>
+            </div>
+            <div class="col-md-3">
+              <div class="small text-muted">Fecha</div>
+              <div class="fw-semibold">{{ factura.fecha|date:"d/m/Y" }}</div>
+            </div>
+            <div class="col-md-3">
+              <div class="small text-muted">Total</div>
+              <div class="fw-semibold">₲ <span class="fmt">{{ factura.total_general|floatformat:0 }}</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FORMULARIO -->
+      <div class="card">
+        <div class="card-body">
+          <form method="post" id="form-nota-credito" novalidate>
+            {% csrf_token %}
+
+            <!-- DATOS DE LA NOTA -->
+            <div class="row g-2 mb-3">
+              <div class="col-12">
+                <h6 class="border-bottom pb-1 mb-2">Datos de la Nota de Crédito</h6>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small">Fecha</label>
+                <input type="date" name="fecha" class="form-control" value="{{ fecha_actual|date:'Y-m-d' }}" readonly>
+              </div>
+              <div class="col-md-8">
+                <label for="id_motivo" class="form-label small">Motivo<span class="text-danger">*</span></label>
+                <input type="text" name="motivo" id="id_motivo" class="form-control" 
+                       placeholder="Ej.: devolución parcial, error de carga, ajuste de factura">
+                <div id="motivo-error" class="invalid-feedback d-block small" style="display: none;"></div>
+              </div>
+            </div>
+
+            <!-- ITEMS A ACREDITAR -->
+            <div class="row mt-3">
+              <div class="col-12">
+                <h6 class="border-bottom pb-1 mb-2">Seleccionar ítems a acreditar</h6>
+                <div class="table-responsive">
+                  <table class="table table-sm table-bordered align-middle">
+                    <thead class="table-light">
+                      <tr class="text-center">
+                        <th style="width: 44%">Descripción</th>
+                        <th style="width: 12%">Cant. facturada</th>
+                        <th style="width: 16%">Precio Unit.</th>
+                        <th style="width: 14%">A devolver</th>
+                        <th style="width: 14%">Subtotal</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for s in factura.servicios.all %}
+                      <tr>
+                        <td class="text-start">{{ s.descripcion }}</td>
+                        <td class="text-center">{{ s.cantidad }}</td>
+                        <td class="text-center">₲ <span class="fmt">{{ s.precio_unitario|floatformat:0 }}</span></td>
+                        <td class="text-center">
+                          <input type="number" name="serv_{{ s.id }}" value="0" min="0" max="{{ s.cantidad }}"
+                                 step="1" class="form-control form-control-sm nc-cantidad text-center"
+                                 data-precio="{{ s.precio_unitario }}" style="width: 100px; margin: 0 auto;">
+                        </td>
+                        <td class="text-end">₲ <span class="subtotal-item">0</span></td>
+                      </tr>
+                      {% endfor %}
+
+                      {% for i in factura.insumos.all %}
+                      <tr>
+                        <td>{{ i.descripcion }}</td>
+                        <td class="text-center">{{ i.cantidad }}</td>
+                        <td class="text-end">₲ <span class="fmt">{{ i.precio_unitario|floatformat:0 }}</span></td>
+                        <td class="text-center">
+                          <input type="number" name="ins_{{ i.id }}" value="0" min="0" max="{{ i.cantidad }}"
+                                 step="1" class="form-control form-control-sm nc-cantidad text-center"
+                                 data-precio="{{ i.precio_unitario }}" style="width: 100px; margin: 0 auto;">
+                        </td>
+                        <td class="text-end">₲ <span class="subtotal-item">0</span></td>
+                      </tr>
+                      {% endfor %}
+                    </tbody>
+                    <tfoot>
+                      <tr class="table-light fw-bold">
+                        <td colspan="4" class="text-end">Total Nota de Crédito:</td>
+                        <td class="text-end">₲ <span id="total-nc">0</span></td>
+                      </tr>
+                      <!-- FILA DE ERROR PARA ITEMS VACÍOS -->
+                      <tr id="items-error-row" style="display: none;">
+                        <td colspan="5" class="text-center">
+                          <div class="invalid-feedback d-block small">Debe seleccionar al menos un ítem para la Nota de Crédito.</div>
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- BOTONES -->
+            <div class="d-flex justify-content-between align-items-center pt-3 border-top gap-2">
+              <a href="{% url 'factura_ver' factura.id %}" class="btn btn-outline-secondary btn-sm flex-grow-1">
+                <i class="bi bi-x-circle"></i>Cancelar
+              </a>
+              <button type="submit" class="btn btn-warning btn-sm flex-grow-1">
+                <i class="bi bi-arrow-counterclockwise"></i>Emitir Nota de Crédito
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- INFORMACIÓN DE AYUDA -->
+      <div class="card">
+        <div class="card-body py-2">
+          <small class="text-muted">
+            <i class="bi bi-info-circle"></i>
+            La nota de crédito puede ser TOTAL o PARCIAL. Si es TOTAL, la factura se anulará automáticamente. 
+            Si es PARCIAL, la factura quedará activa con el saldo pendiente.
+          </small>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<style>
+.container-fluid { max-width: 1000px; }
+.form-control, .form-select {
+  border-radius: 0.375rem;
+  border: 1px solid #ced4da;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+}
+.form-control:focus, .form-select:focus {
+  border-color: #86b7fe;
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+.btn-sm { padding: 0.375rem 0.75rem; font-size: 0.875rem; }
+.table-sm td, .table-sm th { padding: 0.5rem; vertical-align: middle; }
+.nc-cantidad { width: 80px; text-align: center; }
+.invalid-feedback {
+  display: none;
+  width: 100%;
+  margin-top: 0.25rem;
+  font-size: 0.875em;
+  color: #dc3545;
+}
+.invalid-feedback.d-block {
+  display: block;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  function formatearNumero(n) {
+    if (!n && n !== 0) return '0';
+    return Math.round(Number(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  }
+
+  // ========== FUNCIONES PARA ERRORES ==========
+  function mostrarErrorMotivo(mensaje) {
+    const errorDiv = document.getElementById('motivo-error');
+    const campo = document.getElementById('id_motivo');
+    if (errorDiv) {
+      errorDiv.textContent = mensaje;
+      errorDiv.style.display = 'block';
+    }
+    if (campo) {
+      campo.classList.add('is-invalid');
+    }
+  }
+
+  function limpiarErrorMotivo() {
+    const errorDiv = document.getElementById('motivo-error');
+    const campo = document.getElementById('id_motivo');
+    if (errorDiv) {
+      errorDiv.style.display = 'none';
+      errorDiv.textContent = '';
+    }
+    if (campo) {
+      campo.classList.remove('is-invalid');
+    }
+  }
+
+  function mostrarErrorItems(mensaje) {
+    const errorRow = document.getElementById('items-error-row');
+    if (errorRow) {
+      errorRow.style.display = 'table-row';
+      const errorDiv = errorRow.querySelector('.invalid-feedback');
+      if (errorDiv) {
+        errorDiv.textContent = mensaje;
+      }
+    }
+  }
+
+  function limpiarErrorItems() {
+    const errorRow = document.getElementById('items-error-row');
+    if (errorRow) {
+      errorRow.style.display = 'none';
+    }
+  }
+
+  // ========== LIMPIAR ERROR AL ESCRIBIR ==========
+  document.getElementById('id_motivo').addEventListener('input', function() {
+    if (this.value.trim() !== '') {
+      limpiarErrorMotivo();
+    }
+  });
+
+  // ========== RECALCULAR TOTAL ==========
+  function recalcular() {
+    let total = 0;
+    let hasItems = false;
+    
+    document.querySelectorAll('.nc-cantidad').forEach(function (input) {
+      const precio = parseFloat(input.dataset.precio || '0');
+      let cantidad = parseFloat(input.value || '0');
+      const max = parseFloat(input.getAttribute('max') || '0');
+      if (cantidad > max) {
+        cantidad = max;
+        input.value = max;
+      }
+      const subtotal = precio * cantidad;
+      total += subtotal;
+      
+      // Mostrar subtotal por fila
+      const subtotalSpan = input.closest('tr').querySelector('.subtotal-item');
+      if (subtotalSpan) {
+        subtotalSpan.textContent = formatearNumero(subtotal);
+      }
+      
+      if (cantidad > 0) {
+        hasItems = true;
+      }
+    });
+    
+    document.getElementById('total-nc').textContent = formatearNumero(total);
+    
+    // Limpiar error de items si hay items seleccionados
+    if (hasItems) {
+      limpiarErrorItems();
+    }
+    
+    return total;
+  }
+
+  document.querySelectorAll('.nc-cantidad').forEach(function (input) {
+    input.addEventListener('input', function() {
+      recalcular();
+      limpiarErrorItems();
+    });
+  });
+
+  // ========== VALIDACIÓN ANTES DE ENVIAR ==========
+  document.getElementById('form-nota-credito').addEventListener('submit', function (e) {
+    // Limpiar errores previos
+    limpiarErrorMotivo();
+    limpiarErrorItems();
+    
+    let hasError = false;
+    
+    // Validar motivo
+    const motivo = document.getElementById('id_motivo');
+    if (!motivo.value.trim()) {
+      mostrarErrorMotivo('Este campo es obligatorio.');
+      hasError = true;
+    }
+    
+    // Validar items seleccionados
+    let totalSeleccionado = 0;
+    document.querySelectorAll('.nc-cantidad').forEach(function (input) {
+      totalSeleccionado += parseFloat(input.value || '0');
+    });
+    
+    if (totalSeleccionado <= 0) {
+      mostrarErrorItems('Debe seleccionar al menos un ítem para la Nota de Crédito.');
+      hasError = true;
+    }
+    
+    if (hasError) {
+      e.preventDefault();
+      // Hacer scroll al primer error
+      const firstError = document.querySelector('.invalid-feedback.d-block');
+      if (firstError) {
+        firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      return false;
+    }
+  });
+
+  // Formatear números en la página
+  document.querySelectorAll('.fmt').forEach(el => {
+    const raw = el.textContent.replace(/[^\d\-]/g, '');
+    const num = parseInt(raw || '0', 10);
+    el.textContent = formatearNumero(num);
+  });
+
+  recalcular();
+});
+</script>
+
+{% endblock %}

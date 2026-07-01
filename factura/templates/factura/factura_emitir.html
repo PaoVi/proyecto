@@ -1,0 +1,948 @@
+{% extends 'seguridad/base.html' %}
+
+{% block content %}
+<div class="container-fluid py-0"> 
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-10">
+
+      <!-- HEADER -->
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <h2 class="h4 mb-1">EMITIR FACTURA</h2>
+        <button type="button" onclick="window.history.back()" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-arrow-left"></i>Volver
+        </button>
+      </div>
+
+      <!-- FORMULARIO -->
+      <div class="card">
+        <div class="card-body">
+          <form method="post" class="needs-validation" novalidate id="factura-form">
+            {% csrf_token %}
+            
+            <!-- ERRORES GENERALES (solo para errores no manejados) -->
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger small">
+              {% for error in form.non_field_errors %}
+                <div>{{ error }}</div>
+              {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- DATOS DEL CLIENTE -->
+            <div class="row g-2 mb-3">
+                <div class="col-12">
+                    <h6 class="border-bottom pb-1 mb-2">Datos del Cliente</h6>
+                </div>
+                
+                <div class="col-md-6">
+                    <label for="cliente-search" class="form-label small">Buscar Cliente </label>
+                    {% if cliente_precargado %}
+                        <input type="text" class="form-control" value="{{ cliente_precargado.nombre }}" readonly disabled>
+                        <input type="hidden" name="cliente" value="{{ cliente_precargado.id }}">
+                        <input type="hidden" id="cliente-ruc" name="cliente_ruc" value="{{ cliente_precargado.numero_documento }}">
+                        <input type="hidden" id="cliente-nombre" name="cliente_nombre" value="{{ cliente_precargado.nombre }}">
+                        <input type="hidden" id="cliente-direccion" name="cliente_direccion" value="{{ cliente_precargado.direccion }}">
+                        <input type="hidden" id="cliente-telefono" name="cliente_telefono" value="{{ cliente_precargado.telefono }}">
+                    {% else %}
+                        <select id="cliente-search" class="form-control {% if form.cliente_ruc.errors or form.cliente_nombre.errors %}is-invalid{% endif %}" name="cliente" style="width: 100%;"></select>
+                        <div id="cliente-error" class="invalid-feedback d-block small" style="display: none;"></div>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-6">
+                    <label for="cliente-ruc" class="form-label small">RUC</label>
+                    <input type="text" class="form-control {% if form.cliente_ruc.errors %}is-invalid{% endif %}" id="cliente-ruc" name="cliente_ruc" {% if cliente_precargado %}value="{{ cliente_precargado.numero_documento }}"{% else %}readonly{% endif %}>
+                    {% if form.cliente_ruc.errors %}
+                    <div class="invalid-feedback d-block small">
+                      {% for error in form.cliente_ruc.errors %}
+                        <div>{{ error }}</div>
+                      {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-6">
+                    <label for="cliente-nombre" class="form-label small">Nombre/Razón Social</label>
+                    <input type="text" class="form-control {% if form.cliente_nombre.errors %}is-invalid{% endif %}" id="cliente-nombre" name="cliente_nombre" {% if cliente_precargado %}value="{{ cliente_precargado.nombre }}"{% else %}readonly{% endif %}>
+                    {% if form.cliente_nombre.errors %}
+                    <div class="invalid-feedback d-block small">
+                      {% for error in form.cliente_nombre.errors %}
+                        <div>{{ error }}</div>
+                      {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-6">
+                    <label for="cliente-direccion" class="form-label small">Dirección</label>
+                    <input type="text" class="form-control" id="cliente-direccion" name="cliente_direccion" {% if cliente_precargado %}value="{{ cliente_precargado.direccion }}"{% endif %}>
+                </div>
+
+                <div class="col-md-6">
+                    <label for="cliente-telefono" class="form-label small">Teléfono</label>
+                    <input type="text" class="form-control" id="cliente-telefono" name="cliente_telefono" {% if cliente_precargado %}value="{{ cliente_precargado.telefono }}"{% else %}readonly{% endif %}>
+                </div>
+            </div>
+
+            <!-- DATOS DE LA FACTURA -->
+            <div class="row g-2 mb-3">
+              <div class="col-12">
+                <h6 class="border-bottom pb-1 mb-2">Datos de la Factura</h6>
+              </div>
+
+              <div class="col-md-4">
+                <label for="fecha-emision" class="form-label small">Fecha de Emisión</label>
+                <input type="date" class="form-control {% if form.fecha.errors %}is-invalid{% endif %}" id="fecha-emision" name="fecha_emision" 
+                       value="{{ fecha_actual }}" required>
+                {% if form.fecha.errors %}
+                <div class="invalid-feedback d-block small">
+                  {% for error in form.fecha.errors %}
+                    <div>{{ error }}</div>
+                  {% endfor %}
+                </div>
+                {% endif %}
+              </div>
+
+              <div class="col-md-4">
+                <label for="numero-factura" class="form-label small">Número de Factura</label>
+                <input type="text" class="form-control" id="numero-factura" name="numero_factura" 
+                       value="{{ proximo_numero }}" readonly required>
+              </div>
+
+              <div class="col-md-4">
+                <label for="timbrado" class="form-label small">Timbrado</label>
+                <input type="text" class="form-control" id="timbrado" name="timbrado" 
+                       value="{{ timbrado_actual }}" readonly required>
+              </div>
+
+              <div class="col-md-4">
+                <label for="valido-hasta" class="form-label small">Válido hasta</label>
+                <input type="text" class="form-control" id="valido-hasta" name="valido_hasta" 
+                       value="{{ valido_hasta }}" readonly required>
+              </div>
+
+              <div class="col-md-4">
+                <label class="form-label small">Condición de Venta</label>
+                <div>
+                  <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="condicion_venta" id="contado" value="contado" checked>
+                    <label class="form-check-label" for="contado">Contado</label>
+                  </div>
+                  <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="condicion_venta" id="credito" value="credito">
+                    <label class="form-check-label" for="credito">Crédito</label>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-md-4">
+                <label for="iva" class="form-label small">IVA</label>
+                <select class="form-select {% if form.iva.errors %}is-invalid{% endif %}" id="iva" name="iva" required>
+                  <option value="10">10%</option>
+                  <option value="5">5%</option>
+                  <option value="0">Exento</option>
+                </select>
+                {% if form.iva.errors %}
+                <div class="invalid-feedback d-block small">
+                  {% for error in form.iva.errors %}
+                    <div>{{ error }}</div>
+                  {% endfor %}
+                </div>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- ITEMS DE LA FACTURA -->
+            <!-- SECCIÓN DE SERVICIOS PRECARGADOS (DESDE OT) -->
+            {% if servicios_precargados %}
+            <div class="row mt-3">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="mb-0">Servicios precargados desde Orden de Trabajo #{{ orden_id }}</h6>
+                <span class="badge bg-danger">No editable</span>
+              </div>
+              <div class="table-responsive">
+                <table class="table table-sm table-bordered">
+                  <thead class="table-light">
+                    <tr>
+                      <th style="width: 10%">Cant.</th>
+                      <th style="width: 50%">Descripción</th>
+                      <th style="width: 20%">Precio Unit.</th>
+                      <th style="width: 20%">Subtotal</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for servicio in servicios_precargados %}
+                    <tr>
+                      <td class="text-center">{{ servicio.cantidad|floatformat:0 }}</td>
+                      <td>{{ servicio.nombre }}</td>
+                      <td class="text-end">₲ {{ servicio.precio|floatformat:0 }}</td>
+                      <td class="text-end">₲ {{ servicio.subtotal|floatformat:0 }}</td>
+                    </tr>
+                    <!-- Campos ocultos para enviar estos servicios -->
+                    <input type="hidden" name="servicio_precargado_{{ forloop.counter0 }}_id" value="{{ servicio.id }}">
+                    <input type="hidden" name="servicio_precargado_{{ forloop.counter0 }}_descripcion" value="{{ servicio.nombre }}">
+                    <input type="hidden" name="servicio_precargado_{{ forloop.counter0 }}_cantidad" value="{{ servicio.cantidad }}">
+                    <input type="hidden" name="servicio_precargado_{{ forloop.counter0 }}_precio" value="{{ servicio.precio }}">
+                    {% endfor %}
+                  </tbody>
+                  <tfoot>
+                    <tr class="table-light fw-bold">
+                      <td colspan="3" class="text-end">Total Servicios OT:</td>
+                      <td class="text-end">₲ <span id="total-servicios-ot">0</span></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+            {% endif %}
+
+            <div class="row mt-3">
+              <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <h6 class="mb-0">Items de la Factura</h6>
+                  <span class="badge bg-primary" id="contador-items">0 items</span>
+                </div>
+
+                <!-- CONTENEDOR DE ERROR PARA ITEMS VACÍOS -->
+                <div id="items-error" class="invalid-feedback d-block small" style="display: none;"></div>
+
+                <div id="items-container" class="mb-3"></div>
+
+                <!-- FORMULARIO PARA AGREGAR ITEM -->
+                <div class="card border mt-3">
+                  <div class="card-body py-2">
+                    <div class="row g-2 align-items-center">
+                      <div class="col-md-2">
+                        <label class="form-label small">Cantidad</label>
+                        <input type="number" id="item-cantidad" class="form-control form-control-sm" 
+                              value="1" step="1" min="1">
+                        <div id="cantidad-error" class="invalid-feedback d-block small" style="display: none;"></div>
+                      </div>
+                      
+                      <div class="col-md-9">
+                        <label class="form-label small">Producto</label>
+                        <select id="item-selector" class="form-select form-select-sm">
+                          <option value="">Seleccionar producto...</option>
+                          {% for insumo in insumos %}
+                          <option value="{{ insumo.id }}" 
+                                  data-descripcion="{{ insumo.nombre }}"
+                                  data-precio="{{ insumo.precio_venta|default:insumo.costo_unitario }}"
+                                  data-codigo="{{ insumo.codigo_completo }}"
+                                  data-unidad="{{ insumo.unidad }}">
+                            [{{ insumo.codigo_completo }}] {{ insumo.nombre }} • ₲ {{ insumo.precio_venta|default:insumo.costo_unitario|floatformat:0 }} ({{ insumo.unidad }})
+                          </option>
+                          {% endfor %}
+                        </select>
+                        <div id="producto-error" class="invalid-feedback d-block small" style="display: none;"></div>
+                      </div>
+                      
+                      <div class="col-md-1 d-flex align-items-center justify-content-center">
+                        <button type="button" id="agregar-item-btn" class="btn btn-success btn-small w-100" 
+                                style="padding: 0.35rem 0.8rem; margin-top: 1.25rem;" title="Agregar producto">
+                          <i class="bi bi-plus-circle" style="font-size: 0.9rem;"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- RESUMEN DE TOTALES -->
+                <div class="card border-primary mt-3">
+                  <div class="card-body py-2">
+                    <div class="row text-center">
+                      <div class="col-md-4">
+                        <div class="small text-muted">Subtotal</div>
+                        <div class="h6 mb-0" id="subtotal-display">₲ 0</div>
+                      </div>
+                      <div class="col-md-4">
+                        <div class="small text-muted">IVA</div>
+                        <div class="h6 mb-0" id="iva-display">₲ 0</div>
+                      </div>
+                      <div class="col-md-4">
+                        <div class="small text-muted">Total</div>
+                        <div class="h6 mb-0" id="total-display">₲ 0</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div id="items-hidden-fields">
+                  <input type="hidden" name="items-TOTAL_FORMS" id="id_items-TOTAL_FORMS" value="0">
+                  <input type="hidden" name="items-INITIAL_FORMS" value="0">
+                  <input type="hidden" name="items-MIN_NUM_FORMS" value="0">
+                  <input type="hidden" name="items-MAX_NUM_FORMS" value="1000">
+                </div>
+              </div>
+            </div>
+
+            <!-- OBSERVACIONES -->
+            <div class="row mt-3">
+              <div class="col-12">
+                <label for="observaciones" class="form-label small">Observaciones</label>
+                <textarea class="form-control" id="observaciones" name="observaciones" rows="2" 
+                          placeholder="Observaciones adicionales..."></textarea>
+              </div>
+            </div>
+
+            <!-- BOTONES -->
+            <div class="d-flex justify-content-between align-items-center pt-3 border-top gap-2">
+              <a href="{% url 'factura_lista' %}" class="btn btn-outline-secondary btn-sm flex-grow-1">
+                <i class="bi bi-x-circle"></i>Cancelar
+              </a>
+              <button type="submit" class="btn btn-primary btn-sm flex-grow-1" id="submit-btn">
+                <i class="bi bi-check-circle"></i>Emitir Factura
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-body py-2">
+          <small class="text-muted">
+            <i class="bi bi-info-circle"></i>
+            Solo productos de venta directa (INSV). La factura debe tener al menos un producto.
+          </small>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Incluir Select2 CSS y JS -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+
+<style>
+.container-fluid { max-width: 1000px; }
+.form-control, .form-select {
+  border-radius: 0.375rem;
+  border: 1px solid #ced4da;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+}
+.form-control:focus, .form-select:focus {
+  border-color: #86b7fe;
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+.btn-sm { padding: 0.375rem 0.75rem; font-size: 0.875rem; }
+
+/* ESTILOS SIMPLIFICADOS PARA SELECT2 */
+.select2-container--default .select2-selection--single {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    height: 38px;
+    background-color: #fff;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    color: #212529;
+    line-height: 1.5;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 30px;
+    right: 8px;
+}
+
+.select2-container--default .select2-dropdown {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    background: white;
+    box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+}
+
+.select2-container--default .select2-results__option {
+    padding: 0.5rem 0.75rem;
+    background: white;
+    color: #212529;
+    font-size: 0.875rem;
+}
+
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background-color: #e9ecef !important;
+    color: #212529 !important;
+}
+
+.select2-container--default .select2-results__option[aria-selected=true] {
+    background-color: #f8f9fa;
+    color: #212529;
+}
+
+.select2-container--default .select2-search--dropdown .select2-search__field {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    height: 38px;
+    background-color: #fff;
+}
+
+/* SELECT DE PRODUCTOS */
+#item-selector + .select2-container--default .select2-selection--single {
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    height: 38px;
+    background-color: #fff;
+}
+
+#item-selector + .select2-container--default .select2-selection--single .select2-selection__rendered {
+    color: #212529;
+    line-height: 1.5;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.8rem;
+}
+
+/* Estilo para las opciones en el dropdown */
+.select2-container--default .select2-results__option--producto {
+    font-size: 0.8rem;
+    padding: 0.4rem 0.75rem;
+}
+
+.select2-container--default .select2-results__option .producto-item {
+    line-height: 1;
+}
+
+.select2-container--default .select2-results__option .producto-codigo {
+    font-weight: 600;
+    color: #003668;
+    font-family: monospace;
+}
+
+.select2-container--default .select2-results__option .producto-nombre {
+    font-weight: 600;
+    color: #212529;
+    margin-left: 2px;
+}
+
+.select2-container--default .select2-results__option .producto-detalle {
+    font-size: 0.75rem;
+    color: #198754;
+    display: block;
+    margin-top: 2px;
+}
+
+/* Botón agregar más pequeño */
+#agregar-item-btn {
+    padding: 0.25rem 0.5rem !important;
+    min-width: 40px !important;
+    height: 32px;
+}
+#agregar-item-btn i {
+    font-size: 0.8rem;
+}
+
+/* ESTILO PARA SELECT2 CON ERROR */
+.select2-container--default .select2-selection--single.is-invalid {
+    border-color: #dc3545 !important;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+}
+
+/* CAMPO OBLIGATORIO */
+.text-danger {
+    color: #dc3545 !important;
+}
+</style>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // ========== FUNCIONES PARA MANEJAR ERRORES EN CAMPOS ==========
+    function mostrarErrorCampo(campoId, mensaje) {
+        const errorDiv = document.getElementById(campoId);
+        if (errorDiv) {
+            errorDiv.textContent = mensaje;
+            errorDiv.style.display = 'block';
+            // Buscar el campo padre y agregar clase is-invalid
+            //const campoIdClean = campoId.replace('-error', '');
+            //const campo = document.getElementById(campoIdClean);
+            //if (campo) {
+            //    campo.classList.add('is-invalid');
+            //}
+            // Para Select2 (cliente)
+            //if (campoId === 'cliente-error') {
+            //    const clienteSelect = document.getElementById('cliente-search');
+            //    if (clienteSelect) {
+            //        const select2Container = $(clienteSelect).next('.select2-container').find('.select2-selection');
+            //        select2Container.addClass('is-invalid');
+            //    }
+            //}
+        }
+    }
+
+    function limpiarErrorCampo(campoId) {
+        const errorDiv = document.getElementById(campoId);
+        if (errorDiv) {
+            errorDiv.style.display = 'none';
+            errorDiv.textContent = '';
+            const campoIdClean = campoId.replace('-error', '');
+            const campo = document.getElementById(campoIdClean);
+            if (campo) {
+                campo.classList.remove('is-invalid');
+            }
+            // Para Select2 (cliente)
+            if (campoId === 'cliente-error') {
+                const clienteSelect = document.getElementById('cliente-search');
+                if (clienteSelect) {
+                    const select2Container = $(clienteSelect).next('.select2-container').find('.select2-selection');
+                    select2Container.removeClass('is-invalid');
+                }
+            }
+        }
+    }
+
+    // ========== MOSTRAR ERRORES DE DJANGO ==========
+    {% if form.cliente_ruc.errors or form.cliente_nombre.errors %}
+        mostrarErrorCampo('cliente-error', 'Este campo es obligatorio.');
+    {% endif %}
+
+    // ========== SELECT2 PARA CLIENTES ==========
+    {% if not cliente_precargado %}
+    $('#cliente-search').select2({
+        placeholder: 'Buscar por RUC o nombre...',
+        allowClear: false,
+        width: '100%',
+        language: {
+            noResults: function() {
+                return "No se encontraron clientes";
+            },
+            searching: function() {
+                return "Buscando...";
+            },
+            inputTooShort: function() {
+                return "Ingrese al menos 1 carácter";
+            }
+        },
+        ajax: {
+            url: '{% url "buscar_clientes_autocomplete" %}',
+            dataType: 'json',
+            delay: 300,
+            data: function(params) {
+                return { q: params.term || '' };
+            },
+            processResults: function(data) {
+                if (!Array.isArray(data)) {
+                    return { results: [] };
+                }
+                return {
+                    results: $.map(data, function(item) {
+                        return {
+                            id: item.id,
+                            text: item.text || 'Sin nombre',
+                            documento: item.documento || '',
+                            nombre: item.nombre || '',
+                            direccion: item.direccion || '',
+                            telefono: item.telefono || ''
+                        };
+                    })
+                };
+            }
+        },
+        minimumInputLength: 1,
+        templateResult: formatCliente,
+        templateSelection: formatClienteSelection
+    });
+
+    $('#cliente-search').on('change', function() {
+        const data = $(this).select2('data')[0];
+        if (data && data.id) {
+            $('#cliente-ruc').val(data.documento || '');
+            $('#cliente-nombre').val(data.nombre || '');
+            $('#cliente-direccion').val(data.direccion || '');
+            $('#cliente-telefono').val(data.telefono || '');
+            limpiarErrorCampo('cliente-error');
+        } else {
+            $('#cliente-ruc, #cliente-nombre, #cliente-direccion, #cliente-telefono').val('');
+        }
+    });
+
+    function formatCliente(cliente) {
+        if (cliente.loading) return cliente.text;
+        if (!cliente.id) return cliente.text;
+        return $(
+            '<div class="select2-result-item">' +
+                '<span style="font-weight:500;">' + (cliente.nombre || 'Sin nombre') + '</span><br>' +
+                '<span class="text-primary small">RUC: ' + (cliente.documento || 'Sin RUC') + '</span>' +
+            '</div>'
+        );
+    }
+
+    function formatClienteSelection(cliente) {
+        if (!cliente.id) return 'Buscar por RUC o nombre...';
+        if (cliente.nombre && cliente.documento) {
+            return cliente.nombre + ' - ' + cliente.documento;
+        }
+        return cliente.text || 'Cliente seleccionado';
+    }
+    {% endif %}
+
+    // ========== SELECT2 PARA PRODUCTOS ==========
+    $('#item-selector').select2({
+        placeholder: 'Buscar producto por código o nombre...',
+        allowClear: false,
+        width: '100%',
+        language: {
+            noResults: function() {
+                return "No se encontraron productos";
+            },
+            searching: function() {
+                return "Buscando...";
+            }
+        },
+        matcher: function(params, data) {
+            if ($.trim(params.term) === '') {
+                return data;
+            }
+            const term = params.term.toLowerCase();
+            const text = data.text.toLowerCase();
+            const codigoMatch = text.match(/\[([^\]]+)\]/);
+            const codigo = codigoMatch ? codigoMatch[1].toLowerCase() : '';
+            const nombre = text.replace(/\[[^\]]+\]\s*/, '').split(' • ')[0].toLowerCase();
+            if (codigo.includes(term) || nombre.includes(term) || text.includes(term)) {
+                return data;
+            }
+            return null;
+        },
+        templateResult: function(data) {
+            if (data.loading || !data.id) {
+                return data.text;
+            }
+            const texto = data.text;
+            const codigoMatch = texto.match(/\[([^\]]+)\]/);
+            const codigo = codigoMatch ? codigoMatch[1] : '';
+            const nombre = texto.replace(/\[[^\]]+\]\s*/, '').split(' • ')[0];
+            const detalles = texto.split(' • ')[1] || '';
+            return $(
+                '<div class="select2-results__option--producto">' +
+                    '<div class="producto-item">' +
+                        '<span class="producto-codigo">[' + codigo + ']</span> ' +
+                        '<span class="producto-nombre">' + nombre + '</span>' +
+                        '<span class="producto-detalle">' + detalles + '</span>' +
+                    '</div>' +
+                '</div>'
+            );
+        },
+        templateSelection: function(data) {
+            if (!data.id) {
+                return data.text;
+            }
+            const texto = data.text;
+            const codigoMatch = texto.match(/\[([^\]]+)\]/);
+            const codigo = codigoMatch ? codigoMatch[1] : '';
+            const nombre = texto.replace(/\[[^\]]+\]\s*/, '').split(' • ')[0];
+            return '[' + codigo + '] ' + nombre;
+        }
+    });
+
+    $('#item-selector').on('select2:open', function() {
+        setTimeout(function() {
+            const $search = $('.select2-container--open .select2-search__field');
+            if ($search.length) {
+                $search.focus();
+                $search.trigger('select');
+            }
+        }, 100);
+    });
+
+    $('#item-selector').on('change', function() {
+        limpiarErroresItems();
+        const option = $('#item-selector option:selected');
+        if (option.val()) {
+            $('#item-descripcion').val(option.data('descripcion') || '');
+            $('#item-precio').val(option.data('precio') || 0);
+            $('#item-cantidad').focus();
+        }
+    });
+
+    // Función para formatear números
+    function formatearNumero(n) {
+        if (!n && n !== 0) return '0';
+        return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    }
+
+    function formatearGs(valor) {
+        return `₲ ${formatearNumero(valor)}`;
+    }
+
+    // Calcular total de servicios OT
+    function calcularTotalServiciosOT() {
+        let total = 0;
+        {% for servicio in servicios_precargados %}
+        total += {{ servicio.subtotal }};
+        {% endfor %}
+        let totalSpan = document.getElementById('total-servicios-ot');
+        if (totalSpan) {
+            totalSpan.textContent = formatearNumero(total);
+        }
+        return total;
+    }
+
+    // Actualizar totales incluyendo OT
+    function actualizarTotalesGeneral() {
+        let totalGeneral = calcularTotalServiciosOT();
+        
+        document.querySelectorAll('[data-item-id]:not([style*="display: none"])').forEach(item => {
+            const precio = parseFloat(item.getAttribute('data-precio')) || 0;
+            const cantidad = parseFloat(item.getAttribute('data-cantidad')) || 0;
+            totalGeneral += precio * cantidad;
+        });
+        
+        const ivaPorcentaje = parseFloat(document.getElementById('iva').value) || 0;
+        let ivaMonto = 0;
+        let baseImponible = totalGeneral;
+        
+        if (ivaPorcentaje === 10) {
+            ivaMonto = totalGeneral / 11;
+            baseImponible = totalGeneral - ivaMonto;
+        } else if (ivaPorcentaje === 5) {
+            ivaMonto = totalGeneral / 21;
+            baseImponible = totalGeneral - ivaMonto;
+        }
+        
+        document.getElementById('subtotal-display').textContent = formatearGs(baseImponible);
+        document.getElementById('iva-display').textContent = formatearGs(ivaMonto);
+        document.getElementById('total-display').textContent = formatearGs(totalGeneral);
+    }
+
+    // ========== GESTIÓN DE ITEMS ==========
+    let itemCounter = 0;
+    const itemsContainer = document.getElementById('items-container');
+    const hiddenFieldsContainer = document.getElementById('items-hidden-fields');
+    const agregarBtn = document.getElementById('agregar-item-btn');
+    const contadorItems = document.getElementById('contador-items');
+
+    function mostrarErrorItems(campoId, mensaje) {
+        const errorDiv = document.getElementById(campoId);
+        if (errorDiv) {
+            errorDiv.textContent = mensaje;
+            errorDiv.style.display = 'block';
+        }
+        const campo = document.getElementById(campoId === 'producto-error' ? 'item-selector' : 'item-cantidad');
+        if (campo) {
+            campo.classList.add('is-invalid');
+        }
+    }
+
+    function limpiarErroresItems() {
+        ['cantidad-error', 'producto-error'].forEach(errorId => {
+            const errorDiv = document.getElementById(errorId);
+            if (errorDiv) {
+                errorDiv.style.display = 'none';
+                errorDiv.textContent = '';
+            }
+            const campo = errorId === 'producto-error' ? document.getElementById('item-selector') : document.getElementById('item-cantidad');
+            if (campo) {
+                campo.classList.remove('is-invalid');
+            }
+        });
+    }
+
+    function actualizarContadorItems() {
+        const cantidad = document.querySelectorAll('[data-item-id]:not([style*="display: none"])').length;
+        contadorItems.textContent = `${cantidad} item${cantidad !== 1 ? 's' : ''}`;
+        // Limpiar error de items vacíos si hay items
+        if (cantidad > 0) {
+            const errorDiv = document.getElementById('items-error');
+            if (errorDiv) {
+                errorDiv.style.display = 'none';
+                errorDiv.textContent = '';
+            }
+        }
+    }
+
+    function agregarItem() {
+        limpiarErroresItems();
+        
+        const cantidad = parseFloat(document.getElementById('item-cantidad').value) || 1;
+        const select = document.getElementById('item-selector');
+        const selectedOption = select.options[select.selectedIndex];
+        
+        if (!selectedOption || !selectedOption.value) {
+            mostrarErrorItems('producto-error', 'Seleccione un producto');
+            return;
+        }
+        
+        if (cantidad <= 0 || isNaN(cantidad)) {
+            mostrarErrorItems('cantidad-error', 'Cantidad debe ser mayor a 0');
+            return;
+        }
+        
+        const insumoId = selectedOption.value;
+        const insumoCodigo = selectedOption.getAttribute('data-codigo') || '';
+        const insumoNombre = selectedOption.getAttribute('data-descripcion') || '';
+        const insumoPrecio = parseFloat(selectedOption.getAttribute('data-precio')) || 0;
+        const insumoUnidad = selectedOption.getAttribute('data-unidad') || 'UN';
+        
+        const existentes = document.querySelectorAll('[data-item-id]:not([style*="display: none"])');
+        for (let item of existentes) {
+            if (item.getAttribute('data-item-id') === insumoId) {
+                mostrarErrorItems('producto-error', 'Este producto ya fue agregado');
+                return;
+            }
+        }
+        
+        const subtotalItem = cantidad * insumoPrecio;
+        const itemCard = document.createElement('div');
+        itemCard.className = 'card item-card mb-2';
+        itemCard.setAttribute('data-item-id', insumoId);
+        itemCard.setAttribute('data-precio', insumoPrecio);
+        itemCard.setAttribute('data-cantidad', cantidad);
+        itemCard.setAttribute('data-item-index', itemCounter);
+        
+        itemCard.innerHTML = `
+            <div class="card-body py-2">
+                <div class="row align-items-start">
+                    <div class="col-md-6">
+                        <div class="small fw-semibold text-start">
+                            <span class="producto-codigo" style="color:#003668; font-family:monospace;">[${insumoCodigo}]</span>
+                            ${insumoNombre}
+                        </div>
+                        <div class="text-success small text-start">${insumoUnidad}</div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="small">Cant: <strong>${cantidad}</strong></div>
+                    </div>
+                    <div class="col-md-2 text-end">
+                        <div class="small">Subtotal: <strong>${formatearGs(subtotalItem)}</strong></div>
+                    </div>
+                    <div class="col-md-2 text-end">
+                        <button type="button" class="btn btn-outline-danger btn-sm eliminar-item">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        const idx = itemCounter;
+        const descField = document.createElement('input');
+        descField.type = 'hidden';
+        descField.name = `items-${idx}-descripcion`;
+        descField.value = `${insumoCodigo} - ${insumoNombre}`;
+        descField.className = 'item-field';
+        
+        const cantField = document.createElement('input');
+        cantField.type = 'hidden';
+        cantField.name = `items-${idx}-cantidad`;
+        cantField.value = cantidad;
+        cantField.className = 'item-field';
+        
+        const precioField = document.createElement('input');
+        precioField.type = 'hidden';
+        precioField.name = `items-${idx}-precio_unitario`;
+        precioField.value = insumoPrecio;
+        precioField.className = 'item-field';
+        
+        const tipoField = document.createElement('input');
+        tipoField.type = 'hidden';
+        tipoField.name = `items-${idx}-tipo`;
+        tipoField.value = 'insumo';
+        tipoField.className = 'item-field';
+        
+        const deleteField = document.createElement('input');
+        deleteField.type = 'hidden';
+        deleteField.name = `items-${idx}-DELETE`;
+        deleteField.value = 'false';
+        deleteField.className = 'item-field delete-field';
+
+        itemsContainer.appendChild(itemCard);
+        hiddenFieldsContainer.appendChild(descField);
+        hiddenFieldsContainer.appendChild(cantField);
+        hiddenFieldsContainer.appendChild(precioField);
+        hiddenFieldsContainer.appendChild(tipoField);
+        hiddenFieldsContainer.appendChild(deleteField);
+        
+        // Evento para eliminar item
+        itemCard.querySelector('.eliminar-item').addEventListener('click', function() {
+            const index = itemCard.getAttribute('data-item-index');
+            // Marcar el campo DELETE como true
+            const deleteFieldElement = document.querySelector(`input[name="items-${index}-DELETE"]`);
+            if (deleteFieldElement) {
+                deleteFieldElement.value = 'true';
+            }
+            // Ocultar visualmente
+            itemCard.style.display = 'none';
+            actualizarTotalesGeneral();
+            actualizarContadorItems();
+        });
+        
+        document.getElementById('item-cantidad').value = '1';
+        $('#item-selector').val(null).trigger('change');
+        
+        itemCounter++;
+        document.getElementById('id_items-TOTAL_FORMS').value = itemCounter;
+        actualizarTotalesGeneral();
+        actualizarContadorItems();
+    }
+    
+    agregarBtn.addEventListener('click', agregarItem);
+    document.getElementById('item-cantidad').addEventListener('input', limpiarErroresItems);
+    $('#item-selector').on('change', limpiarErroresItems);
+    document.getElementById('iva').addEventListener('change', actualizarTotalesGeneral);
+    
+    document.getElementById('item-cantidad').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            agregarItem();
+        }
+    });
+    
+    // ========== VALIDACIÓN ANTES DE ENVIAR ==========
+    document.getElementById('factura-form').addEventListener('submit', function(e) {
+        const itemsCount = document.querySelectorAll('[data-item-id]:not([style*="display: none"])').length;
+        const serviciosOTCount = {{ servicios_precargados|length }};
+        const clienteRuc = document.getElementById('cliente-ruc').value;
+        const clienteNombre = document.getElementById('cliente-nombre').value;
+        
+        // Limpiar errores previos
+        limpiarErrorCampo('cliente-error');
+        limpiarErrorCampo('items-error');
+        
+        let hasError = false;
+        
+        // Validar cliente (solo si no está precargado)
+        {% if not cliente_precargado %}
+        if (!clienteRuc || !clienteNombre) {
+            mostrarErrorCampo('cliente-error', 'Este campo es obligatorio.');
+            //const clienteSelect = document.getElementById('cliente-search');
+            //if (clienteSelect) {
+            //    clienteSelect.classList.add('is-invalid');
+            //    const select2Container = $(clienteSelect).next('.select2-container').find('.select2-selection');
+            //    select2Container.addClass('is-invalid');
+            //}
+            hasError = true;
+        }
+        {% endif %}
+        
+        // Validar items: si NO viene de OT, debe tener al menos un producto
+        if (serviciosOTCount === 0 && itemsCount === 0) {
+            const errorDiv = document.getElementById('items-error');
+            if (errorDiv) {
+                errorDiv.textContent = 'La factura debe tener al menos un producto.';
+                errorDiv.style.display = 'block';
+            }
+            hasError = true;
+        }
+        
+        if (hasError) {
+            e.preventDefault();
+            // Hacer scroll al primer error
+            const firstError = document.querySelector('.invalid-feedback:not([style*="display: none"])');
+            if (firstError) {
+                firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            return false;
+        }
+    });
+
+    actualizarTotalesGeneral();
+    actualizarContadorItems();
+});
+</script>
+
+<!-- Campo oculto para descripción y precio -->
+<input type="hidden" id="item-descripcion">
+<input type="hidden" id="item-precio">
+
+{% endblock %}

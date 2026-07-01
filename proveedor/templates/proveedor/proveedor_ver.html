@@ -1,0 +1,231 @@
+{% extends 'seguridad/base.html' %}
+
+{% block content %}
+<div class="container-fluid py-0">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-8">
+
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <h2 class="h4 mb-1">DETALLES DEL PROVEEDOR</h2>
+        <div class="d-flex gap-2">
+          <button type="button" onclick="window.history.back()" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Volver
+          </button>
+          {% if perms.seguridad.editar_proveedores %}
+          <a href="{% url 'proveedor_editar' p.id %}" class="btn btn-primary btn-sm">
+            <i class="bi bi-pencil me-1"></i>Editar
+          </a>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-body">
+
+          <div class="row g-3">
+            <!-- COLUMNA IZQUIERDA - INFORMACIÓN PRINCIPAL -->
+            <div class="col-md-6">
+              <h6 class="mb-2 border-bottom pb-2 small fw-semibold text-muted">INFORMACIÓN PRINCIPAL</h6>
+
+              <div class="mb-2">
+                <label class="form-label small text-muted">RUC</label>
+                <p class="mb-0 fw-semibold ruc-cell">{{ p.ruc }}</p>
+              </div>
+
+              <div class="mb-2">
+                <label class="form-label small text-muted">Razón Social</label>
+                <p class="mb-0 fw-semibold">{{ p.razon_social }}</p>
+              </div>
+
+              <div class="mb-2">
+                <label class="form-label small text-muted">Nombre de Fantasía</label>
+                <p class="mb-0">{{ p.nombre_fantasia|default:"—" }}</p>
+              </div>
+
+              <div class="mb-2">
+                <label class="form-label small text-muted">Estado</label>
+                <p class="mb-0">
+                  {% if p.is_active %}
+                    <span class="badge bg-success">Activo</span>
+                  {% else %}
+                    <span class="badge bg-secondary">Inactivo</span>
+                  {% endif %}
+                </p>
+              </div>
+            </div>
+
+            <!-- COLUMNA DERECHA - CONTACTO -->
+            <div class="col-md-6">
+              <h6 class="mb-2 border-bottom pb-2 small fw-semibold text-muted">CONTACTO</h6>
+
+              <div class="mb-2">
+                <label class="form-label small text-muted">Teléfono</label>
+                <p class="mb-0 telefono-cell">{{ p.telefono|default:"—" }}</p>
+              </div>
+
+              <div class="mb-2">
+                <label class="form-label small text-muted">Correo Electrónico</label>
+                <p class="mb-0">{{ p.email|default:"—" }}</p>
+              </div>
+
+              <div class="mb-2">
+                <label class="form-label small text-muted">Ciudad</label>
+                <p class="mb-0">{{ p.ciudad|default:"—" }}</p>
+              </div>
+
+              <div class="mb-2">
+                <label class="form-label small text-muted">Dirección</label>
+                <p class="mb-0">{{ p.direccion|default:"—" }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- PERSONA DE CONTACTO -->
+          <div class="row mt-3">
+            <div class="col-12">
+              <h6 class="mb-2 border-bottom pb-2 small fw-semibold text-muted">PERSONA DE CONTACTO</h6>
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="mb-2">
+                    <label class="form-label small text-muted">Nombre</label>
+                    <p class="mb-0">{{ p.contacto_nombre|default:"—" }}</p>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-2">
+                    <label class="form-label small text-muted">Teléfono</label>
+                    <p class="mb-0 contacto-telefono-cell">{{ p.contacto_telefono|default:"—" }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- INFORMACIÓN DEL SISTEMA -->
+          <div class="row mt-3">
+            <div class="col-12">
+              <h6 class="mb-2 border-bottom pb-2 small fw-semibold text-muted">INFORMACIÓN DEL SISTEMA</h6>
+              <div class="row">
+                <div class="col-md-6">
+                  <label class="form-label small text-muted">Registrado</label>
+                  <p class="mb-0 small">
+                    <i class="bi bi-calendar-plus me-1 text-muted"></i>
+                    {{ p.fecha_registro|date:"d/m/Y H:i" }}
+                  </p>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label small text-muted">Actualizado</label>
+                  <p class="mb-0 small">
+                    <i class="bi bi-clock-history me-1 text-muted"></i>
+                    {{ p.fecha_actualizacion|date:"d/m/Y H:i" }}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /card-body -->
+        
+        <!-- FOOTER DE LA TARJETA -->
+        <div class="card-footer bg-light py-1">
+          <div class="d-flex justify-content-between align-items-center">
+            <small class="text-muted">
+              <i class="bi bi-hash"></i>ID: {{ p.id }}
+            </small>
+          </div>
+        </div>
+      </div><!-- /card -->
+
+    </div>
+  </div>
+</div>
+
+<style>
+.container-fluid { max-width: 1000px; }
+.btn-sm { padding: 0.25rem 0.5rem; font-size: 0.75rem; }
+.small { font-size: 0.875rem; }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Función para formatear RUC
+  function formatRuc(ruc) {
+    if (!ruc) return ruc;
+    
+    // Si tiene guion (RUC con dígito verificador)
+    if (ruc.includes('-')) {
+      const partes = ruc.split('-');
+      const partePrincipal = partes[0];
+      const digitoVerificador = partes[1];
+      
+      // Formatear la parte principal con puntos
+      const parteFormateada = partePrincipal.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+      
+      return `${parteFormateada}-${digitoVerificador}`;
+    } else {
+      // Formatear RUC simple
+      return ruc.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    }
+  }
+
+  // Función para formatear teléfono
+  function formatTelefono(telefono) {
+    if (!telefono) return telefono;
+    
+    // Limpiar el teléfono de espacios y caracteres especiales
+    const telefonoLimpio = telefono.replace(/\D/g, '');
+    
+    // Formato para Paraguay: +595 981 123456
+    if (telefonoLimpio.startsWith('595') && telefonoLimpio.length === 12) {
+      return `+${telefonoLimpio.substring(0, 3)} ${telefonoLimpio.substring(3, 6)} ${telefonoLimpio.substring(6)}`;
+    }
+    // Formato con código de país completo
+    else if (telefonoLimpio.startsWith('595') && telefonoLimpio.length === 11) {
+      return `+${telefonoLimpio.substring(0, 3)} ${telefonoLimpio.substring(3, 6)} ${telefonoLimpio.substring(6)}`;
+    }
+    // Formato local (0981) 123-456
+    else if (telefonoLimpio.startsWith('098') && telefonoLimpio.length === 10) {
+      return `(${telefonoLimpio.substring(0, 4)}) ${telefonoLimpio.substring(4, 7)}-${telefonoLimpio.substring(7)}`;
+    }
+    // Formato local (098) 123-456
+    else if (telefonoLimpio.startsWith('098') && telefonoLimpio.length === 9) {
+      return `(${telefonoLimpio.substring(0, 3)}) ${telefonoLimpio.substring(3, 6)}-${telefonoLimpio.substring(6)}`;
+    }
+    // Formato simple con separadores
+    else if (telefonoLimpio.length >= 7) {
+      // Para números locales sin código de área
+      return telefonoLimpio.replace(/(\d{3})(\d{3})(\d+)/, '$1 $2 $3');
+    }
+    
+    return telefono;
+  }
+
+  // Aplicar formato a RUC y teléfonos
+  const rucCells = document.querySelectorAll('.ruc-cell');
+  const telefonoCells = document.querySelectorAll('.telefono-cell');
+  const contactoTelefonoCells = document.querySelectorAll('.contacto-telefono-cell');
+
+  rucCells.forEach(cell => {
+    const originalText = cell.textContent.trim();
+    if (originalText && originalText !== '—') {
+      cell.textContent = formatRuc(originalText);
+    }
+  });
+
+  telefonoCells.forEach(cell => {
+    const originalText = cell.textContent.trim();
+    if (originalText && originalText !== '—') {
+      cell.textContent = formatTelefono(originalText);
+    }
+  });
+
+  contactoTelefonoCells.forEach(cell => {
+    const originalText = cell.textContent.trim();
+    if (originalText && originalText !== '—') {
+      cell.textContent = formatTelefono(originalText);
+    }
+  });
+});
+</script>
+
+{% endblock %}

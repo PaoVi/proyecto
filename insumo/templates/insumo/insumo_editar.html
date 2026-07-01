@@ -1,0 +1,391 @@
+{% extends 'seguridad/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-0">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-8">
+
+      <!-- HEADER -->
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <div>
+          <h2 class="h4 mb-1">EDITAR INSUMO</h2>
+        </div>
+        <button type="button" onclick="window.history.back()" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-arrow-left"></i>Volver
+        </button>
+      </div>
+
+      <!-- FORM -->
+      <div class="card">
+        <div class="card-body">
+          <form method="post" class="needs-validation" novalidate>
+            {% csrf_token %}  
+
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger alert-sm mb-3">
+              <i class="bi bi-exclamation-circle"></i>
+              {% for e in form.non_field_errors %}{{ e }}{% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="row g-3">
+
+              <!-- CÓDIGO (solo lectura) -->
+              <div class="col-12">
+                <label class="form-label small fw-semibold text-muted">Código</label>
+                <input type="text" class="form-control" value="{{ insumo.codigo_completo }}" readonly disabled>
+                <div class="form-text small text-muted">
+                  Código único generado automáticamente según el grupo
+                </div>
+              </div>
+
+              <!-- NOMBRE -->
+              <div class="col-12">
+                <label for="{{ form.nombre.id_for_label }}" class="form-label small fw-semibold text-muted">Nombre del Insumo</label>
+                {{ form.nombre }}
+                {% if form.nombre.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.nombre.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+              
+              <!-- GRUPO (solo lectura) -->
+              <div class="col-md-6">
+                <label class="form-label small fw-semibold text-muted">Grupo</label>
+                <input type="text" class="form-control" value="{{ insumo.get_grupo_display }}" readonly disabled>
+                <input type="hidden" name="grupo" value="{{ insumo.grupo }}">
+                <div class="form-text small text-muted">
+                  El grupo define el prefijo del código
+                </div>
+              </div>
+            
+              <!-- CATEGORIA -->
+              <div class="col-md-6">
+                <label for="{{ form.categoria.id_for_label }}" class="form-label small fw-semibold text-muted">Categoría</label>
+                {{ form.categoria }}
+                {% if form.categoria.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.categoria.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- UNIDAD -->
+              <div class="col-md-6">
+                <label for="{{ form.unidad.id_for_label }}" class="form-label small fw-semibold text-muted">Unidad de Medida</label>
+                {{ form.unidad }}
+                {% if form.unidad.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.unidad.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- STOCK MÍNIMO -->
+              <div class="col-md-6">
+                <label for="{{ form.stock_minimo.id_for_label }}" class="form-label small fw-semibold text-muted">Stock Mínimo</label>
+                <input 
+                  type="text" 
+                  name="stock_minimo" 
+                  id="id_stock_minimo" 
+                  class="form-control" 
+                  inputmode="decimal" 
+                  pattern="[0-9]*[.,]?[0-9]*"
+                  placeholder="Ej.: 15.5"
+                  value="{{ form.stock_minimo.value|default_if_none:'' }}">
+                <div class="form-text small text-muted">
+                  Cantidad mínima para alertas de stock bajo
+                </div>
+                {% if form.stock_minimo.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.stock_minimo.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- COSTO UNITARIO -->
+              <div class="col-md-6">
+                <label class="form-label small fw-semibold text-muted">Costo Unitario</label>
+                <input
+                  type="hidden"
+                  name="costo_unitario"
+                  id="id_costo_unitario"
+                  value="{{ form.costo_unitario.value|default_if_none:'' }}">
+                <input
+                  type="text"
+                  id="id_costo_unitario_display"
+                  class="form-control"
+                  placeholder="Gs. 0"
+                  value="">
+                <div class="form-text small text-muted">
+                  Costo por unidad en Guaraníes
+                </div>
+                {% if form.costo_unitario.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.costo_unitario.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- GARANTÍA (solo para repuestos) -->
+              <div class="col-12" id="garantia-section" style="display: none;">
+                <div class="card bg-light border-0 mt-2 mb-2">
+                  <div class="card-body py-2">
+                    <div class="row align-items-end">
+                      <div class="col-md-6">
+                        <div class="form-check mb-2">
+                          {{ form.tiene_garantia }}
+                          <label for="{{ form.tiene_garantia.id_for_label }}" class="form-label small"">
+                            {{ form.tiene_garantia.label }}
+                          </label>
+                          <div class="form-text small text-muted">
+                            {{ form.tiene_garantia.help_text }}
+                          </div>
+                        </div>
+                      </div>
+                      <div class="col-md-6" id="garantia-meses-group" style="display: none;">
+                        <label for="id_garantia_meses" class="form-label small">Garantía (meses)</label>
+                        <select name="garantia_meses" id="id_garantia_meses" class="form-select">
+                          <option value="">Seleccione la duración</option>
+                          <option value="1" {% if form.garantia_meses.value == 1 %}selected{% endif %}>1 mes</option>
+                          <option value="3" {% if form.garantia_meses.value == 3 %}selected{% endif %}>3 meses</option>
+                          <option value="6" {% if form.garantia_meses.value == 6 %}selected{% endif %}>6 meses</option>
+                          <option value="12" {% if form.garantia_meses.value == 12 %}selected{% endif %}>12 meses (1 año)</option>
+                        </select>
+                        <div class="form-text small text-muted">
+                          Duración de la garantía en meses
+                        </div>
+                        {% if form.garantia_meses.errors %}
+                          <div class="invalid-feedback d-block small">
+                            {% for e in form.garantia_meses.errors %}{{ e }}{% endfor %}
+                          </div>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- DESCRIPCIÓN -->
+              <div class="col-12">
+                <label for="{{ form.descripcion.id_for_label }}" class="form-label small fw-semibold text-muted">Descripción</label>
+                {{ form.descripcion }}
+                {% if form.descripcion.errors %}
+                  <div class="invalid-feedback d-block small">
+                    {% for e in form.descripcion.errors %}{{ e }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+
+            </div>
+
+            <!-- ESTADO -->
+            <div class="row mt-3">
+              <div class="col-12">
+                <div class="mb-2">
+                  <label for="{{ form.is_active.id_for_label }}" class="form-label small fw-semibold text-muted">Estado</label>
+                  <div class="form-check form-switch mt-1">
+                    {% if puede_desactivar_insumos %}
+                      {{ form.is_active }}
+                      <label class="form-check-label small fw-semibold text-muted" for="{{ form.is_active.id_for_label }}">
+                        Activo / Inactivo
+                      </label>
+                    {% else %}
+                      <input type="checkbox"
+                             id="{{ form.is_active.id_for_label }}"
+                             class="form-check-input"
+                             {% if form.is_active.value %}checked{% endif %}
+                             disabled>
+                      <label class="form-check-label small fw-semibold text-muted" for="{{ form.is_active.id_for_label }}">
+                        Activo / Inactivo
+                      </label>
+                      <input type="hidden" name="{{ form.is_active.name }}" value="{% if form.is_active.value %}True{% else %}False{% endif %}">
+                    {% endif %}
+                  </div>
+
+                  {% if not puede_desactivar_insumos %}
+                    <div class="form-text small text-muted mt-1">
+                      <i class="bi bi-info-circle"></i>
+                      No tienes permisos para cambiar el estado de insumos.
+                    </div>
+                  {% endif %}
+
+                  {% if form.is_active.errors %}
+                    <div class="invalid-feedback d-block small">
+                      {% for e in form.is_active.errors %}{{ e }}{% endfor %}
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <!-- BOTONES -->
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-center pt-3 border-top gap-2">
+              <a href="{% url 'insumo_lista' %}" class="btn btn-outline-secondary btn-sm w-100 w-md-auto order-2 order-md-1">
+                <i class="bi bi-x-circle"></i>Cancelar
+              </a>
+              <button type="submit" class="btn btn-primary btn-sm w-100 w-md-auto order-1 order-md-2">
+                <i class="bi bi-check-circle"></i>Guardar Cambios
+              </button>
+            </div>
+
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<style>
+  .container-fluid { max-width: 1000px; }
+  .form-control, .form-select {
+    border-radius: 0.375rem;
+    border: 1px solid #ced4da;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+  }
+  .form-control:focus, .form-select:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.2rem rgba(13,110,253,.25);
+  }
+  .btn-sm { padding: .375rem .75rem; font-size: .875rem; min-width: 100px; }
+  .form-switch .form-check-input { width: 2.5em; margin-right: .5rem; }
+  input:read-only, input:disabled {
+    background-color: #e9ecef;
+    opacity: 1;
+  }
+  code {
+    background-color: #f8f9fa;
+    padding: 0.2rem 0.4rem;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    color: #d63384;
+  }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  // === COSTO UNITARIO ===
+  const hiddenCosto  = document.querySelector('#id_costo_unitario');
+  const visibleCosto = document.querySelector('#id_costo_unitario_display');
+
+  function formatearGs(valor) {
+    if (!valor && valor !== 0) return '';
+    const limpio = String(valor).replace(/[^\d.,]/g, '');
+    const numero = Number(limpio.replace(',', '.'));
+    if (isNaN(numero)) return '';
+    return 'Gs. ' + numero.toLocaleString('es-PY', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  }
+  
+  function desformatearGs(texto) {
+    if (!texto) return '';
+    return texto.replace(/[^\d]/g, '');
+  }
+  
+  if (hiddenCosto && visibleCosto) {
+    if (hiddenCosto.value) {
+      visibleCosto.value = formatearGs(hiddenCosto.value);
+    }
+    visibleCosto.addEventListener('input', () => {
+      const raw = desformatearGs(visibleCosto.value);
+      visibleCosto.value = formatearGs(raw);
+    });
+    const formEl = document.querySelector('form');
+    if (formEl) {
+      formEl.addEventListener('submit', function () {
+        hiddenCosto.value = desformatearGs(visibleCosto.value);
+      });
+    }
+  }
+
+  // === STOCK MÍNIMO - Formateo ===
+  const stock_minimo = document.querySelector('#id_stock_minimo');
+  if (stock_minimo) {
+    stock_minimo.addEventListener('input', () => {
+      let v = stock_minimo.value.replace(/[^0-9.,]/g, '');
+      const firstComma = v.indexOf(',');
+      const firstDot   = v.indexOf('.');
+      const firstSep   = (firstComma === -1) ? firstDot
+                        : (firstDot === -1) ? firstComma
+                        : Math.min(firstComma, firstDot);
+      if (firstSep !== -1) {
+        const head = v.slice(0, firstSep + 1);
+        const tail = v.slice(firstSep + 1).replace(/[.,]/g, '');
+        v = head + tail;
+      }
+      stock_minimo.value = v;
+    });
+  }
+
+  // === Normalizar al enviar ===
+  const formEl = document.querySelector('form');
+  if (formEl && stock_minimo) {
+    formEl.addEventListener('submit', function () {
+      if (stock_minimo.value) {
+        stock_minimo.value = stock_minimo.value.replace(',', '.');
+      }
+    });
+  }
+
+  // === CATEGORÍA EN MAYÚSCULAS ===
+  const categoriaInput = document.querySelector('#id_categoria');
+  if (categoriaInput) {
+    categoriaInput.addEventListener('input', function() {
+      this.value = this.value.toUpperCase();
+    });
+  }
+
+  // === CONTROL DE GARANTÍA SEGÚN GRUPO ===
+  const grupoValue = '{{ insumo.grupo }}';
+  const garantiaSection = document.getElementById('garantia-section');
+  const garantiaMesesGroup = document.getElementById('garantia-meses-group');
+  const tieneGarantiaCheck = document.getElementById('id_tiene_garantia');
+  const garantiaMesesSelect = document.getElementById('id_garantia_meses');
+
+  function toggleGarantiaFields() {
+    if (grupoValue === 'repuesto') {
+      garantiaSection.style.display = 'block';
+      if (tieneGarantiaCheck && tieneGarantiaCheck.checked) {
+        garantiaMesesGroup.style.display = 'block';
+        if (garantiaMesesSelect) {
+          garantiaMesesSelect.required = true;
+        }
+      } else {
+        garantiaMesesGroup.style.display = 'none';
+        if (garantiaMesesSelect) {
+          garantiaMesesSelect.required = false;
+        }
+      }
+    } else {
+      garantiaSection.style.display = 'none';
+      garantiaMesesGroup.style.display = 'none';
+      if (garantiaMesesSelect) {
+        garantiaMesesSelect.required = false;
+      }
+    }
+  }
+
+  if (tieneGarantiaCheck) {
+    tieneGarantiaCheck.addEventListener('change', toggleGarantiaFields);
+  }
+
+  toggleGarantiaFields();
+
+  // Validar que se seleccione una opción si tiene garantía
+  if (formEl && grupoValue === 'repuesto') {
+    formEl.addEventListener('submit', function(e) {
+      if (tieneGarantiaCheck && tieneGarantiaCheck.checked) {
+        if (!garantiaMesesSelect || !garantiaMesesSelect.value) {
+          e.preventDefault();
+          alert('Por favor, seleccione la duración de la garantía.');
+          garantiaMesesSelect.focus();
+        }
+      }
+    });
+  }
+});
+</script>
+{% endblock %}

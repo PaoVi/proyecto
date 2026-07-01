@@ -1,0 +1,125 @@
+{% extends "seguridad/base.html" %}
+
+{% block content %}
+
+<div class="container-fluid py-0">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-8">
+        <!-- HEADER -->
+        <div class="d-flex justify-content-between align-items-center mb-1">
+
+            <h2 class="h4 mb-1">APERTURA DE CAJA</h2>
+
+            <a href="{% url 'caja_lista' %}"
+               class="btn btn-outline-secondary">
+
+                <i class="bi bi-arrow-left"></i>
+                Volver
+
+            </a>
+
+        </div>
+
+        <!-- FORMULARIO -->
+        <div class="card shadow-sm">
+
+            <div class="card-body">
+
+                <form method="post">
+
+                    {% csrf_token %}
+
+                    <div class="row g-3">
+
+                        <div class="col-md-12">
+
+                            <label class="form-label">
+                                Monto Inicial
+                            </label>
+
+                            {{ form.monto_inicial }}
+
+                            <small class="text-muted">
+                                Ingrese el efectivo disponible para iniciar la caja.
+                            </small>
+
+                        </div>
+
+                        <div class="col-md-12">
+
+                            <label class="form-label">
+                                Observación
+                            </label>
+
+                            {{ form.observacion }}
+
+                            <small class="text-muted">
+                                Campo opcional para registrar información adicional.
+                            </small>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="d-flex justify-content-between align-items-center pt-3 border-top gap-2">
+
+                        <a href="{% url 'caja_lista' %}"
+                           class="btn btn-outline-secondary btn-sm flex-grow-1">
+
+                            <i class="bi bi-x-circle"></i>
+                            Cancelar
+
+                        </a>
+
+                        <button type="submit"
+                                class="btn btn-success btn-sm flex-grow-1">
+
+                            <i class="bi bi-check-circle"></i>
+                            Abrir Caja
+
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </div>
+
+        </div>
+
+        <!-- INFORMACIÓN -->
+            <div class="card">
+                <div class="card-body py-2">
+                <small class="text-muted">
+                    <i class="bi bi-info-circle"></i>
+
+                    Una caja abierta a la vez.
+                    Todos los movimientos financieros se asociarán automáticamente
+                    a la caja activa.
+
+                </small>
+
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+</div>
+<style>
+  .container-fluid { max-width: 1000px; }
+  .form-control, .form-select {
+    border-radius: 0.375rem;
+    border: 1px solid #ced4da;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+  }
+  .form-control:focus, .form-select:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+  }
+  .btn-sm { padding: 0.375rem 0.75rem; font-size: 0.875rem; min-width: 100px; }
+</style>
+{% endblock %}

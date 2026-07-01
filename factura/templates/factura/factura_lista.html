@@ -1,0 +1,468 @@
+{% extends 'seguridad/base.html' %}
+
+{% block content %}
+<div class="container-fluid py-0">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-12">
+
+      <!-- HEADER --> 
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <div>
+          <h2 class="h4 mb-1">GESTIÓN DE FACTURAS</h2>
+        </div>
+        <div class="d-flex gap-2">
+          {% if perms.seguridad.anular_facturas %}
+          <a href="{% url 'nota_credito_lista' %}" 
+            class="btn btn-warning btn-sm">
+            <i class="bi bi-arrow-counterclockwise"></i> Nota de Crédito
+          </a>
+          {% endif %}
+          <!--{% if perms.seguridad.agregar_facturas %}
+          <a href="{% url 'orden_trabajo_lista' %}?estado=completado"
+             class="btn btn-success btn-sm">
+            <i class="bi bi-receipt"></i> Facturar desde OT
+          </a>-->
+          <a href="{% url 'factura_emitir' %}" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-circle"></i> Nueva Factura
+          </a>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- FILTROS -->
+      <div class="card mb-2">
+        <div class="card-body p-2">
+          <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-2">
+              <label class="form-label small">#FACTURA</label>
+              <input type="text" name="id" value="{{ q_id }}"
+                     class="form-control form-control-sm"
+                     style="height: 33px"
+                     placeholder="Ej.: 1001">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label small">DESDE</label>
+              <input type="date" name="fecha_desde"
+                     class="form-control form-control-sm"
+                     style="height: 33px"
+                     value="{{ request.GET.fecha_desde }}">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label small">HASTA</label>
+              <input type="date" name="fecha_hasta"
+                     class="form-control form-control-sm"
+                     style="height: 33px"
+                     value="{{ request.GET.fecha_hasta }}">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label small">ESTADO</label>
+              <select name="estado" class="form-select form-select-sm" style="height: 33px">
+                <option value="">Todos</option>
+                <option value="ACTIVA" {% if q_estado == 'ACTIVA' %}selected{% endif %}>Activo</option>
+                <option value="ANULADA" {% if q_estado == 'ANULADA' %}selected{% endif %}>Anulado</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label small">&nbsp;</label>
+              <button type="submit" class="btn btn-outline-primary w-100 btn-sm" style="height: 33px">
+                <i class="bi bi-search me-1"></i> Buscar
+              </button>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label small">&nbsp;</label>
+              <a href="?" class="btn btn-outline-secondary w-100 btn-sm" style="height: 33px">
+                <i class="bi bi-arrow-clockwise"></i> Limpiar
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- LISTA -->
+      <div class="card">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th style="width: 10%">#Factura</th>
+                <th style="width: 18%">Cliente</th>
+                <th style="width: 7%">Fecha</th>
+                <th style="width: 10%">Estado</th>
+                <th style="width: 5%">IVA</th>
+                <th style="width: 12%">Sub-Total</th>
+                <th style="width: 8%">IVA Monto</th>
+                <th style="width: 12%">Total</th>
+                <th style="width: 7%">Entregada</th>
+                <th style="width: 10%">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for f in facturas %}
+              <tr>
+                <td class="fw-semibold">{{ f.numero_formateado }}</td>
+                <td class="text-start">
+                  {{ f.cliente.nombre|default:"CONSUMIDOR FINAL" }}
+                </td>
+                <td>
+                  <div>{{ f.fecha|date:"d/m/Y" }}</div>
+                  <small class="text-muted">{{ f.created_at|date:"H:i" }}</small>
+                </td>
+                <td class="text-center">
+                  <div class="d-flex flex-column align-items-center gap-1">
+                    {% if f.estado == 'ANULADA' %}
+                      <span class="badge bg-danger">Anulado</span>
+                    {% elif f.tiene_nota_credito %}
+                    {% with nota=f.nota_credito_activa %}
+                        <div class="d-flex flex-column align-items-center gap-1">
+                            <span class="badge bg-warning text-dark">Nota Crédito</span>
+                            
+                            {% if nota.estado == 'PENDIENTE' or nota.estado == 'ACTIVA' %}
+                                <i class="bi bi-clock-history text-secondary" style="font-size: 0.75rem;" title="Pendiente"></i>
+                            {% elif nota.estado == 'APROBADA' %}
+                                <i class="bi bi-check-circle-fill text-success" style="font-size: 0.75rem;" title="Aprobado"></i>
+                            {% elif nota.estado == 'RECHAZADA' %}
+                                <i class="bi bi-x-circle-fill text-danger" style="font-size: 0.75rem;" title="Rechazado"></i>
+                            {% else %}
+                                <small class="text-muted" style="font-size: 0.6rem;">{{ nota.estado }}</small>
+                            {% endif %}
+                        </div>
+                    {% endwith %}
+                    {% elif f.estado == 'ACTIVA' %}
+                      <span class="badge bg-success">Activo</span>
+                    {% else %}
+                      <span class="badge bg-secondary">{{ f.get_estado_display }}</span>
+                    {% endif %}
+                  </div>
+                </td>
+                <td>{{ f.iva }}%</td>
+                <td class="text-center">₲ <span class="fmt">{{ f.subtotal|floatformat:0 }}</span></td>
+                <td class="text-center">₲ <span class="fmt">{{ f.total_iva|floatformat:0 }}</span></td>
+                <td class="text-center">₲ <span class="fmt">{{ f.total_general|floatformat:0 }}</span></td>
+                <td class="text-center">
+                  {% if f.entregada %}
+                    <span class="badge bg-success">Sí</span>
+                  {% else %}
+                    <span class="badge bg-secondary">No</span>
+                  {% endif %}
+                </td>
+                <td class="text-center">
+                  <div class="btn-group btn-group-sm">
+                    {% if perms.seguridad.ver_facturas %}
+                    <a href="{% url 'factura_ver' f.id %}" class="btn btn-outline-info" title="Ver">
+                      <i class="bi bi-eye"></i>
+                    </a>
+                    {% endif %}
+                    
+                    <!-- Botón Entregar (solo si está activa y no entregada) -->
+                    {% if perms.seguridad.editar_facturas %}
+                      {% if f.estado == 'ACTIVA' and not f.entregada and not f.tiene_nota_credito%}
+                      <button type="button" 
+                              class="btn btn-outline-success" 
+                              title="Marcar como entregada"
+                              data-bs-toggle="modal" 
+                              data-bs-target="#modalEntregar{{ f.id }}">
+                        <i class="bi bi-check-circle"></i>
+                      </button>
+                      {% endif %}
+                    {% endif %}
+
+                    <!-- Botón Anular (solo si está activa Y dentro de las 24 horas) -->
+                    {% if perms.seguridad.anular_facturas %}
+                      {% if f.estado == 'ACTIVA' and f.puede_anular and not f.tiene_nota_credito%}
+                        <button type="button"
+                                class="btn btn-outline-danger btn-sm"
+                                title="Anular factura"
+                                data-bs-toggle="modal"
+                                data-bs-target="#modalAnular{{ f.id }}">
+                          <i class="bi bi-x-circle"></i>
+                        </button>
+                      {% endif %}
+                    {% endif %}
+
+                    <!-- Botón Generar Nota de Crédito (solo si está activa, PASARON las 24 horas Y NO tiene nota de crédito) -->
+                    {% if perms.seguridad.anular_facturas %}
+                      {% if f.estado == 'ACTIVA' and not f.puede_anular and not f.tiene_nota_credito %}
+                        <a href="{% url 'nota_credito_emitir' f.id %}" 
+                          class="btn btn-outline-warning btn-sm" 
+                          title="Generar Nota de Crédito">
+                          <i class="bi bi-arrow-counterclockwise"></i>
+                        </a>
+                      {% endif %}
+                    {% endif %}
+
+                    <!-- Botón Ver Nota de Crédito (solo si tiene nota de crédito) -->
+                    {% if perms.seguridad.anular_facturas %}
+                      {% if f.tiene_nota_credito and f.nota_credito_activa %}
+                        <a href="{% url 'nota_credito_ver' f.nota_credito_activa.id %}" 
+                          class="btn btn-outline-warning btn-sm" 
+                          title="Ver Nota de Crédito">
+                          <i class="bi bi-arrow-counterclockwise"></i>
+                        </a>
+                      {% endif %}
+                    {% endif %}
+
+                    <!-- BOTÓN IMPRIMIR -->
+                    {% if perms.seguridad.reimprimir_facturas %}
+                    <a href="{% url 'factura_reimprimir' f.id %}" class="btn btn-outline-secondary" target="_blank" title="Imprimir">
+                      <i class="bi bi-printer"></i>
+                    </a>
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+
+              <!-- MODAL ENTREGAR -->
+              <div class="modal fade" id="modalEntregar{{ f.id }}" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered modal-sm">
+                  <div class="modal-content">
+                    <div class="modal-header bg-success text-white">
+                      <h5 class="modal-title">Confirmar Entrega</h5>
+                      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body text-center">
+                      <div style="font-size: 50px; color: #198754;">
+                        <i class="bi bi-check-circle-fill"></i>
+                      </div>
+                      <p class="mt-3">
+                        ¿Desea marcar como <strong class="text-success">ENTREGADA</strong> la factura <strong>{{ f.numero_formateado }}</strong>?
+                      </p>
+                      <p class="text-muted small">Cliente: {{ f.cliente.nombre|default:"CONSUMIDOR FINAL" }}</p>
+                    </div>
+                    <div class="modal-footer justify-content-center">
+                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        Cancelar
+                      </button>
+                      <form method="post" action="{% url 'factura_marcar_entregada' f.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-success">
+                          <i class="bi bi-check-circle"></i> Entregar
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- MODAL NOTA DE CRÉDITO -->
+              <div class="modal fade" id="modalNotaCredito{{ f.id }}" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered">
+                  <div class="modal-content">
+                    <div class="modal-header bg-warning text-white">
+                      <h5 class="modal-title">Generar Nota de Crédito</h5>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form method="post" action="{% url 'nota_credito_emitir' f.id %}" id="formNotaCredito{{ f.id }}" onsubmit="return validarMotivoNotaCredito(this)">
+                      {% csrf_token %}
+                      <div class="modal-body">
+                        <div class="text-center mb-3">
+                          <div style="font-size: 50px; color: #ffc107;">
+                            <i class="bi bi-arrow-counterclockwise"></i>
+                          </div>
+                          <p class="mt-2">
+                            ¿Desea generar una <strong class="text-warning">NOTA DE CRÉDITO</strong> para la factura <strong>{{ f.numero_formateado }}</strong>?
+                          </p>
+                          <p class="text-muted small">La factura fue emitida el {{ f.fecha|date:"d/m/Y" }} a las {{ f.created_at|date:"H:i" }}</p>
+                        </div>
+                        
+                        <!-- CAMPO MOTIVO OBLIGATORIO -->
+                        <div class="mb-3">
+                          <label class="form-label fw-bold">
+                            Motivo de la Nota de Crédito <span class="text-danger">*</span>
+                          </label>
+                          <textarea name="motivo" 
+                                    class="form-control" 
+                                    rows="3"
+                                    required
+                                    placeholder="Ejemplo: Devolución del producto, Error en la factura, Anulación por cliente, etc."></textarea>
+                          <div class="form-text text-muted small">
+                            El motivo es obligatorio y quedará registrado en el sistema.
+                          </div>
+                        </div>
+                        
+                      </div>
+                      <div class="modal-footer justify-content-center">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                          Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-warning">
+                          <i class="bi bi-arrow-counterclockwise"></i> Generar Nota de Crédito
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+              <!-- MODAL ANULAR CON MOTIVO OBLIGATORIO -->
+              <div class="modal fade" id="modalAnular{{ f.id }}" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered">
+                  <div class="modal-content">
+                    <div class="modal-header bg-danger text-white">
+                      <h5 class="modal-title">Confirmar Anulación</h5>
+                      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form method="post" action="{% url 'factura_anular' f.id %}" id="formAnular{{ f.id }}" onsubmit="return validarMotivo(this)">
+                      {% csrf_token %}
+                      <div class="modal-body">
+                        <div class="text-center mb-3">
+                          <div style="font-size: 50px; color: #dc3545;">
+                            <i class="bi bi-x-circle-fill"></i>
+                          </div>
+                          <p class="mt-2">
+                            ¿Desea <strong class="text-danger">ANULAR</strong> la factura <strong>{{ f.numero_formateado }}</strong>?
+                          </p>
+                          <p class="text-muted small">Esta acción no se puede deshacer</p>
+                          <p class="text-muted small">La factura fue emitida el {{ f.fecha|date:"d/m/Y" }} a las {{ f.created_at|date:"H:i" }}</p>
+                        </div>
+                        
+                        <!-- CAMPO MOTIVO OBLIGATORIO -->
+                        <div class="mb-3">
+                          <label class="form-label fw-bold">
+                            Motivo de anulación <span class="text-danger">*</span>
+                          </label>
+                          <textarea name="motivo" 
+                                    class="form-control" 
+                                    rows="3"
+                                    required
+                                    placeholder="Ejemplo: Error en el monto, Producto no disponible, Cliente solicitó anulación, etc."></textarea>
+                          <div class="form-text text-muted small">
+                            El motivo es obligatorio y quedará registrado en el sistema.
+                          </div>
+                        </div>
+                      </div>
+                      <div class="modal-footer justify-content-center">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                          Cancelar
+                        </button>
+                        <button type="submit" class="btn btn-danger">
+                          <i class="bi bi-x-circle"></i> Anular
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+
+              {% empty %}
+              <tr>
+                <td colspan="10" class="text-center py-4 text-muted">
+                  No hay facturas registradas.
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- PAGINACIÓN - DENTRO DEL MISMO CARD (como en clientes) -->
+        {% if facturas.has_other_pages %}
+        <div class="card-body pt-2">
+          <div class="d-flex justify-content-between align-items-center">
+            <small class="text-muted">
+              Mostrando {{ facturas.start_index }}–{{ facturas.end_index }} de {{ facturas.paginator.count }}
+            </small>
+            <ul class="pagination pagination-sm mb-0">
+              {% if facturas.has_previous %}
+                <li class="page-item">
+                  <a class="page-link" href="?page=1{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">«</a>
+                </li>
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ facturas.previous_page_number }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">‹</a>
+                </li>
+              {% else %}
+                <li class="page-item disabled"><span class="page-link">«</span></li>
+                <li class="page-item disabled"><span class="page-link">‹</span></li>
+              {% endif %}
+
+              {% for i in facturas.paginator.page_range %}
+                {% if i == facturas.number %}
+                  <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+                {% elif i >= facturas.number|add:'-2' and i <= facturas.number|add:'2' %}
+                  <li class="page-item">
+                    <a class="page-link" href="?page={{ i }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">{{ i }}</a>
+                  </li>
+                {% endif %}
+              {% endfor %}
+
+              {% if facturas.has_next %}
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ facturas.next_page_number }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">›</a>
+                </li>
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ facturas.paginator.num_pages }}{% if qs_no_page %}&{{ qs_no_page }}{% endif %}">»</a>
+                </li>
+              {% else %}
+                <li class="page-item disabled"><span class="page-link">›</span></li>
+                <li class="page-item disabled"><span class="page-link">»</span></li>
+              {% endif %}
+            </ul>
+          </div>
+        </div>
+        {% endif %}
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .btn-group-sm > .btn {
+    padding: 0.25rem 0.5rem;
+  }
+  .table td, .table th {
+    vertical-align: middle;
+  }
+  .badge {
+    font-size: 0.75rem;
+    padding: 0.35rem 0.65rem;
+  }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  // Formatear números con separador de miles (Guaraníes)
+  const fmt = n => {
+    if (!n && n !== 0) return '0';
+    return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  };
+  
+  document.querySelectorAll('.fmt').forEach(el => {
+    const num = parseFloat(el.textContent || '0');
+    el.textContent = fmt(Math.round(num));
+  });
+});
+
+// Función para validar el motivo antes de enviar
+function validarMotivo(form) {
+  const motivo = form.querySelector('textarea[name="motivo"]');
+  if (!motivo.value.trim()) {
+    alert('Debe ingresar un motivo para anular la factura');
+    motivo.focus();
+    motivo.style.borderColor = '#dc3545';
+    return false;
+  }
+  return true;
+}
+
+// Función para validar el motivo de la nota de crédito
+function validarMotivoNotaCredito(form) {
+  const motivo = form.querySelector('textarea[name="motivo"]');
+  if (!motivo.value.trim()) {
+    alert('Debe ingresar un motivo para la Nota de Crédito');
+    motivo.focus();
+    motivo.style.borderColor = '#dc3545';
+    return false;
+  }
+  return true;
+}
+
+// Limpiar el estilo del textarea cuando el usuario empiece a escribir
+document.addEventListener('DOMContentLoaded', function() {
+  const textareas = document.querySelectorAll('textarea[name="motivo"]');
+  textareas.forEach(textarea => {
+    textarea.addEventListener('input', function() {
+      this.style.borderColor = '';
+    });
+  });
+});
+</script>
+
+{% endblock %}

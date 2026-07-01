@@ -1,0 +1,332 @@
+{% extends 'seguridad/base.html' %}
+{% load humanize %}
+
+{% block content %}
+<div class="container-fluid py-0"> 
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-10">
+
+      <!-- HEADER -->
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <h2 class="h4 mb-1">REANUDAR ORDEN #{{ orden.id }}</h2>
+        <button type="button" onclick="window.history.back()" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-arrow-left"></i>Volver
+        </button>
+      </div>
+
+      <!-- FORMULARIO -->
+      <div class="card">
+        <div class="card-body">
+          <form method="post" class="needs-validation" novalidate id="orden-form">
+            {% csrf_token %}
+            
+            <!-- INFORMACIÓN BÁSICA (SOLO LECTURA) -->
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label small">Cliente</label>
+                <div class="form-control bg-light">
+                  {{ orden.cliente.nombre }} - {{ orden.cliente.numero_documento }}
+                </div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small">Vehículo</label>
+                <div class="form-control bg-light">
+                  {{ orden.vehiculo.marca }} {{ orden.vehiculo.modelo }} - {{ orden.vehiculo.nro_chapa|default:"Sin chapa" }}
+                </div>
+              </div>
+              <div class="col-12">
+                <label class="form-label small">Descripción del Trabajo</label>
+                <div class="form-control bg-light">
+                  {{ orden.descripcion|default:"—" }}
+                </div>
+              </div>
+            </div>
+
+            <!-- SERVICIOS -->
+            <div class="row mt-4">
+              <div class="col-12">
+                <label class="form-label small fw-semibold mb-2">Servicios</label>
+                
+                <div id="servicios-container">
+                  {% for item in servicios_con_info %}
+                  {% with servicio=item.servicio_orden %}
+                  <div class="card mb-2 {% if not item.puede_editarse %}bg-light{% endif %}" 
+                       data-servicio-id="{{ servicio.id }}"
+                       data-servicio-orden-id="{{ servicio.id }}">
+                    <div class="card-body py-2">
+                      <div class="row align-items-center">
+                        <!-- NOMBRE DEL SERVICIO -->
+                        <div class="col-md-4">
+                          <div class="fw-semibold text-start">
+                            {{ servicio.servicio.nombre }}
+                            {% if not item.puede_editarse %}
+                              <span class="badge bg-success ms-2">✓ Aprobado</span>
+                            {% else %}
+                              <span class="badge bg-danger ms-2">✗ Rechazado - Corregir</span>
+                            {% endif %}
+                          </div>
+                          <div class="text-muted small text-start">
+                            {{ servicio.servicio.categoria|default:"Sin categoría" }}
+                          </div>
+                          {% if item.observacion_revision and not item.puede_editarse %}
+                            <div class="small text-danger mt-1">
+                              <i class="bi bi-chat-dots"></i> 
+                              <strong>Observación revisión:</strong> {{ item.observacion_revision }}
+                            </div>
+                          {% endif %}
+                        </div>
+                        
+                        <!-- CANTIDAD -->
+                        <div class="col-md-2">
+                          <label class="small text-muted">Cantidad</label>
+                          {% if item.puede_editarse %}
+                            <input type="number" 
+                                   name="cantidad_{{ servicio.id }}"
+                                   class="form-control form-control-sm text-center" 
+                                   value="{{ servicio.cantidad|stringformat:'.2f' }}"
+                                   step="0.01" 
+                                   min="0.01"
+                                   style="width: 100%;">
+                          {% else %}
+                            <div class="form-control bg-light text-center">
+                              {{ servicio.cantidad|floatformat:2 }}
+                            </div>
+                          {% endif %}
+                        </div>
+                        
+                        <!-- EMPLEADOS ASIGNADOS -->
+                        <div class="col-md-4">
+                          <label class="small text-muted">Empleado(s)</label>
+                          <div class="empleados-list" id="empleados-list-{{ servicio.id }}">
+                            {% for asignacion in servicio.asignacionorden_set.all %}
+                            <div class="empleado-item d-flex align-items-center justify-content-between mb-1" 
+                                 data-empleado-id="{{ asignacion.empleado.pk }}">
+                              <span class="fw-semibold">• {{ asignacion.empleado.nombre }}</span>
+                              {% if item.puede_editarse %}
+                                <button type="button" 
+                                        class="btn btn-outline-danger btn-sm py-0 px-1 btn-quitar-empleado"
+                                        data-servicio-orden-id="{{ servicio.id }}"
+                                        data-empleado-id="{{ asignacion.empleado.pk }}">
+                                  <i class="bi bi-x"></i>
+                                </button>
+                              {% endif %}
+                            </div>
+                            {% empty %}
+                            <div class="text-muted small">Sin empleados asignados</div>
+                            {% endfor %}
+                          </div>
+                          
+                          {% if item.puede_editarse %}
+                          <select class="form-select form-select-sm mt-1 agregar-empleado-select" 
+                                  data-servicio-orden-id="{{ servicio.id }}"
+                                  style="font-size: 0.7rem;">
+                            <option value="">Agregar empleado...</option>
+                            {% for empleado in empleados_disponibles %}
+                              <option value="{{ empleado.pk }}">{{ empleado.nombre }}</option>
+                            {% endfor %}
+                          </select>
+                          {% endif %}
+                        </div>
+                        
+                        <!-- PRECIO -->
+                        <div class="col-md-2 text-end">
+                          <label class="small text-muted">Subtotal</label>
+                          <div class="fw-semibold">
+                            Gs. {{ servicio.subtotal|floatformat:0|intcomma }}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Campos hidden para empleados eliminados/nuevos -->
+                  {% if item.puede_editarse %}
+                  <div id="empleados-eliminados-{{ servicio.id }}"></div>
+                  <div id="nuevos-empleados-{{ servicio.id }}"></div>
+                  {% endif %}
+                  
+                  {% endwith %}
+                  {% endfor %}
+                </div>
+
+                <!-- RESUMEN FINANCIERO -->
+                <div class="card border-primary mt-3">
+                  <div class="card-body py-2">
+                    <div class="row text-center">
+                      <div class="col-md-4">
+                        <div class="small text-muted">Subtotal Servicios</div>
+                        <div class="h6 mb-0">Gs. {{ orden.subtotal_servicios|floatformat:0|intcomma }}</div>
+                      </div>
+                      <div class="col-md-4">
+                        <div class="small text-muted">Descuento</div>
+                        <div class="h6 mb-0">Gs. {{ orden.descuento|floatformat:0|intcomma }}</div>
+                      </div>
+                      <div class="col-md-4">
+                        <div class="small text-muted">TOTAL</div>
+                        <div class="h6 mb-0 fw-bold">Gs. {{ orden.total|floatformat:0|intcomma }}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- BOTONES -->
+            <div class="d-flex justify-content-between align-items-center pt-3 border-top gap-2">
+            <a href="{% url 'orden_trabajo_ver' orden.id %}" class="btn btn-outline-secondary btn-sm flex-grow-1">
+                <i class="bi bi-x-circle"></i>Cancelar
+            </a>
+            <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
+                <i class="bi bi-check-circle"></i>Guardar Cambios
+            </button>
+            </div>
+
+          </form>
+        </div>
+      </div>
+
+      <!-- INFORMACIÓN DE AYUDA (DENTRO DEL CARD PRINCIPAL, DESPUÉS DE CERRAR card-body) -->
+      <div class="card mt-0" style="border-top: none; border-radius: 0 0 0.375rem 0.375rem;">
+        <div class="card-body py-2">
+          <div class="row">
+            <div class="col-12">
+              <small class="text-muted">
+                <i class="bi bi-info-circle"></i>
+                SOLO puede modificar los servicios RECHAZADOS (marcados en rojo). Los servicios APROBADOS (en verde) son solo lectura.
+              </small>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const hiddenFieldsContainer = document.getElementById('servicios-hidden-fields');
+  
+  // Función para actualizar selects de empleados
+  function actualizarSelectEmpleados(servicioOrdenId) {
+    const select = document.querySelector(`.agregar-empleado-select[data-servicio-orden-id="${servicioOrdenId}"]`);
+    if (!select) return;
+    
+    // Obtener empleados ya asignados
+    const empleadosAsignados = new Set();
+    document.querySelectorAll(`#empleados-list-${servicioOrdenId} .empleado-item`).forEach(item => {
+      const empId = item.getAttribute('data-empleado-id');
+      if (empId) empleadosAsignados.add(empId);
+    });
+    
+    // Filtrar opciones
+    Array.from(select.options).forEach(option => {
+      if (option.value && empleadosAsignados.has(option.value)) {
+        option.disabled = true;
+        option.style.display = 'none';
+      } else {
+        option.disabled = false;
+        option.style.display = '';
+      }
+    });
+    
+    select.value = '';
+  }
+  
+  // Quitar empleado
+  document.addEventListener('click', function(e) {
+    if (e.target.closest('.btn-quitar-empleado')) {
+      const btn = e.target.closest('.btn-quitar-empleado');
+      const servicioOrdenId = btn.getAttribute('data-servicio-orden-id');
+      const empleadoId = btn.getAttribute('data-empleado-id');
+      const empleadoItem = btn.closest('.empleado-item');
+      
+      if (!servicioOrdenId || !empleadoId) return;
+      
+      // Agregar a eliminados
+      const eliminarContainer = document.getElementById(`empleados-eliminados-${servicioOrdenId}`);
+      if (eliminarContainer) {
+        const inputEliminado = document.createElement('input');
+        inputEliminado.type = 'hidden';
+        inputEliminado.name = `empleados_eliminados_${servicioOrdenId}[]`;
+        inputEliminado.value = empleadoId;
+        eliminarContainer.appendChild(inputEliminado);
+      }
+      
+      // Remover visualmente
+      empleadoItem.remove();
+      
+      // Actualizar select
+      actualizarSelectEmpleados(servicioOrdenId);
+    }
+  });
+  
+  // Agregar nuevo empleado
+  document.addEventListener('change', function(e) {
+    if (e.target.classList.contains('agregar-empleado-select')) {
+      const select = e.target;
+      const servicioOrdenId = select.getAttribute('data-servicio-orden-id');
+      const empleadoId = select.value;
+      
+      if (!empleadoId || !servicioOrdenId) return;
+      
+      const empleadoNombre = select.options[select.selectedIndex].text;
+      
+      // Verificar si ya existe
+      const empleadoExistente = document.querySelector(
+        `#empleados-list-${servicioOrdenId} .empleado-item[data-empleado-id="${empleadoId}"]`
+      );
+      
+      if (empleadoExistente) {
+        alert('Este empleado ya está asignado');
+        select.value = '';
+        return;
+      }
+      
+      // Crear elemento visual
+      const empleadosList = document.getElementById(`empleados-list-${servicioOrdenId}`);
+      const empleadoItem = document.createElement('div');
+      empleadoItem.className = 'empleado-item d-flex align-items-center justify-content-between mb-1';
+      empleadoItem.setAttribute('data-empleado-id', empleadoId);
+      empleadoItem.innerHTML = `
+        <span class="small">• ${empleadoNombre}</span>
+        <button type="button" 
+                class="btn btn-outline-danger btn-sm py-0 px-1 btn-quitar-empleado"
+                data-servicio-orden-id="${servicioOrdenId}"
+                data-empleado-id="${empleadoId}">
+          <i class="bi bi-x"></i>
+        </button>
+      `;
+      empleadosList.appendChild(empleadoItem);
+      
+      // Agregar campo hidden
+      const nuevosContainer = document.getElementById(`nuevos-empleados-${servicioOrdenId}`);
+      if (nuevosContainer) {
+        const inputNuevo = document.createElement('input');
+        inputNuevo.type = 'hidden';
+        inputNuevo.name = `nuevos_empleados_${servicioOrdenId}[]`;
+        inputNuevo.value = empleadoId;
+        nuevosContainer.appendChild(inputNuevo);
+      }
+      
+      // Resetear select
+      select.value = '';
+      actualizarSelectEmpleados(servicioOrdenId);
+    }
+  });
+  
+  // Inicializar selects
+  document.querySelectorAll('.agregar-empleado-select').forEach(select => {
+    const servicioId = select.getAttribute('data-servicio-orden-id');
+    actualizarSelectEmpleados(servicioId);
+  });
+});
+</script>
+
+<style>
+.container-fluid { max-width: 1000px; }
+.bg-light { background-color: #e9ecef !important; }
+.btn-sm { padding: 0.25rem 0.5rem; font-size: 0.75rem; }
+.empleados-list { font-size: 0.7rem; }
+</style>
+{% endblock %}

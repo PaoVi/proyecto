@@ -1,0 +1,158 @@
+{% extends "seguridad/base.html" %}
+
+{% block content %}
+
+<div class="container-fluid py-0">
+    <div class="row justify-content-center">
+        <div class="col-12 col-xl-8">
+
+            <!-- HEADER -->
+            <div class="d-flex justify-content-between align-items-center mb-1">
+
+                <h2 class="h4 mb-1">
+                    REGISTRAR PAGO
+                </h2>
+
+                <a href="{% url 'cuentas_pagar' %}"
+                   class="btn btn-outline-secondary btn-sm">
+
+                    <i class="bi bi-arrow-left"></i>
+                    Volver
+
+                </a>
+
+            </div>
+
+            <!-- MENSAJES -->
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <!-- ERRORES -->
+            {% if form.errors %}
+            <div class="alert alert-danger">
+
+                <strong>Error:</strong>
+
+                {{ form.errors }}
+
+            </div>
+            {% endif %}
+
+            <!-- DATOS DE LA CUENTA -->
+            <div class="card">
+
+                <div class="card-header">
+                    <strong>Información de la Cuenta</strong>
+                </div>
+
+                <div class="card-body">
+
+                    <div class="row mb-3">
+
+                        <div class="col-md-6">
+
+                            <strong>Proveedor:</strong><br>
+
+                            {{ cuenta.proveedor }}
+
+                        </div>
+
+                        <div class="col-md-6">
+
+                            <strong>Saldo Pendiente:</strong><br>
+
+                            <span class="text-danger fw-bold">
+                                ₲ {{ cuenta.saldo_pendiente|floatformat:0 }}
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                    <form method="post">
+
+                        {% csrf_token %}
+
+                        <div class="row g-3">
+
+                            <div class="col-md-6">
+
+                                <label class="form-label">
+                                    Monto
+                                </label>
+
+                                {{ form.monto }}
+
+                            </div>
+
+                            <div class="col-md-12">
+
+                                <label class="form-label">
+                                    Observación
+                                </label>
+
+                                {{ form.observacion }}
+
+                            </div>
+
+                        </div>
+
+                        <hr>
+
+                        <div class="d-flex gap-2">
+
+                            <a href="{% url 'cuentas_pagar' %}"
+                               class="btn btn-outline-secondary flex-fill">
+
+                                <i class="bi bi-x-circle"></i>
+                                Cancelar
+
+                            </a>
+
+                            <button type="submit"
+                                    class="btn btn-danger flex-fill">
+
+                                <i class="bi bi-cash-coin"></i>
+                                Registrar Pago
+
+                            </button>
+
+                        </div>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+            <!-- INFORMACIÓN -->
+            <div class="card mt-2">
+
+                <div class="card-header">
+                    <strong>Información</strong>
+                </div>
+
+                <div class="card-body">
+
+                    <small class="text-muted">
+
+                        <i class="bi bi-info-circle"></i>
+
+                        El pago registrado disminuirá el saldo pendiente de la cuenta por pagar.
+
+                    </small>
+
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+</div>
+
+{% endblock %}
