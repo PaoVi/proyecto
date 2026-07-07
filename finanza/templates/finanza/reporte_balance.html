@@ -1,0 +1,56 @@
+{% extends "seguridad/base.html" %}
+{% block content %}
+<div class="container-fluid py-0">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h2>BALANCE</h2>
+    <a href="{% url 'reportes_financieros' %}" class="btn btn-outline-secondary btn-sm">Volver</a>
+  </div>
+
+  <form method="get" class="row g-2 mb-2">
+    <div class="col-auto">
+      <label class="form-label">Desde</label>
+      <input type="date" name="desde" class="form-control form-control-sm" value="{{ desde }}">
+    </div>
+    <div class="col-auto">
+      <label class="form-label">Hasta</label>
+      <input type="date" name="hasta" class="form-control form-control-sm" value="{{ hasta }}">
+    </div>
+    <div class="col-auto align-self-end">
+      <button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
+    </div>
+  </form>
+
+  <div class="row g-2 mb-2">
+    <div class="col-md-4"><div class="card text-center p-2"><h6>Ingresos</h6><h4 class="text-success">₲ {{ ingresos|floatformat:0 }}</h4></div></div>
+    <div class="col-md-4"><div class="card text-center p-2"><h6>Egresos</h6><h4 class="text-danger">₲ {{ egresos|floatformat:0 }}</h4></div></div>
+    <div class="col-md-4"><div class="card text-center p-2"><h6>Balance</h6><h4 class="text-primary">₲ {{ balance|floatformat:0 }}</h4></div></div>
+  </div>
+
+  <div class="row g-2">
+    <div class="col-md-6">
+      <div class="card"><div class="card-header">Ingresos por Medio de Pago</div>
+        <div class="card-body p-0">
+          <table class="table table-sm mb-0">
+            <thead><tr><th>Medio</th><th>Total</th></tr></thead>
+            <tbody>
+              {% for m in ingresos_por_medio %}<tr><td>{{ m.medio_pago|title }}</td><td>₲ {{ m.total|floatformat:0 }}</td></tr>{% empty %}<tr><td colspan="2" class="text-muted">Sin datos</td></tr>{% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card"><div class="card-header">Egresos por Medio de Pago</div>
+        <div class="card-body p-0">
+          <table class="table table-sm mb-0">
+            <thead><tr><th>Medio</th><th>Total</th></tr></thead>
+            <tbody>
+              {% for m in egresos_por_medio %}<tr><td>{{ m.medio_pago|title }}</td><td>₲ {{ m.total|floatformat:0 }}</td></tr>{% empty %}<tr><td colspan="2" class="text-muted">Sin datos</td></tr>{% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

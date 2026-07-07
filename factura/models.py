@@ -153,6 +153,13 @@ class Factura(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    sucursal = models.ForeignKey(
+        'sucursal.Sucursal',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        verbose_name="Sucursal",
+    )
 
     @property
     def numero_formateado(self):
@@ -356,6 +363,13 @@ class NotaCredito(models.Model):
         help_text=_("Tipo de nota de crédito: TOTAL o PARCIAL")
     )
     created_at = models.DateTimeField(auto_now_add=True)
+    sucursal = models.ForeignKey(
+        'sucursal.Sucursal',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        verbose_name="Sucursal",
+    )
 
     @property
     def numero_formateado(self):

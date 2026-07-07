@@ -1,0 +1,32 @@
+{% extends "seguridad/base.html" %}
+{% block content %}
+<div class="container py-4">
+  <h2>Pagar Gasto</h2>
+  <div class="card mb-3">
+    <div class="card-body">
+      <p><strong>{{ gasto.get_tipo_display }}</strong> - {{ gasto.concepto }}</p>
+      <p>Monto total: ₲ {{ gasto.monto|floatformat:0 }} | Pendiente: ₲ {{ gasto.monto|floatformat:0 }}</p>
+    </div>
+  </div>
+  <form method="post" class="row g-3">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <div class="col-md-4">
+      <label class="form-label">Monto a pagar *</label>
+      {{ form.monto }}
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Medio de pago</label>
+      {{ form.medio_pago }}
+    </div>
+    <div class="col-12">
+      <label class="form-label">Observación</label>
+      {{ form.observacion }}
+    </div>
+    <div class="col-12">
+      <button type="submit" class="btn btn-success">Confirmar Pago</button>
+      <a href="{% url 'gasto_detalle' gasto.pk %}" class="btn btn-secondary">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

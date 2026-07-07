@@ -1,0 +1,50 @@
+{% extends "seguridad/base.html" %}
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>CIERRE DE CAJA #{{ caja.id }}</h2>
+    <button onclick="window.print()" class="btn btn-primary"><i class="bi bi-printer"></i> Imprimir</button>
+  </div>
+
+  <div class="card mb-3">
+    <div class="card-header"><strong>RESUMEN</strong></div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-4"><strong>Fecha Apertura:</strong> {{ caja.fecha_apertura|date:"d/m/Y H:i" }}</div>
+        <div class="col-md-4"><strong>Fecha Cierre:</strong> {{ caja.fecha_cierre|date:"d/m/Y H:i"|default:"-" }}</div>
+        <div class="col-md-4"><strong>Usuario Apertura:</strong> {{ caja.usuario_apertura }}</div>
+        <div class="col-md-4"><strong>Usuario Cierre:</strong> {{ caja.usuario_cierre|default:"-" }}</div>
+        <div class="col-md-4"><strong>Sucursal:</strong> {{ caja.sucursal|default:"-" }}</div>
+      </div>
+      <hr>
+      <div class="row text-center">
+        <div class="col-md-3"><h6>Monto Inicial</h6><h4>₲ {{ caja.monto_inicial|floatformat:0 }}</h4></div>
+        <div class="col-md-3"><h6>Ingresos</h6><h4 class="text-success">₲ {{ caja.total_ingresos_cierre|floatformat:0 }}</h4></div>
+        <div class="col-md-3"><h6>Egresos</h6><h4 class="text-danger">₲ {{ caja.total_egresos_cierre|floatformat:0 }}</h4></div>
+        <div class="col-md-3"><h6>Saldo Final</h6><h4>₲ {{ caja.saldo_cierre|floatformat:0 }}</h4></div>
+      </div>
+    </div>
+  </div>
+
+  <h5>Movimientos</h5>
+  <table class="table table-sm">
+    <thead><tr><th>#</th><th>Fecha</th><th>Tipo</th><th>Medio</th><th>Descripción</th><th>Monto</th></tr></thead>
+    <tbody>
+      {% for m in movimientos %}
+      <tr>
+        <td>{{ m.id }}</td>
+        <td>{{ m.fecha|date:"d/m/Y H:i" }}</td>
+        <td>{% if m.tipo == 'ingreso' %}<span class="text-success">Ingreso</span>{% else %}<span class="text-danger">Egreso</span>{% endif %}</td>
+        <td>{{ m.get_medio_pago_display }}</td>
+        <td>{{ m.descripcion }}</td>
+        <td>₲ {{ m.monto|floatformat:0 }}</td>
+      </tr>
+      {% empty %}<tr><td colspan="6" class="text-muted">Sin movimientos</td></tr>{% endfor %}
+    </tbody>
+  </table>
+
+  {% if caja.observacion %}
+  <p><strong>Observación:</strong> {{ caja.observacion }}</p>
+  {% endif %}
+</div>
+{% endblock %}

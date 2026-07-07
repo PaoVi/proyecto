@@ -115,6 +115,13 @@ class Empleado(models.Model):
         default=0,
         help_text=_("Comisiones pendientes de pago (de órdenes completadas/facturadas)")
     )
+    sucursal = models.ForeignKey(
+        'sucursal.Sucursal',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        verbose_name="Sucursal",
+    )
     
     class Meta:
         verbose_name = _("Empleado")

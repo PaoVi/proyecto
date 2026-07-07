@@ -95,6 +95,16 @@ def login_view(request):
                 user.ultimo_acceso = timezone.now()
                 user.save()
 
+                # Asignar sucursal activa en la sesión
+                perfil = getattr(user, 'perfil', None)
+                if perfil and perfil.sucursal_activa:
+                    request.session['sucursal_id'] = perfil.sucursal_activa_id
+                else:
+                    from sucursal.models import Sucursal
+                    sucursal_default = Sucursal.objects.filter(activo=True).first()
+                    if sucursal_default:
+                        request.session['sucursal_id'] = sucursal_default.id
+
                 messages.success(request, f"Bienvenido {user.username}!")
                 return redirect(next_url)
         else:

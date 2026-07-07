@@ -1,0 +1,38 @@
+{% extends 'seguridad/base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <h2>Sucursales</h2>
+  <a href="{% url 'sucursal:sucursal_create' %}" class="btn btn-primary mb-3">Nueva Sucursal</a>
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>Nombre</th>
+        <th>Dirección</th>
+        <th>Teléfono</th>
+        <th>SET</th>
+        <th>Activo</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in sucursales %}
+      <tr>
+        <td>{{ s.nombre }}</td>
+        <td>{{ s.direccion|default:"-" }}</td>
+        <td>{{ s.telefono|default:"-" }}</td>
+        <td>{{ s.establecimiento }}-{{ s.punto_emision }}</td>
+        <td>{% if s.activo %}Sí{% else %}No{% endif %}</td>
+        <td>
+          <a href="{% url 'sucursal:sucursal_update' s.pk %}" class="btn btn-sm btn-warning">Editar</a>
+          <a href="{% url 'sucursal:sucursal_toggle' s.pk %}" class="btn btn-sm btn-secondary">
+            {% if s.activo %}Desactivar{% else %}Activar{% endif %}
+          </a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6">No hay sucursales registradas.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

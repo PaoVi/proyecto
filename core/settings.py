@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     'compra',
     'finanza',
     'notificacion',
+    'sucursal',
 ]
 
 AUTH_USER_MODEL = 'seguridad.Usuario' 
@@ -67,7 +68,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'seguridad.middleware.SessionTimeoutMiddleware'
+    'seguridad.middleware.SessionTimeoutMiddleware',
+    'sucursal.middleware.SucursalMiddleware',
 ]
 
 ROOT_URLCONF = 'core.urls'
@@ -84,6 +86,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'seguridad.context_processors.session_timeout',
+                'sucursal.context_processors.sucursal_activa',
             ],
         },
     },

@@ -108,6 +108,14 @@ class Insumo(models.Model):
     fecha_registro = models.DateTimeField(_("Fecha de registro"), auto_now_add=True)
     fecha_actualizacion = models.DateTimeField(_("Última actualización"), auto_now=True)
 
+    sucursal = models.ForeignKey(
+        'sucursal.Sucursal',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        verbose_name="Sucursal",
+    )
+
     class Meta:
         verbose_name = _("Insumo")
         verbose_name_plural = _("Insumos")
@@ -361,6 +369,14 @@ class SubInsumo(models.Model):
     fecha_creacion = models.DateTimeField(_("Fecha de creación"), auto_now_add=True)
     fecha_actualizacion = models.DateTimeField(_("Última actualización"), auto_now=True)
 
+    sucursal = models.ForeignKey(
+        'sucursal.Sucursal',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        verbose_name="Sucursal",
+    )
+
     class Meta:
         verbose_name = _("SubInsumo")
         verbose_name_plural = _("SubInsumos")
@@ -493,6 +509,13 @@ class MovimientoStock(models.Model):
     fecha_movimiento = models.DateTimeField(
         _("Fecha de movimiento"),
         auto_now_add=True
+    )
+    sucursal = models.ForeignKey(
+        'sucursal.Sucursal',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        verbose_name="Sucursal",
     )
 
     class Meta:

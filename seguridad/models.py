@@ -660,6 +660,18 @@ class PerfilUsuario(models.Model):
     bloqueado_hasta = models.DateTimeField(null=True, blank=True)
     requiere_cambio_password = models.BooleanField(default=False)
     ultimo_cambio_password = models.DateTimeField(default=timezone.now)
+    sucursal_activa = models.ForeignKey(
+        'sucursal.Sucursal',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name=_("Sucursal activa"),
+    )
+    sucursales_permitidas = models.ManyToManyField(
+        'sucursal.Sucursal',
+        blank=True,
+        verbose_name=_("Sucursales permitidas"),
+    )
     
     class Meta:
         verbose_name = _("Perfil de Usuario")
@@ -708,6 +720,13 @@ class ConfiguracionSistema(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     activo = models.BooleanField(default=True)
+    sucursal = models.ForeignKey(
+        'sucursal.Sucursal',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        verbose_name=_("Sucursal"),
+    )
 
     class Meta:
         verbose_name = _("Configuración del Sistema")

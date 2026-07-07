@@ -13,12 +13,15 @@ from django.contrib.auth.decorators import (
     permission_required,
 )
 from django.core.paginator import Paginator
-from django.db.models import Sum
+from django.db.models import Count, Q, Sum
+from django.db.models.functions import TruncMonth
 from django.shortcuts import (
     render,
     redirect,
     get_object_or_404,
 )
+from datetime import timedelta
+
 from django.utils import timezone
 
 from .forms import (
@@ -26,6 +29,8 @@ from .forms import (
     MovimientoFinancieroForm,
     CobroForm,
     PagoProveedorForm,
+    GastoForm,
+    PagoGastoForm,
 )
 
 from .models import (
@@ -33,6 +38,7 @@ from .models import (
     MovimientoFinanciero,
     CuentaCobrar,
     CuentaPagar,
+    Gasto,
 )
 
 
@@ -790,5 +796,240 @@ def ajustar_movimiento_compra(compra, usuario, monto_real):
     except Exception as e:
         logger.exception("Error al ajustar movimiento de compra: %s", e)
         return None
+
+
+# ==========================================================
+# GASTOS
+# ==========================================================
+@login_required
+@permission_required('finanza.ver_finanzas', raise_exception=True)
+def gasto_lista(request):
+    gastos = Gasto.objects.all().order_by('-fecha', '-created_at')
+
+    sucursal_id = request.session.get('sucursal_id')
+    if sucursal_id:
+        gastos = gastos.filter(sucursal_id=sucursal_id)
+
+    tipo = request.GET.get('tipo', '')
+    estado = request.GET.get('estado', '')
+    fecha_desde = request.GET.get('fecha_desde', '')
+    fecha_hasta = request.GET.get('fecha_hasta', '')
+
+    if tipo:
+        gastos = gastos.filter(tipo=tipo)
+    if estado:
+        gastos = gastos.filter(estado=estado)
+    if fecha_desde:
+        gastos = gastos.filter(fecha__gte=fecha_desde)
+    if fecha_hasta:
+        gastos = gastos.filter(fecha__lte=fecha_hasta)
+
+    # Paginación
+    paginator = Paginator(gastos, 20)
+    page_number = request.GET.get('page')
+    gastos = paginator.get_page(page_number)
+
+    # Totales
+    total_pendiente = sum(g.monto for g in gastos if g.estado in ('pendiente', 'vencido'))
+    total_pagado = sum(g.monto for g in gastos if g.estado == 'pagado')
+
+    context = {
+        'gastos': gastos,
+        'total_pendiente': total_pendiente,
+        'total_pagado': total_pagado,
+        'TIPO_CHOICES': Gasto.TIPO_CHOICES,
+        'ESTADO_CHOICES': Gasto.ESTADO_CHOICES,
+        'filtros': {
+            'tipo': tipo,
+            'estado': estado,
+            'fecha_desde': fecha_desde,
+            'fecha_hasta': fecha_hasta,
+        },
+    }
+    return render(request, 'finanza/gasto_lista.html', context)
+
+
+@login_required
+@permission_required('finanza.gestionar_finanzas', raise_exception=True)
+def gasto_crear(request):
+    if request.method == 'POST':
+        form = GastoForm(request.POST)
+        if form.is_valid():
+            gasto = form.save(commit=False)
+            gasto.usuario = request.user
+            gasto.sucursal_id = request.session.get('sucursal_id')
+            gasto.save()
+            messages.success(request, 'Gasto registrado correctamente')
+            return redirect('gasto_lista')
+    else:
+        form = GastoForm()
+
+    return render(request, 'finanza/gasto_form.html', {'form': form, 'accion': 'Crear'})
+
+
+@login_required
+@permission_required('finanza.ver_finanzas', raise_exception=True)
+def gasto_detalle(request, gasto_id):
+    gasto = get_object_or_404(Gasto, pk=gasto_id)
+    pagos = gasto.pagos.all()
+    return render(request, 'finanza/gasto_detalle.html', {
+        'gasto': gasto,
+        'pagos': pagos,
+    })
+
+
+@login_required
+@permission_required('finanza.gestionar_finanzas', raise_exception=True)
+def gasto_pagar(request, gasto_id):
+    gasto = get_object_or_404(Gasto, pk=gasto_id)
+
+    if gasto.estado == 'pagado':
+        messages.warning(request, 'Este gasto ya está pagado')
+        return redirect('gasto_detalle', gasto_id=gasto.id)
+
+    cajas_abiertas = Caja.objects.filter(estado='abierta')
+    sucursal_id = request.session.get('sucursal_id')
+    if sucursal_id:
+        cajas_abiertas = cajas_abiertas.filter(sucursal_id=sucursal_id)
+
+    if request.method == 'POST':
+        form = PagoGastoForm(request.POST)
+        if form.is_valid():
+            pago = form.save(commit=False)
+            pago.gasto = gasto
+            pago.usuario = request.user
+            pago.sucursal_id = sucursal_id
+            pago.save()
+            messages.success(request, f'Pago de {pago.monto} registrado para {gasto.concepto}')
+            return redirect('gasto_detalle', gasto_id=gasto.id)
+    else:
+        form = PagoGastoForm()
+        form.fields['caja'].queryset = cajas_abiertas
+
+    return render(request, 'finanza/gasto_pagar.html', {
+        'form': form,
+        'gasto': gasto,
+        'cajas_abiertas': cajas_abiertas,
+    })
+
+
+# ==========================================================
+# REPORTES FINANCIEROS
+# ==========================================================
+@login_required
+@permission_required('finanza.ver_reportes_financieros', raise_exception=True)
+def reportes_financieros(request):
+    sucursal_id = request.session.get('sucursal_id')
+
+    hoy = timezone.localdate()
+    inicio_mes = hoy.replace(day=1)
+
+    # Base filters
+    ing_filter = Q(tipo='ingreso', fecha__date__gte=inicio_mes, fecha__date__lte=hoy)
+    egr_filter = Q(tipo='egreso', fecha__date__gte=inicio_mes, fecha__date__lte=hoy)
+
+    if sucursal_id:
+        ing_filter &= Q(sucursal_id=sucursal_id)
+        egr_filter &= Q(sucursal_id=sucursal_id)
+
+    ingresos_mes = MovimientoFinanciero.objects.filter(ing_filter).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+    egresos_mes = MovimientoFinanciero.objects.filter(egr_filter).aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+
+    # Gastos por tipo (mes actual)
+    gasto_filter = Q(fecha__gte=inicio_mes, fecha__lte=hoy, activo=True) & ~Q(estado='anulado')
+    if sucursal_id:
+        gasto_filter &= Q(sucursal_id=sucursal_id)
+    gastos_por_tipo = Gasto.objects.filter(gasto_filter).values('tipo').annotate(total=Sum('monto')).order_by('-total')
+
+    for item in gastos_por_tipo:
+        item['tipo_display'] = dict(Gasto.TIPO_CHOES).get(item['tipo'], item['tipo'])
+
+    # Cuentas pendientes
+    cc_filter = Q(pagado=False)
+    cp_filter = Q(pagado=False)
+    if sucursal_id:
+        cc_filter &= Q(sucursal_id=sucursal_id)
+        cp_filter &= Q(sucursal_id=sucursal_id)
+
+    cuentas_cobrar_pend = CuentaCobrar.objects.filter(cc_filter).count()
+    cuentas_pagar_pend = CuentaPagar.objects.filter(cp_filter).count()
+    total_por_cobrar = CuentaCobrar.objects.filter(cc_filter).aggregate(total=Sum('saldo_pendiente'))['total'] or Decimal('0.00')
+    total_por_pagar = CuentaPagar.objects.filter(cp_filter).aggregate(total=Sum('saldo_pendiente'))['total'] or Decimal('0.00')
+
+    # Movimientos recientes
+    mov_filter = Q()
+    if sucursal_id:
+        mov_filter = Q(sucursal_id=sucursal_id)
+    movimientos_recientes = MovimientoFinanciero.objects.filter(mov_filter).order_by('-fecha')[:10]
+
+    context = {
+        'ingresos_mes': ingresos_mes,
+        'egresos_mes': egresos_mes,
+        'balance_mes': ingresos_mes - egresos_mes,
+        'gastos_por_tipo': gastos_por_tipo,
+        'cuentas_cobrar_pend': cuentas_cobrar_pend,
+        'cuentas_pagar_pend': cuentas_pagar_pend,
+        'total_por_cobrar': total_por_cobrar,
+        'total_por_pagar': total_por_pagar,
+        'movimientos_recientes': movimientos_recientes,
+    }
+    return render(request, 'finanza/reportes.html', context)
+
+
+@login_required
+@permission_required('finanza.ver_reportes_financieros', raise_exception=True)
+def reporte_balance(request):
+    sucursal_id = request.session.get('sucursal_id')
+
+    fecha_desde = request.GET.get('fecha_desde', (timezone.localdate() - timedelta(days=30)).isoformat())
+    fecha_hasta = request.GET.get('fecha_hasta', timezone.localdate().isoformat())
+
+    mov_filter = Q(fecha__date__gte=fecha_desde, fecha__date__lte=fecha_hasta)
+    if sucursal_id:
+        mov_filter &= Q(sucursal_id=sucursal_id)
+
+    movimientos = MovimientoFinanciero.objects.filter(mov_filter).order_by('-fecha')
+
+    ingresos = movimientos.filter(tipo='ingreso').aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+    egresos = movimientos.filter(tipo='egreso').aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+
+    # Por medio de pago
+    ingresos_por_medio = movimientos.filter(tipo='ingreso').values('medio_pago').annotate(total=Sum('monto')).order_by('-total')
+    egresos_por_medio = movimientos.filter(tipo='egreso').values('medio_pago').annotate(total=Sum('monto')).order_by('-total')
+
+    context = {
+        'movimientos': movimientos,
+        'ingresos': ingresos,
+        'egresos': egresos,
+        'balance': ingresos - egresos,
+        'fecha_desde': fecha_desde,
+        'fecha_hasta': fecha_hasta,
+        'ingresos_por_medio': ingresos_por_medio,
+        'egresos_por_medio': egresos_por_medio,
+    }
+    return render(request, 'finanza/reporte_balance.html', context)
+
+
+# ==========================================================
+# CIERRE DE CAJA IMPRIMIBLE
+# ==========================================================
+@login_required
+@permission_required('finanza.ver_finanzas', raise_exception=True)
+def caja_imprimir(request, caja_id):
+    caja = get_object_or_404(Caja, pk=caja_id)
+    ingresos = caja.movimientos.filter(tipo='ingreso')
+    egresos = caja.movimientos.filter(tipo='egreso')
+
+    total_ingresos = ingresos.aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+    total_egresos = egresos.aggregate(total=Sum('monto'))['total'] or Decimal('0.00')
+
+    context = {
+        'caja': caja,
+        'ingresos': ingresos,
+        'egresos': egresos,
+        'total_ingresos': total_ingresos,
+        'total_egresos': total_egresos,
+    }
+    return render(request, 'finanza/caja_imprimir.html', context)
 
 

@@ -91,6 +91,14 @@ class Caja(models.Model):
         null=True
     )
 
+    sucursal = models.ForeignKey(
+        'sucursal.Sucursal',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        verbose_name="Sucursal",
+    )
+
     class Meta:
 
         verbose_name = "Caja"
@@ -149,6 +157,8 @@ class MovimientoFinanciero(models.Model):
         ("compra", "Compra"),
 
         ("manual", "Manual"),
+
+        ("gasto", "Gasto"),
     ]
 
     caja = models.ForeignKey(
@@ -200,6 +210,36 @@ class MovimientoFinanciero(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True
+    )
+
+    sucursal = models.ForeignKey(
+        'sucursal.Sucursal',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        verbose_name="Sucursal",
+    )
+
+    medio_pago = models.CharField(
+        max_length=20,
+        choices=[
+            ('efectivo', 'Efectivo'),
+            ('banco', 'Banco'),
+            ('transferencia', 'Transferencia'),
+            ('cheque', 'Cheque'),
+            ('qr', 'QR'),
+            ('tarjeta', 'Tarjeta'),
+        ],
+        default='efectivo',
+        verbose_name="Medio de pago",
+    )
+
+    gasto = models.ForeignKey(
+        'finanza.Gasto',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Gasto",
     )
 
     class Meta:
@@ -286,6 +326,14 @@ class CuentaCobrar(models.Model):
         default=False
     )
 
+    sucursal = models.ForeignKey(
+        'sucursal.Sucursal',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        verbose_name="Sucursal",
+    )
+
     class Meta:
 
         verbose_name = (
@@ -348,6 +396,14 @@ class CuentaPagar(models.Model):
     pagado = models.BooleanField(
         default=False )
 
+    sucursal = models.ForeignKey(
+        'sucursal.Sucursal',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        verbose_name="Sucursal",
+    )
+
     class Meta:
 
         verbose_name = "Cuenta por Pagar"
@@ -365,6 +421,128 @@ class CuentaPagar(models.Model):
     def __str__(self):
 
         return f"Cuenta Pagar #{self.compra_id}"
+# ==========================================================
+# GASTO
+# ==========================================================
+
+class Gasto(models.Model):
+    TIPO_CHOICES = [
+        ('ande', 'ANDE'),
+        ('essap', 'ESSAP'),
+        ('tigo', 'Tigo'),
+        ('claro', 'Claro'),
+        ('internet', 'Internet'),
+        ('alquiler', 'Alquiler'),
+        ('sueldo', 'Sueldo'),
+        ('ips', 'IPS'),
+        ('iva', 'IVA'),
+        ('municipalidad', 'Municipalidad'),
+        ('combustible', 'Combustible'),
+        ('papeleria', 'Papelería'),
+        ('limpieza', 'Limpieza'),
+        ('viatico', 'Viático'),
+        ('refrigerio', 'Refrigerio'),
+        ('mantenimiento', 'Mantenimiento'),
+        ('otro', 'Otro'),
+    ]
+    ESTADO_CHOICES = [
+        ('pendiente', 'Pendiente'),
+        ('pagado', 'Pagado'),
+        ('vencido', 'Vencido'),
+        ('anulado', 'Anulado'),
+    ]
+    tipo = models.CharField(max_length=30, choices=TIPO_CHOICES, verbose_name="Tipo de gasto")
+    proveedor = models.CharField(max_length=200, blank=True, verbose_name="Proveedor / Entidad")
+    concepto = models.CharField(max_length=255, verbose_name="Concepto")
+    descripcion = models.TextField(blank=True, verbose_name="Descripción")
+    fecha = models.DateField(default=timezone.localdate, verbose_name="Fecha")
+    fecha_vencimiento = models.DateField(null=True, blank=True, verbose_name="Fecha de vencimiento")
+    monto = models.DecimalField(max_digits=15, decimal_places=2, validators=[MinValueValidator(0)], verbose_name="Monto")
+    estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='pendiente')
+    observacion = models.TextField(blank=True, null=True)
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    activo = models.BooleanField(default=True)
+    sucursal = models.ForeignKey(
+        'sucursal.Sucursal',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        verbose_name="Sucursal",
+    )
+
+    class Meta:
+        verbose_name = "Gasto"
+        verbose_name_plural = "Gastos"
+        ordering = ['-fecha', '-created_at']
+
+    def __str__(self):
+        return f"{self.get_tipo_display()} - {self.concepto} ({self.monto})"
+
+    def save(self, *args, **kwargs):
+        if self.fecha_vencimiento and self.fecha_vencimiento < timezone.localdate():
+            if self.estado not in ('pagado', 'anulado'):
+                self.estado = 'vencido'
+        super().save(*args, **kwargs)
+
+# ==========================================================
+# PAGO DE GASTO
+# ==========================================================
+
+class PagoGasto(models.Model):
+    gasto = models.ForeignKey(Gasto, on_delete=models.CASCADE, related_name='pagos')
+    caja = models.ForeignKey(Caja, on_delete=models.PROTECT, null=True, blank=True, verbose_name="Caja")
+    medio_pago = models.CharField(
+        max_length=20,
+        choices=[
+            ('efectivo', 'Efectivo'),
+            ('banco', 'Banco'),
+            ('transferencia', 'Transferencia'),
+            ('cheque', 'Cheque'),
+            ('qr', 'QR'),
+            ('tarjeta', 'Tarjeta'),
+        ],
+        default='efectivo',
+        verbose_name="Medio de pago",
+    )
+    monto = models.DecimalField(max_digits=15, decimal_places=2, validators=[MinValueValidator(0.01)])
+    fecha = models.DateTimeField(default=timezone.now)
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    observacion = models.TextField(blank=True, null=True)
+    sucursal = models.ForeignKey(
+        'sucursal.Sucursal',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        verbose_name="Sucursal",
+    )
+
+    class Meta:
+        verbose_name = "Pago de Gasto"
+        verbose_name_plural = "Pagos de Gastos"
+        ordering = ['-fecha']
+
+    def __str__(self):
+        return f"Pago {self.monto} - {self.gasto}"
+
+    def save(self, *args, **kwargs):
+        nuevo = self.pk is None
+        super().save(*args, **kwargs)
+        if nuevo:
+            Gasto.objects.filter(pk=self.gasto_id).update(estado='pagado')
+            MovimientoFinanciero.objects.create(
+                caja=self.caja,
+                tipo="egreso",
+                origen="gasto",
+                descripcion=f"Pago gasto: {self.gasto.concepto}",
+                monto=self.monto,
+                medio_pago=self.medio_pago,
+                usuario=self.usuario,
+                gasto=self.gasto,
+                sucursal=self.sucursal or self.gasto.sucursal,
+            )
+
 # ==========================================================
 # COBRO
 # ==========================================================
@@ -397,6 +575,36 @@ class Cobro(models.Model):
         null=True
     )
 
+    cobrado_en_caja = models.ForeignKey(
+        Caja,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Caja donde se cobró",
+    )
+
+    medio_pago = models.CharField(
+        max_length=20,
+        choices=[
+            ('efectivo', 'Efectivo'),
+            ('banco', 'Banco'),
+            ('transferencia', 'Transferencia'),
+            ('cheque', 'Cheque'),
+            ('qr', 'QR'),
+            ('tarjeta', 'Tarjeta'),
+        ],
+        default='efectivo',
+        verbose_name="Medio de pago",
+    )
+
+    sucursal = models.ForeignKey(
+        'sucursal.Sucursal',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        verbose_name="Sucursal",
+    )
+
     class Meta:
 
         verbose_name = "Cobro"
@@ -420,6 +628,17 @@ class Cobro(models.Model):
             )
             self.cuenta.refresh_from_db()
             self.cuenta.save()
+            if self.cobrado_en_caja_id:
+                MovimientoFinanciero.objects.create(
+                    caja=self.cobrado_en_caja,
+                    tipo="ingreso",
+                    origen="factura",
+                    descripcion=f"Cobro #{self.id} - {self.cuenta.cliente}",
+                    monto=self.monto,
+                    medio_pago=self.medio_pago,
+                    usuario=self.usuario,
+                    sucursal=self.sucursal,
+                )
 
     def __str__(self):
 
@@ -456,6 +675,28 @@ class PagoProveedor(models.Model):
         null=True
     )
 
+    medio_pago = models.CharField(
+        max_length=20,
+        choices=[
+            ('efectivo', 'Efectivo'),
+            ('banco', 'Banco'),
+            ('transferencia', 'Transferencia'),
+            ('cheque', 'Cheque'),
+            ('qr', 'QR'),
+            ('tarjeta', 'Tarjeta'),
+        ],
+        default='efectivo',
+        verbose_name="Medio de pago",
+    )
+
+    sucursal = models.ForeignKey(
+        'sucursal.Sucursal',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        verbose_name="Sucursal",
+    )
+
     class Meta:
 
         verbose_name = "Pago Proveedor"
@@ -479,6 +720,21 @@ class PagoProveedor(models.Model):
             )
             self.cuenta.refresh_from_db()
             self.cuenta.save()
+            caja_activa = Caja.objects.filter(
+                estado="abierta",
+                sucursal=self.sucursal
+            ).first()
+            if caja_activa:
+                MovimientoFinanciero.objects.create(
+                    caja=caja_activa,
+                    tipo="egreso",
+                    origen="compra",
+                    descripcion=f"Pago proveedor #{self.id} - {self.cuenta.proveedor}",
+                    monto=self.monto,
+                    medio_pago=self.medio_pago,
+                    usuario=self.usuario,
+                    sucursal=self.sucursal,
+                )
 
     def __str__(self):
 

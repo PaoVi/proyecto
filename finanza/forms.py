@@ -9,6 +9,8 @@ from .models import (
     MovimientoFinanciero,
     Cobro,
     PagoProveedor,
+    Gasto,
+    PagoGasto,
 )
 
 
@@ -186,6 +188,8 @@ class CobroForm(forms.ModelForm):
         fields = [
             "monto",
             "observacion",
+            "medio_pago",
+            "cobrado_en_caja",
         ]
 
         widgets = {
@@ -236,6 +240,7 @@ class PagoProveedorForm(forms.ModelForm):
         fields = [
             "monto",
             "observacion",
+            "medio_pago",
         ]
 
         widgets = {
@@ -270,4 +275,74 @@ class PagoProveedorForm(forms.ModelForm):
                 "El monto debe ser mayor a 0."
             )
 
+        return monto
+
+
+# ==========================================================
+# GASTO FORM
+# ==========================================================
+
+class GastoForm(forms.ModelForm):
+
+    class Meta:
+
+        model = Gasto
+
+        fields = [
+            "tipo",
+            "proveedor",
+            "concepto",
+            "descripcion",
+            "fecha",
+            "fecha_vencimiento",
+            "monto",
+            "observacion",
+        ]
+
+        widgets = {
+            "tipo": forms.Select(attrs={"class": "form-select"}),
+            "proveedor": forms.TextInput(attrs={"class": "form-control", "placeholder": "Proveedor o entidad"}),
+            "concepto": forms.TextInput(attrs={"class": "form-control", "placeholder": "Concepto del gasto"}),
+            "descripcion": forms.Textarea(attrs={"class": "form-control", "rows": 3, "placeholder": "Descripción"}),
+            "fecha": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+            "fecha_vencimiento": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+            "monto": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0", "placeholder": "0.00"}),
+            "observacion": forms.Textarea(attrs={"class": "form-control", "rows": 2, "placeholder": "Observación"}),
+        }
+
+    def clean_monto(self):
+        monto = self.cleaned_data.get("monto")
+        if monto is None or monto < 0:
+            raise forms.ValidationError("Debe ingresar un monto válido.")
+        return monto
+
+
+# ==========================================================
+# PAGO GASTO FORM
+# ==========================================================
+
+class PagoGastoForm(forms.ModelForm):
+
+    class Meta:
+
+        model = PagoGasto
+
+        fields = [
+            "caja",
+            "monto",
+            "medio_pago",
+            "observacion",
+        ]
+
+        widgets = {
+            "caja": forms.Select(attrs={"class": "form-select"}),
+            "monto": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "min": "0.01", "placeholder": "0.00"}),
+            "medio_pago": forms.Select(attrs={"class": "form-select"}),
+            "observacion": forms.Textarea(attrs={"class": "form-control", "rows": 2, "placeholder": "Observación"}),
+        }
+
+    def clean_monto(self):
+        monto = self.cleaned_data.get("monto")
+        if monto is None or monto <= 0:
+            raise forms.ValidationError("El monto debe ser mayor a 0.")
         return monto

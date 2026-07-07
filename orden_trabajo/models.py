@@ -122,6 +122,14 @@ class OrdenTrabajo(models.Model):
 
     servicios = models.ManyToManyField('servicio.Servicio', through='OrdenServicio', verbose_name=_("Servicios"))
 
+    sucursal = models.ForeignKey(
+        'sucursal.Sucursal',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        verbose_name="Sucursal",
+    )
+
     class Meta:
         verbose_name = _("Orden de Trabajo")
         verbose_name_plural = _("Órdenes de Trabajo")
@@ -881,6 +889,13 @@ class BitacoraOrden(models.Model):
         null=True, 
         blank=True,
         verbose_name=_("Usuario")
+    )
+    sucursal = models.ForeignKey(
+        'sucursal.Sucursal',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        verbose_name="Sucursal",
     )
 
     class Meta:

@@ -10,6 +10,8 @@ from .models import (
     CuentaPagar,
     Cobro,
     PagoProveedor,
+    Gasto,
+    PagoGasto,
 )
 
 
@@ -184,4 +186,53 @@ class PagoProveedorAdmin(admin.ModelAdmin):
 
     ordering = (
         "-fecha",
+    )
+
+
+# ==========================================================
+# GASTOS
+# ==========================================================
+
+@admin.register(Gasto)
+class GastoAdmin(admin.ModelAdmin):
+
+    list_display = (
+        "tipo",
+        "concepto",
+        "monto",
+        "fecha",
+        "fecha_vencimiento",
+        "estado",
+        "sucursal",
+    )
+
+    list_filter = (
+        "tipo",
+        "estado",
+    )
+
+    search_fields = (
+        "concepto",
+        "proveedor",
+    )
+
+
+# ==========================================================
+# PAGOS DE GASTOS
+# ==========================================================
+
+@admin.register(PagoGasto)
+class PagoGastoAdmin(admin.ModelAdmin):
+
+    list_display = (
+        "gasto",
+        "monto",
+        "fecha",
+        "medio_pago",
+        "usuario",
+    )
+
+    list_filter = (
+        "fecha",
+        "medio_pago",
     )

@@ -145,6 +145,20 @@
           </a>
           {% endif %}
 
+          {% if sucursales %}
+          <div class="dropdown d-inline-block">
+            <button class="btn btn-sm btn-outline-secondary dropdown-toggle nav-link fw-bold py-1 px-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="bi bi-building"></i> {{ sucursal_activa.nombre|default:"Sucursal" }}
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+              <li><h6 class="dropdown-header">Cambiar sucursal</h6></li>
+              {% for s in sucursales %}
+              <li><a class="dropdown-item {% if s.id == sucursal_activa.id %}active{% endif %}" href="#" onclick="cambiarSucursal({{ s.id }}); return false;">{{ s.nombre }}</a></li>
+              {% endfor %}
+            </ul>
+          </div>
+          {% endif %}
+
           <!-- INFORMACIÓN DEL USUARIO  -->
           <span class="nav-link fw-bold py-1 px-2 text-muted profile-link" id="profile-link">
               <i class="bi bi-person-circle"></i> 
@@ -471,6 +485,20 @@
         });
       }
   });
+  </script>
+  <script>
+  function cambiarSucursal(sucursalId) {
+    fetch("{% url 'cambiar_sucursal' %}", {
+      method: "POST",
+      headers: {
+        "X-CSRFToken": "{{ csrf_token }}",
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: "sucursal_id=" + sucursalId
+    }).then(r => r.json()).then(data => {
+      if (data.success) { location.reload(); }
+    });
+  }
   </script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </body>

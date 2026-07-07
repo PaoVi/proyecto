@@ -382,6 +382,14 @@ class Compra(models.Model):
         default=False,
     )
 
+    sucursal = models.ForeignKey(
+        'sucursal.Sucursal',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        verbose_name="Sucursal",
+    )
+
     # ======================================================
     # META
     # ======================================================
@@ -854,6 +862,13 @@ class BitacoraCompra(models.Model):
         null=True,
 
         blank=True,
+    )
+    sucursal = models.ForeignKey(
+        'sucursal.Sucursal',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        verbose_name="Sucursal",
     )
 
     class Meta:

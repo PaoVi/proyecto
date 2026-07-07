@@ -1,0 +1,76 @@
+{% extends "seguridad/base.html" %}
+{% block content %}
+<div class="container-fluid py-0">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h2>GASTOS</h2>
+    <div class="d-flex gap-2">
+      <a href="{% url 'reportes_financieros' %}" class="btn btn-outline-info btn-sm"><i class="bi bi-bar-chart"></i> Reportes</a>
+      {% if perms.seguridad.gestionar_finanzas %}
+      <a href="{% url 'gasto_crear' %}" class="btn btn-primary btn-sm"><i class="bi bi-plus-circle"></i> Nuevo Gasto</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <form method="get" class="row g-2 mb-2">
+    <div class="col-auto">
+      <select name="tipo" class="form-select form-select-sm" onchange="this.form.submit()">
+        <option value="">Todos los tipos</option>
+        {% for k, v in tipos %}
+        <option value="{{ k }}" {% if request.GET.tipo == k %}selected{% endif %}>{{ v }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-auto">
+      <select name="estado" class="form-select form-select-sm" onchange="this.form.submit()">
+        <option value="">Todos los estados</option>
+        <option value="pendiente" {% if request.GET.estado == 'pendiente' %}selected{% endif %}>Pendiente</option>
+        <option value="pagado" {% if request.GET.estado == 'pagado' %}selected{% endif %}>Pagado</option>
+        <option value="vencido" {% if request.GET.estado == 'vencido' %}selected{% endif %}>Vencido</option>
+      </select>
+    </div>
+  </form>
+
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>#</th><th>Tipo</th><th>Concepto</th><th>Proveedor</th><th>Vencimiento</th><th>Monto</th><th>Estado</th><th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for g in gastos %}
+        <tr>
+          <td>{{ g.id }}</td>
+          <td><span class="badge bg-secondary">{{ g.get_tipo_display }}</span></td>
+          <td>{{ g.concepto }}</td>
+          <td>{{ g.proveedor|default:"-" }}</td>
+          <td>{{ g.fecha_vencimiento|date:"d/m/Y"|default:"-" }}</td>
+          <td>₲ {{ g.monto|floatformat:0 }}</td>
+          <td>
+            {% if g.estado == 'pagado' %}<span class="badge bg-success">Pagado</span>
+            {% elif g.estado == 'vencido' %}<span class="badge bg-danger">Vencido</span>
+            {% else %}<span class="badge bg-warning text-dark">Pendiente</span>{% endif %}
+          </td>
+          <td>
+            <a href="{% url 'gasto_detalle' g.pk %}" class="btn btn-sm btn-outline-primary">Ver</a>
+            {% if g.estado != 'pagado' and perms.seguridad.gestionar_finanzas %}
+            <a href="{% url 'gasto_pagar' g.pk %}" class="btn btn-sm btn-success">Pagar</a>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8" class="text-center text-muted py-4">No hay gastos registrados.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if gastos.has_other_pages %}
+  <nav class="mt-2"><ul class="pagination pagination-sm justify-content-center">
+    {% if gastos.has_previous %}<li class="page-item"><a class="page-link" href="?page={{ gastos.previous_page_number }}">&laquo;</a></li>{% endif %}
+    <li class="page-item active"><span class="page-link">{{ gastos.number }} / {{ gastos.paginator.num_pages }}</span></li>
+    {% if gastos.has_next %}<li class="page-item"><a class="page-link" href="?page={{ gastos.next_page_number }}">&raquo;</a></li>{% endif %}
+  </ul></nav>
+  {% endif %}
+</div>
+{% endblock %}

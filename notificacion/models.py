@@ -15,6 +15,13 @@ class LogEnvio(models.Model):
     exito = models.BooleanField(default=False)
     detalle = models.TextField(blank=True, null=True)
     creado_en = models.DateTimeField(default=timezone.now)
+    sucursal = models.ForeignKey(
+        'sucursal.Sucursal',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        verbose_name="Sucursal",
+    )
 
     class Meta:
         ordering = ["-creado_en"]

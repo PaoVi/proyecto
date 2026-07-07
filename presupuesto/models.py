@@ -175,6 +175,13 @@ class Presupuesto(models.Model):
         default=False,
         help_text=_("Indica si ya se generó una orden de trabajo desde este presupuesto")
     )
+    sucursal = models.ForeignKey(
+        'sucursal.Sucursal',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        verbose_name="Sucursal",
+    )
     
     class Meta:
         verbose_name = _("Presupuesto")
@@ -437,6 +444,13 @@ class BitacoraPresupuesto(models.Model):
         null=True, 
         blank=True,
         verbose_name=_("Usuario")
+    )
+    sucursal = models.ForeignKey(
+        'sucursal.Sucursal',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        verbose_name="Sucursal",
     )
 
     class Meta:

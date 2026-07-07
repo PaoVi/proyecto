@@ -1,0 +1,51 @@
+{% extends "seguridad/base.html" %}
+{% block content %}
+<div class="container-fluid py-0">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h2>Gasto #{{ gasto.id }}</h2>
+    <div>
+      <a href="{% url 'gasto_lista' %}" class="btn btn-outline-secondary btn-sm">Volver</a>
+      {% if gasto.estado != 'pagado' and perms.seguridad.gestionar_finanzas %}
+      <a href="{% url 'gasto_pagar' gasto.pk %}" class="btn btn-success btn-sm">Pagar</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card mb-2">
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-3"><strong>Tipo:</strong> {{ gasto.get_tipo_display }}</div>
+        <div class="col-md-3"><strong>Concepto:</strong> {{ gasto.concepto }}</div>
+        <div class="col-md-3"><strong>Proveedor:</strong> {{ gasto.proveedor|default:"-" }}</div>
+        <div class="col-md-3"><strong>Monto:</strong> ₲ {{ gasto.monto|floatformat:0 }}</div>
+        <div class="col-md-3"><strong>Fecha:</strong> {{ gasto.fecha|date:"d/m/Y" }}</div>
+        <div class="col-md-3"><strong>Vencimiento:</strong> {{ gasto.fecha_vencimiento|date:"d/m/Y"|default:"-" }}</div>
+        <div class="col-md-3"><strong>Estado:</strong>
+          {% if gasto.estado == 'pagado' %}<span class="badge bg-success">Pagado</span>
+          {% elif gasto.estado == 'vencido' %}<span class="badge bg-danger">Vencido</span>
+          {% else %}<span class="badge bg-warning text-dark">Pendiente</span>{% endif %}
+        </div>
+        <div class="col-md-3"><strong>Usuario:</strong> {{ gasto.usuario|default:"-" }}</div>
+      </div>
+      {% if gasto.descripcion %}<hr><p>{{ gasto.descripcion }}</p>{% endif %}
+      {% if gasto.observacion %}<p class="text-muted">{{ gasto.observacion }}</p>{% endif %}
+    </div>
+  </div>
+
+  {% if pagos %}
+  <h5>Pagos realizados</h5>
+  <table class="table table-sm">
+    <thead><tr><th>#</th><th>Fecha</th><th>Monto</th><th>Medio</th><th>Usuario</th></tr></thead>
+    <tbody>
+      {% for p in pagos %}
+      <tr>
+        <td>{{ p.id }}</td><td>{{ p.fecha|date:"d/m/Y H:i" }}</td>
+        <td>₲ {{ p.monto|floatformat:0 }}</td><td>{{ p.get_medio_pago_display }}</td>
+        <td>{{ p.usuario }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</div>
+{% endblock %}

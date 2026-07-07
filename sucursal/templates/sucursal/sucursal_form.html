@@ -1,0 +1,33 @@
+{% extends 'seguridad/base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <h2>{{ accion }} Sucursal</h2>
+  <form method="post">
+    {% csrf_token %}
+    <div class="mb-3">
+      <label class="form-label">Nombre *</label>
+      <input type="text" name="nombre" class="form-control" value="{{ sucursal.nombre|default:'' }}" required>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Dirección</label>
+      <textarea name="direccion" class="form-control" rows="2">{{ sucursal.direccion|default:'' }}</textarea>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Teléfono</label>
+      <input type="text" name="telefono" class="form-control" value="{{ sucursal.telefono|default:'' }}">
+    </div>
+    <div class="row">
+      <div class="col-md-3 mb-3">
+        <label class="form-label">Establecimiento SET</label>
+        <input type="text" name="establecimiento" class="form-control" value="{{ sucursal.establecimiento|default:'001' }}" maxlength="3">
+      </div>
+      <div class="col-md-3 mb-3">
+        <label class="form-label">Punto de emisión SET</label>
+        <input type="text" name="punto_emision" class="form-control" value="{{ sucursal.punto_emision|default:'001' }}" maxlength="3">
+      </div>
+    </div>
+    <button type="submit" class="btn btn-primary">Guardar</button>
+    <a href="{% url 'sucursal:sucursal_list' %}" class="btn btn-secondary">Cancelar</a>
+  </form>
+</div>
+{% endblock %}
